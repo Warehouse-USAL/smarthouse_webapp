@@ -1,9 +1,19 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Input from "../../ui/Input/Input";
 import Select from "../../ui/Select/Select";
 import Button from "../../ui/Button/Button";
 import { UNITS_OF_MEASURE } from "../../../services/categoryService";
 import "./CreateProductForm.css";
+
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+
+const readFileAsDataUrl = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
 
 const INITIAL = {
   name: "",
@@ -29,9 +39,37 @@ const validate = (values) => {
 export default function CreateProductForm({ categories, onSubmit, onCancel, submitting }) {
   const [values, setValues] = useState(INITIAL);
   const [errors, setErrors] = useState({});
+  const [imageError, setImageError] = useState("");
+  const fileInputRef = useRef(null);
 
   const handleChange = (field) => (e) => {
     setValues((v) => ({ ...v, [field]: e.target.value }));
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setImageError("El archivo debe ser una imagen");
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setImageError("La imagen no puede superar los 2 MB");
+      return;
+    }
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      setValues((v) => ({ ...v, imageUrl: dataUrl }));
+      setImageError("");
+    } catch {
+      setImageError("No se pudo leer el archivo");
+    }
+  };
+
+  const handleClearImage = () => {
+    setValues((v) => ({ ...v, imageUrl: "" }));
+    setImageError("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleSubmit = (e) => {
@@ -93,14 +131,45 @@ export default function CreateProductForm({ categories, onSubmit, onCancel, subm
           error={errors.minStock}
           required
         />
-        <Input
-          name="imageUrl"
-          label="URL de imagen"
-          placeholder="https://…"
-          value={values.imageUrl}
-          onChange={handleChange("imageUrl")}
-          hint="Opcional"
-        />
+        <div className="create-product-form__image-field">
+          <Input
+            name="imageUrl"
+            label="Imagen"
+            placeholder="Pegá una URL o subí un archivo"
+            value={values.imageUrl.startsWith("data:") ? "" : values.imageUrl}
+            onChange={handleChange("imageUrl")}
+            hint="Opcional"
+            disabled={values.imageUrl.startsWith("data:")}
+          />
+          <div className="create-product-form__image-actions">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="create-product-form__file-input"
+              onChange={handleFileChange}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={submitting}
+            >
+              Subir desde mi equipo
+            </Button>
+            {values.imageUrl && (
+              <Button type="button" variant="secondary" onClick={handleClearImage} disabled={submitting}>
+                Quitar
+              </Button>
+            )}
+          </div>
+          {imageError && <span className="create-product-form__image-error">{imageError}</span>}
+          {values.imageUrl && (
+            <div className="create-product-form__image-preview">
+              <img src={values.imageUrl} alt="Previsualización" />
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="create-product-form__actions">

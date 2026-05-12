@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
 import Card, { CardHeader } from "../../components/ui/Card/Card";
-import Select from "../../components/ui/Select/Select";
 import Button from "../../components/ui/Button/Button";
 import Modal from "../../components/ui/Modal/Modal";
 import Icon from "../../components/ui/Icon/Icon";
@@ -35,16 +34,8 @@ export default function WarehouseConfigPage() {
     [config, selected.zone]
   );
 
-  const lineOptions = useMemo(
-    () => (selectedZone ? range(selectedZone.lines) : []),
-    [selectedZone]
-  );
   const heightOptions = useMemo(
     () => (selectedZone ? range(selectedZone.heights) : []),
-    [selectedZone]
-  );
-  const positionOptions = useMemo(
-    () => (selectedZone ? range(selectedZone.positions) : []),
     [selectedZone]
   );
 
@@ -134,39 +125,43 @@ export default function WarehouseConfigPage() {
         <aside className="warehouse-page__side">
           <Card>
             <CardHeader icon={<Icon name="box" size={16} />} title="Ubicación" />
-            <div className="warehouse-page__selects">
-              <Select
-                label="Zona"
-                value={selected.zone}
-                onChange={(e) => setSelected({ zone: e.target.value, line: "", height: "", position: "" })}
-                options={config.zones.map((z) => ({ value: z.id, label: z.name }))}
-                placeholder="Seleccioná una zona"
-              />
-              <Select
-                label="Línea"
-                value={selected.line}
-                onChange={(e) => setSelected((s) => ({ ...s, line: e.target.value }))}
-                options={lineOptions}
-                placeholder="Seleccioná una línea"
-                disabled={!selectedZone}
-              />
-              <Select
-                label="Altura"
-                value={selected.height}
-                onChange={(e) => setSelected((s) => ({ ...s, height: e.target.value }))}
-                options={heightOptions}
-                placeholder="Seleccioná una altura"
-                disabled={!selectedZone}
-              />
-              <Select
-                label="Posición"
-                value={selected.position}
-                onChange={(e) => setSelected((s) => ({ ...s, position: e.target.value }))}
-                options={positionOptions}
-                placeholder="Seleccioná una posición"
-                disabled={!selectedZone}
-              />
-            </div>
+            <dl className="info-list">
+              <div className="info-list__row">
+                <dt>Zona</dt>
+                <dd>{selectedZone?.name ?? "-"}</dd>
+              </div>
+              <div className="info-list__row">
+                <dt>Línea</dt>
+                <dd>{selected.line ? String(selected.line).padStart(2, "0") : "-"}</dd>
+              </div>
+              <div className="info-list__row">
+                <dt>Posición</dt>
+                <dd>{selected.position ? String(selected.position).padStart(2, "0") : "-"}</dd>
+              </div>
+              <div className="info-list__row info-list__row--editable">
+                <dt>
+                  <label htmlFor="location-height">Altura</label>
+                </dt>
+                <dd>
+                  <select
+                    id="location-height"
+                    className="info-list__select"
+                    value={selected.height}
+                    onChange={(e) => setSelected((s) => ({ ...s, height: e.target.value }))}
+                    disabled={!selectedZone}
+                  >
+                    <option value="" disabled>
+                      Seleccioná
+                    </option>
+                    {heightOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </dd>
+              </div>
+            </dl>
           </Card>
 
           <Card>
