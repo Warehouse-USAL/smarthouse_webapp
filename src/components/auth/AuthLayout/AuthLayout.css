@@ -20,4 +20,6 @@
 .container_login
     .right_login{
         width: 60%;
+        display: flex;
+        align-items: center;
     }

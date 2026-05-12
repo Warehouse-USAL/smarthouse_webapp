@@ -6,20 +6,22 @@ import {
 } from "react-router-dom";
 
 import LoginPage from "../pages/auth/LoginPage/LoginPage";
+import ForgotPasswordPage from "../pages/auth/ForgotPasswordPage/ForgotPasswordPage";
+// import RegisterProviderPage from "../pages/auth/RegisterProviderPage/RegisterProviderPage";
 
 export default function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route
-          path="/"
-          element={<Navigate to="/login" />}
-        />
 
-        <Route
-          path="/login"
-          element={<LoginPage />}
-        />
+        {/* redirect base */}
+        <Route path="/" element={<Navigate to="/login" />} />
+
+        {/* AUTH ROUTES */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        {/* <Route path="/registro-proveedor" element={<RegisterProviderPage />} /> */}
+
       </Routes>
     </BrowserRouter>
   );

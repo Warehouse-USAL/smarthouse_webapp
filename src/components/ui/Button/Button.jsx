@@ -5,13 +5,15 @@ export default function Button({
   variant = "primary",
   disabled = false,
   type = "button",
+  onClick,
 }) {
   return (
-   <button
-  className={`button button--${variant}`}
-  type={type}
-  disabled={disabled}
->
+    <button
+      className={`button button--${variant}`}
+      type={type}
+      disabled={disabled}
+      onClick={onClick}
+    >
       {children}
     </button>
   );
