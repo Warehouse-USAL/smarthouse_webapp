@@ -1,72 +1,62 @@
-.input-group {
+.select-group {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
 }
 
-.input-group label {
+.select-group label {
   font-size: 14px;
   font-weight: 600;
   color: var(--color-text-primary);
 }
 
-.input-group__required {
+.select-group__required {
   color: var(--color-danger);
 }
 
-.input-wrap {
+.select-wrap {
   position: relative;
   display: flex;
   align-items: center;
 }
 
-.input-wrap__icon {
-  position: absolute;
-  left: 14px;
-  color: var(--color-text-muted);
-  display: inline-flex;
-  pointer-events: none;
-}
-
-.input-group input {
+.select-wrap select {
   width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
   border: 1px solid var(--color-border);
   background-color: var(--color-white);
   border-radius: var(--radius-md);
-  padding: 12px 14px;
+  padding: 12px 40px 12px 14px;
   font-size: 14px;
+  color: var(--color-text-primary);
+  cursor: pointer;
   transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 
-.input-wrap--has-icon input {
-  padding-left: 42px;
-}
-
-.input-group input::placeholder {
-  color: var(--color-text-muted);
-}
-
-.input-group input:focus {
+.select-wrap select:focus {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-primary-soft);
 }
 
-.input-group input:disabled {
+.select-wrap select:disabled {
   background-color: var(--color-surface-muted);
   cursor: not-allowed;
 }
 
-.input-group--error input {
+.select-wrap__chevron {
+  position: absolute;
+  right: 14px;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.select-group--error select {
   border-color: var(--color-danger);
 }
 
-.input-group__error {
+.select-group__error {
   font-size: 12px;
   color: var(--color-danger);
-}
-
-.input-group__hint {
-  font-size: 12px;
-  color: var(--color-text-secondary);
 }

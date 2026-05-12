@@ -1,32 +1,72 @@
 :root {
   /* Brand */
   --color-primary: #ffc400;
+  --color-primary-hover: #f5b800;
   --color-primary-dark: #b77900;
   --color-primary-soft: #fff8d7;
 
-  /* Borders */
-  --color-border-principal: #D1D5DB;
-
-  /* Neutral */
+  /* Surfaces */
   --color-white: #ffffff;
   --color-surface: #f5f6f8;
+  --color-surface-muted: #f9fafb;
+
+  /* Borders */
   --color-border: #d1d5db;
+  --color-border-principal: #d1d5db;
+  --color-border-soft: #e5e7eb;
 
   /* Text */
   --color-text-primary: #111827;
   --color-text-secondary: #6b7280;
+  --color-text-muted: #9ca3af;
 
   /* Functional */
   --color-link: #2563eb;
   --color-info-bg: #dbeafe;
 
+  /* Status */
+  --color-success: #16a34a;
+  --color-success-soft: #dcfce7;
+  --color-warning: #f59e0b;
+  --color-warning-soft: #ffedd5;
+  --color-danger: #dc2626;
+  --color-danger-soft: #fee2e2;
+
+  /* Zone palette (warehouse map) */
+  --color-zone-a: #fde68a;
+  --color-zone-a-soft: #fef3c7;
+  --color-zone-a-dot: #f59e0b;
+  --color-zone-b: #bbf7d0;
+  --color-zone-b-soft: #dcfce7;
+  --color-zone-b-dot: #22c55e;
+  --color-zone-c: #bfdbfe;
+  --color-zone-c-soft: #dbeafe;
+  --color-zone-c-dot: #3b82f6;
+  --color-zone-d: #ddd6fe;
+  --color-zone-d-soft: #ede9fe;
+  --color-zone-d-dot: #8b5cf6;
+
   /* Radius */
+  --radius-sm: 8px;
   --radius-md: 14px;
   --radius-lg: 18px;
+  --radius-full: 999px;
 
   /* Shadow */
   --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.06);
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
 
   /* Layout */
-  --container-width: 1200px;
+  --container-width: 1440px;
+  --navbar-height: 72px;
 }

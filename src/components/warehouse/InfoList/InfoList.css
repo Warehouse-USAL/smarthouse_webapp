@@ -1,0 +1,27 @@
+.info-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.info-list__row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border-soft);
+  font-size: 14px;
+}
+
+.info-list__row:last-child {
+  border-bottom: none;
+}
+
+.info-list__row dt {
+  color: var(--color-text-secondary);
+}
+
+.info-list__row dd {
+  color: var(--color-text-primary);
+  font-weight: 500;
+  text-align: right;
+}

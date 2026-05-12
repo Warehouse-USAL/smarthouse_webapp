@@ -1,0 +1,13 @@
+[     202ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=b608fe21:14337
+[     313ms] [ERROR] Access to XMLHttpRequest at 'http://localhost:8080/products' from origin 'http://localhost:5173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://localhost:5173/productos:0
+[     314ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8080/products:0
+[     317ms] [ERROR] Access to XMLHttpRequest at 'http://localhost:8080/products' from origin 'http://localhost:5173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://localhost:5173/productos:0
+[     317ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8080/products:0
+[   14609ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:5173/@vite/client:968
+[   14762ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=778e6ee6:14337
+[   14790ms] [ERROR] Access to XMLHttpRequest at 'http://localhost:8080/products' from origin 'http://localhost:5173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://localhost:5173/productos:0
+[   14791ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8080/products:0
+[   14794ms] [ERROR] Access to XMLHttpRequest at 'http://localhost:8080/products' from origin 'http://localhost:5173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://localhost:5173/productos:0
+[   14794ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8080/products:0
+[   26656ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:5173/@vite/client:968
+[   34870ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=778e6ee6:14337

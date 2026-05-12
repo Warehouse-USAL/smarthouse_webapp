@@ -1,0 +1,27 @@
+.create-product-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.create-product-form__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.create-product-form__grid > :last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
+.create-product-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+@media (max-width: 540px) {
+  .create-product-form__grid {
+    grid-template-columns: 1fr;
+  }
+}
