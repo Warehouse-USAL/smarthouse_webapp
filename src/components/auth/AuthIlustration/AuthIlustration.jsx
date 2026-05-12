@@ -10,25 +10,18 @@ export default function AuthIlustration({
 }) {
   return (
     <div className="auth_ilustration">
-
       <div className="auth_ilustration_header">
           <img src={logo} alt="" />
       </div>
-
       <div className="auth_ilustration_content">
-
         <h2>{title}</h2>
-
         <p>{body}</p>
-
       </div>
+
 
       <div className="auth_ilustration_image">
-
         <img src={image} alt="hero" />
-
       </div>
-
     </div>
   );
 }
