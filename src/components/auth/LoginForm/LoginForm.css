@@ -1,5 +1,34 @@
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  width: 100%;
+  height: 100%;
+  padding: 70px;
+  gap: 20px;
 }
+
+.login-form 
+  h1{
+    margin: 0 auto;
+    color: var(--color-text-primary);
+  }
+
+.login-form 
+  p{
+    margin: 0 auto;
+    color: var(--color-text-secundary);
+  }
+
+
+  
+  .login-form
+  a.olvido_contrasenia{
+    color: var(--color-link-blue);
+    text-decoration: none;
+  }
+
+.login-form
+  a.registrar_proveedor{
+    color: var(--color-yellow-dark-alt);
+    margin: 0 auto;
+  }
