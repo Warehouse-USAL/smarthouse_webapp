@@ -11,12 +11,17 @@
   h1{
     margin: 0 auto;
     color: var(--color-text-primary);
+    font-weight: 700;
+    font-size: 40px;
   }
 
 .login-form 
-  p{
+  h3{
     margin: 0 auto;
-    color: var(--color-text-secundary);
+  color: var(--color-text-secondary);
+  font-weight: 400;
+  font-size: 18px;
+  margin-top: -10px;
   }
 
 

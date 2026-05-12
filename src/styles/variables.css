@@ -36,4 +36,51 @@
   /* Layout */
   --container-login-width: 1000px;
   --container-login-height: 660px;
+
+
+  /* =========================
+     FONT FAMILIES
+  ========================= */
+
+  --font-title: "Poppins", "Noto Sans", Arial, sans-serif;
+  --font-body: "Inter", "Noto Sans", Arial, sans-serif;
+
+  /* =========================
+     FONT SIZES
+  ========================= */
+
+  --text-title-xl: 44px;
+  --text-title-lg: 38px;
+  --text-title-md: 34px;
+
+  --text-subtitle-lg: 24px;
+  --text-subtitle-md: 20px;
+  --text-subtitle-sm: 18px;
+
+  --text-label-lg: 16px;
+  --text-label-sm: 14px;
+
+  --text-button-lg: 20px;
+  --text-button-md: 16px;
+
+  --text-help-lg: 14px;
+  --text-help-sm: 12px;
+
+  /* =========================
+     FONT WEIGHTS
+  ========================= */
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+
+
+
+  /* transitions time */
+
+  --transition-duration-button: .7s;
+  --transition-duration-input: .5s;
+
 }

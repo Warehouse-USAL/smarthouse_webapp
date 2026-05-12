@@ -7,10 +7,11 @@ export default function Button({
   type = "button",
 }) {
   return (
-    <button
-      className={`button button--${variant}`}
-      type={type}
-    >
+   <button
+  className={`button button--${variant}`}
+  type={type}
+  disabled={disabled}
+>
       {children}
     </button>
   );

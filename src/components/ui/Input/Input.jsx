@@ -1,4 +1,8 @@
+import { useState } from "react";
 import "./Input.css";
+
+import eyeOpen from "../../../assets/eye-open.svg";
+import eyeClosed from "../../../assets/eye-closed.svg";
 
 export default function Input({
   label,
@@ -6,6 +10,10 @@ export default function Input({
   placeholder,
   iconLeft,
 }) {
+  const [showPassword, setShowPassword] = useState(false);
+
+  const isPassword = type === "password";
+
   return (
     <div className="input-group">
       {label && <label>{label}</label>}
@@ -14,10 +22,27 @@ export default function Input({
         {iconLeft && <div className="icon-left">{iconLeft}</div>}
 
         <input
-          type={type}
+          type={
+            isPassword
+              ? showPassword
+                ? "text"
+                : "password"
+              : type
+          }
           placeholder={placeholder}
-          className={iconLeft ? "with-left-icon" : ""}
         />
+
+        {isPassword && (
+          <div
+            className="icon-right"
+            onClick={() => setShowPassword(!showPassword)}
+          >
+            <img
+              src={showPassword ? eyeOpen : eyeClosed}
+              alt="toggle password"
+            />
+          </div>
+        )}
       </div>
     </div>
   );

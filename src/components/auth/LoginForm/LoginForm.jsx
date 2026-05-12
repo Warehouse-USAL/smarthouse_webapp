@@ -10,7 +10,7 @@ export default function LoginForm() {
   return (
     <form className="login-form">
       <h1>Iniciar sesión</h1>
-      <p>Accedé a SmartWarehouse</p>
+      <h3>Accedé a SmartWarehouse</h3>
  
       {/* EMAIL */}
       <Input
