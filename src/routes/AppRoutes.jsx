@@ -5,7 +5,7 @@ import {
   Navigate,
 } from "react-router-dom";
 
-import LoginPage from "../auth/LoginPage/LoginPage";
+import LoginPage from "../pages/auth/LoginPage/LoginPage";
 
 export default function AppRoutes() {
   return (
