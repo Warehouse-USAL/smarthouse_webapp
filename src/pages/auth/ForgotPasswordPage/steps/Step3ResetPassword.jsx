@@ -3,24 +3,25 @@ import LoginForm from "../../../../components/auth/LoginForm/LoginForm";
 
 import Input from "../../../../components/ui/Input/Input";
 import Button from "../../../../components/ui/Button/Button";
+import { Link } from "react-router-dom";
 
-import hero from "../../../../assets/ImagenInicioLogin.png";
-import lock from "../../../../assets/lock.svg";
+import hero from "../../../../assets/auth/RestablecerContrasenia_step3.png";
+import lock from "../../../../assets/icons/lock.svg";
 
 export default function Step3ResetPassword(onNext) {
   return {
     leftContent: (
       <AuthIlustration
-        title="Elegí una nueva contraseña"
-        body="Usá una contraseña segura y fácil de recordar."
+        title="Restablecé tu contraseña"
+        body="Creá una nueva contraseña para proteger tu cuenta."
         image={hero}
       />
     ),
 
     rightContent: (
       <LoginForm
-        title="Nueva contraseña"
-        subtitle="Ingresá y confirmá tu nueva contraseña."
+        title="Restablecer contraseña"
+        subtitle="Creá una nueva contraseña segura para tu cuenta."
       >
         <Input
           label="Nueva contraseña"
@@ -30,7 +31,7 @@ export default function Step3ResetPassword(onNext) {
         />
 
         <Input
-          label="Confirmar contraseña"
+          label="Confirmar nueva contraseña"
           type="password"
           placeholder="Confirmá tu contraseña"
           iconLeft={<img src={lock} alt="lock" />}
@@ -39,6 +40,10 @@ export default function Step3ResetPassword(onNext) {
         <Button type="button" onClick={onNext}>
           Restablecer contraseña
         </Button>
+
+        <Link to="/login" className="volverSesion">
+          Volver al inicio de sesión
+        </Link>
       </LoginForm>
     ),
   };

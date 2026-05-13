@@ -5,9 +5,9 @@ import LoginForm from "../../../components/auth/LoginForm/LoginForm";
 import Button from "../../../components/ui/Button/Button";
 import Input from "../../../components/ui/Input/Input";
 
-import hero from "../../../assets/ImagenInicioLogin.png";
-import mail from "../../../assets/mail.svg";
-import lock from "../../../assets/lock.svg";
+import hero from "../../../assets/auth/ImagenInicioLogin.png";
+import mail from "../../../assets/icons/mail.svg";
+import lock from "../../../assets/icons/lock.svg";
 
 import { Link } from "react-router-dom";
 

@@ -1,6 +1,6 @@
 import "./AuthIlustration.css";
 
-import logo from "../../../assets/Logos/Logo_con_Nombre_(sin fondo).png";
+import logo from "../../../assets/logos/Logo_con_Nombre_(sin fondo).png";
 
 
 export default function AuthIlustration({

@@ -2,8 +2,9 @@ import AuthIlustration from "../../../../components/auth/AuthIlustration/AuthIlu
 import LoginForm from "../../../../components/auth/LoginForm/LoginForm";
 
 import Button from "../../../../components/ui/Button/Button";
+import { Link } from "react-router-dom";
 
-import hero from "../../../../assets/ImagenInicioLogin.png";
+import hero from "../../../../assets/auth/CorreoEnviado_step2.png";
 
 export default function Step2LinkSent(onNext) {
   return {
@@ -17,12 +18,20 @@ export default function Step2LinkSent(onNext) {
 
     rightContent: (
       <LoginForm
-        title="Correo enviado"
-        subtitle="Revisá tu bandeja de entrada o spam."
+        title="¡Enlace enviado!"
+        subtitle="Si el correo existe en nuestro sistema, vas a recibir un enlace para restablecer tu contraseña."
       >
-        <Button type="button" onClick={onNext}>
-          Ya lo recibí
-        </Button>
+        <a className="volverSesion">
+          Renviar enlace
+        </a>
+
+        <Link to="/login" className="volverSesion">
+          Volver al inicio de sesión
+        </Link>
+
+        <p type="button" onClick={onNext} >
+                  boton harcodeado, pulse para seguir la secuencia
+                </p>
       </LoginForm>
     ),
   };

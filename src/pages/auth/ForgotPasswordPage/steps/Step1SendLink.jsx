@@ -6,8 +6,8 @@ import Button from "../../../../components/ui/Button/Button";
 
 import { Link } from "react-router-dom";
 
-import hero from "../../../../assets/ImagenInicioLogin.png";
-import mail from "../../../../assets/mail.svg";
+import hero from "../../../../assets/auth/RecuperarContrasenia_step1.png";
+import mail from "../../../../assets/icons/mail.svg";
 
 export default function Step1SendLink(onNext) {
   return {
