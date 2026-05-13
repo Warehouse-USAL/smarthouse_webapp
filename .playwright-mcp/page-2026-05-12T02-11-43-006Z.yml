@@ -1,0 +1,128 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - img [ref=e7]
+        - generic [ref=e11]: SmartWarehouse
+      - navigation "Principal" [ref=e12]:
+        - link "Inicio" [ref=e13] [cursor=pointer]:
+          - /url: /inicio
+        - link "Productos" [ref=e14] [cursor=pointer]:
+          - /url: /productos
+        - link "Configuración del warehouse" [ref=e15] [cursor=pointer]:
+          - /url: /configuracion
+        - link "Vehículos" [ref=e16] [cursor=pointer]:
+          - /url: /vehiculos
+      - generic [ref=e17] [cursor=pointer]:
+        - generic [ref=e19]: User 1
+        - img [ref=e20]
+  - main [ref=e22]:
+    - generic [ref=e24]:
+      - generic [ref=e25]:
+        - generic [ref=e26]:
+          - heading "Productos" [level=1] [ref=e27]
+          - paragraph [ref=e28]: Gestioná el catálogo y visualizá la información de cada producto.
+        - button "Dar de alta producto" [active] [ref=e30] [cursor=pointer]:
+          - img [ref=e32]
+          - generic [ref=e33]: Dar de alta producto
+      - generic [ref=e36]:
+        - generic:
+          - img
+        - textbox "Buscar por SKU" [ref=e37]
+      - generic [ref=e38]:
+        - generic [ref=e40]:
+          - generic [ref=e41]: Zonas
+          - generic [ref=e42]:
+            - combobox [ref=e43] [cursor=pointer]:
+              - option "Todas las zonas" [selected]
+              - option "Zona A"
+              - option "Zona B"
+              - option "Zona C"
+              - option "Zona D"
+            - img
+        - generic [ref=e45]:
+          - generic [ref=e46]: Categoría
+          - generic [ref=e47]:
+            - combobox [ref=e48] [cursor=pointer]:
+              - option "Todas las categorías" [selected]
+              - option "Periféricos"
+              - option "Monitores"
+              - option "Cámaras"
+              - option "Sensores"
+              - option "Almacenamiento"
+              - option "Redes"
+              - option "Accesorios"
+            - img
+        - generic [ref=e50]:
+          - generic [ref=e51]: Estado
+          - generic [ref=e52]:
+            - combobox [ref=e53] [cursor=pointer]:
+              - option "Todos los estados" [selected]
+              - option "Activos"
+              - option "Inactivos"
+            - img
+        - generic [ref=e54]:
+          - generic [ref=e55]: Stock reducido
+          - generic [ref=e56] [cursor=pointer]:
+            - checkbox "Mostrar solo productos con stock reducido"
+            - img [ref=e58]
+            - generic [ref=e60]: Mostrar solo productos con stock reducido
+      - generic [ref=e66]:
+        - img [ref=e68]
+        - heading "No hay productos" [level=3] [ref=e71]
+        - paragraph [ref=e72]: No encontramos productos con los filtros seleccionados.
+        - button "Dar de alta producto" [ref=e74] [cursor=pointer]:
+          - img [ref=e76]
+          - generic [ref=e77]: Dar de alta producto
+      - dialog [ref=e79]:
+        - generic [ref=e80]:
+          - heading "Dar de alta producto" [level=2] [ref=e81]
+          - button "Cerrar" [ref=e82] [cursor=pointer]:
+            - img [ref=e83]
+        - generic [ref=e87]:
+          - generic [ref=e88]:
+            - generic [ref=e89]:
+              - generic [ref=e90]: Nombre *
+              - textbox "Nombre *" [ref=e92]:
+                - /placeholder: Ej. Mouse inalámbrico
+            - generic [ref=e93]:
+              - generic [ref=e94]: SKU *
+              - textbox "SKU *" [ref=e96]:
+                - /placeholder: Ej. MOU-001
+            - generic [ref=e97]:
+              - generic [ref=e98]: Categoría *
+              - generic [ref=e99]:
+                - combobox "Categoría *" [ref=e100] [cursor=pointer]:
+                  - option "Seleccioná una categoría" [disabled] [selected]
+                  - option "Periféricos"
+                  - option "Monitores"
+                  - option "Cámaras"
+                  - option "Sensores"
+                  - option "Almacenamiento"
+                  - option "Redes"
+                  - option "Accesorios"
+                - img
+            - generic [ref=e101]:
+              - generic [ref=e102]: Unidad de medida *
+              - generic [ref=e103]:
+                - combobox "Unidad de medida *" [ref=e104] [cursor=pointer]:
+                  - option "unidad" [selected]
+                  - option "caja"
+                  - option "pallet"
+                  - option "kg"
+                  - option "litro"
+                  - option "metro"
+                - img
+            - generic [ref=e105]:
+              - generic [ref=e106]: Stock mínimo *
+              - spinbutton "Stock mínimo *" [ref=e108]: "0"
+            - generic [ref=e109]:
+              - generic [ref=e110]: URL de imagen
+              - textbox "URL de imagen" [ref=e112]:
+                - /placeholder: https://…
+              - generic [ref=e113]: Opcional
+          - generic [ref=e114]:
+            - button "Cancelar" [ref=e115] [cursor=pointer]:
+              - generic [ref=e116]: Cancelar
+            - button "Crear producto" [ref=e117] [cursor=pointer]:
+              - generic [ref=e118]: Crear producto
