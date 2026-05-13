@@ -9,6 +9,10 @@ export default function Input({
   type = "text",
   placeholder,
   iconLeft,
+
+  value,
+  onChange,
+  name,
 }) {
   const [showPassword, setShowPassword] = useState(false);
 
@@ -16,12 +20,22 @@ export default function Input({
 
   return (
     <div className="input-group">
+
       {label && <label>{label}</label>}
 
       <div className="input-wrapper">
-        {iconLeft && <div className="icon-left">{iconLeft}</div>}
+
+        {iconLeft && (
+          <div className="icon-left">
+            {iconLeft}
+          </div>
+        )}
 
         <input
+          name={name}
+          value={value}
+          onChange={onChange}
+
           type={
             isPassword
               ? showPassword
@@ -29,6 +43,7 @@ export default function Input({
                 : "password"
               : type
           }
+
           placeholder={placeholder}
         />
 
@@ -43,6 +58,7 @@ export default function Input({
             />
           </div>
         )}
+
       </div>
     </div>
   );
