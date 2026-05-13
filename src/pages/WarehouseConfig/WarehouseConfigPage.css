@@ -84,22 +84,6 @@
   border-color: var(--color-primary);
 }
 
-.warehouse-page__actions {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-3);
-}
-
-.warehouse-page__actions .button {
-  background-color: var(--color-primary-soft);
-  border-color: transparent;
-  justify-content: center;
-}
-
-.warehouse-page__actions .button:hover {
-  background-color: var(--color-primary);
-}
-
 .warehouse-page__data-note {
   font-size: 14px;
   color: var(--color-text-secondary);
@@ -114,10 +98,8 @@
 
 @media (max-width: 980px) {
   .warehouse-page__layout { grid-template-columns: 1fr; }
-  .warehouse-page__actions { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 540px) {
   .warehouse-page__grids { grid-template-columns: 1fr; }
-  .warehouse-page__actions { grid-template-columns: 1fr; }
 }

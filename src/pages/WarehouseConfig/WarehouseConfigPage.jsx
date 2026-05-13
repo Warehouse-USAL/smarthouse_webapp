@@ -94,7 +94,19 @@ export default function WarehouseConfigPage() {
 
       <div className="warehouse-page__layout">
         <Card padding="lg" className="warehouse-page__map">
-          <CardHeader icon={<Icon name="map" size={16} />} title="Mapa del warehouse" />
+          <CardHeader
+            icon={<Icon name="map" size={16} />}
+            title="Mapa del warehouse"
+            action={
+              <Button
+                variant="secondary"
+                iconLeft={<Icon name="grid" size={16} />}
+                onClick={() => setEditing("zones")}
+              >
+                Modificar zonas
+              </Button>
+            }
+          />
           {loading ? (
             <Spinner label="Cargando…" />
           ) : (
@@ -123,7 +135,19 @@ export default function WarehouseConfigPage() {
 
         <aside className="warehouse-page__side">
           <Card>
-            <CardHeader icon={<Icon name="box" size={16} />} title="Ubicación" />
+            <CardHeader
+              icon={<Icon name="box" size={16} />}
+              title="Ubicación"
+              action={
+                <Button
+                  variant="secondary"
+                  iconLeft={<Icon name="file" size={16} />}
+                  onClick={() => setEditing("data")}
+                >
+                  Modificar datos
+                </Button>
+              }
+            />
             <dl className="info-list">
               <div className="info-list__row">
                 <dt>Zona</dt>
@@ -175,69 +199,16 @@ export default function WarehouseConfigPage() {
         </aside>
       </div>
 
-      <div className="warehouse-page__actions">
-        <Button
-          variant="secondary"
-          iconLeft={<Icon name="grid" size={16} />}
-          onClick={() => setEditing("zones")}
-        >
-          Modificar zonas
-        </Button>
-        <Button
-          variant="secondary"
-          iconLeft={<Icon name="list" size={16} />}
-          onClick={() => setEditing("lines")}
-        >
-          Modificar líneas
-        </Button>
-        <Button
-          variant="secondary"
-          iconLeft={<Icon name="target" size={16} />}
-          onClick={() => setEditing("positions")}
-        >
-          Modificar posiciones
-        </Button>
-        <Button
-          variant="secondary"
-          iconLeft={<Icon name="file" size={16} />}
-          onClick={() => setEditing("data")}
-        >
-          Modificar datos de ubicación
-        </Button>
-      </div>
-
       <Modal
-        open={!!editing && editing !== "data"}
+        open={editing === "zones"}
         onClose={() => setEditing(null)}
-        title={
-          editing === "zones"
-            ? "Estructura de zonas"
-            : editing === "lines"
-              ? "Modificar líneas"
-              : "Modificar posiciones"
-        }
+        title="Estructura de zonas"
         size="lg"
       >
         {editing === "zones" && (
           <StructureEditForm
             zones={config.zones}
             fields={["lines", "positions", "heights"]}
-            onSubmit={handleSaveStructure}
-            onCancel={() => setEditing(null)}
-          />
-        )}
-        {editing === "lines" && (
-          <StructureEditForm
-            zones={config.zones}
-            fields={["lines"]}
-            onSubmit={handleSaveStructure}
-            onCancel={() => setEditing(null)}
-          />
-        )}
-        {editing === "positions" && (
-          <StructureEditForm
-            zones={config.zones}
-            fields={["positions", "heights"]}
             onSubmit={handleSaveStructure}
             onCancel={() => setEditing(null)}
           />
