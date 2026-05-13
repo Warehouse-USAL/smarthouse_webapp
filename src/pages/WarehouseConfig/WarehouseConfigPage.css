@@ -54,52 +54,66 @@
   gap: var(--space-4);
 }
 
-.info-list__row--editable {
-  align-items: center;
-}
-
-.info-list__row--editable dd {
+.warehouse-page__location-selects {
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
-.info-list__select {
-  font-size: 14px;
+.warehouse-page__location-selects .select-group label {
+  font-size: 13px;
   font-weight: 500;
-  color: var(--color-text-primary);
-  background-color: transparent;
-  border: 1px solid var(--color-border-soft);
-  border-radius: 6px;
-  padding: 4px 8px;
-  cursor: pointer;
-}
-
-.info-list__select:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.info-list__select:focus {
-  outline: none;
-  border-color: var(--color-primary);
-}
-
-.warehouse-page__data-note {
-  font-size: 14px;
   color: var(--color-text-secondary);
-  line-height: 1.5;
 }
 
-.warehouse-page__data-actions {
+.warehouse-page__action-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3);
+}
+
+.warehouse-page__action {
   display: flex;
-  justify-content: flex-end;
-  margin-top: var(--space-4);
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-yellow-primary);
+  background: var(--color-yellow-soft);
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: background 120ms ease, transform 120ms ease, box-shadow 120ms ease;
+}
+
+.warehouse-page__action:hover {
+  background: var(--color-yellow-primary);
+  box-shadow: var(--shadow-soft);
+}
+
+.warehouse-page__action:active {
+  transform: translateY(1px);
+}
+
+.warehouse-page__action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-primary);
 }
 
 @media (max-width: 980px) {
   .warehouse-page__layout { grid-template-columns: 1fr; }
+  .warehouse-page__action-bar { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 540px) {
   .warehouse-page__grids { grid-template-columns: 1fr; }
+  .warehouse-page__action-bar { grid-template-columns: 1fr; }
 }

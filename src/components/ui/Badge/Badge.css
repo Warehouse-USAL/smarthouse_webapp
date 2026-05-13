@@ -43,20 +43,20 @@
 
 .badge--zone-a {
   background-color: var(--color-zone-a);
-  color: #92400e;
+  color: var(--color-zone-a-text);
 }
 
 .badge--zone-b {
   background-color: var(--color-zone-b);
-  color: #166534;
+  color: var(--color-zone-b-text);
 }
 
 .badge--zone-c {
   background-color: var(--color-zone-c);
-  color: #1e40af;
+  color: var(--color-zone-c-text);
 }
 
 .badge--zone-d {
   background-color: var(--color-zone-d);
-  color: #5b21b6;
+  color: var(--color-zone-d-text);
 }

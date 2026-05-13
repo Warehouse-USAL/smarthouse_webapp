@@ -17,7 +17,7 @@
 .checkbox__box {
   width: 18px;
   height: 18px;
-  border-radius: 5px;
+  border-radius: var(--radius-soft);
   border: 1.5px solid var(--color-border);
   background-color: var(--color-white);
   display: inline-flex;

@@ -45,7 +45,10 @@ export default function ProductsPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
   const [createOpen, setCreateOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [deleting, setDeleting] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [categories, setCategories] = useState(categoryService.list());
   const [categoryFilter, setCategoryFilter] = useState("");
 
@@ -120,6 +123,37 @@ export default function ProductsPage() {
       alert(err.response?.data?.error?.message || "No pudimos crear el producto.");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleUpdate = async (values) => {
+    if (!editing) return;
+    setSubmitting(true);
+    try {
+      await productService.update(editing.id, values);
+      if (!categories.includes(values.category)) {
+        setCategories(categoryService.add(values.category));
+      }
+      setEditing(null);
+      await fetchProducts();
+    } catch (err) {
+      alert(err.response?.data?.error?.message || "No pudimos actualizar el producto.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleting) return;
+    setDeleteSubmitting(true);
+    try {
+      await productService.remove(deleting.id);
+      setDeleting(null);
+      await fetchProducts();
+    } catch (err) {
+      alert(err.response?.data?.error?.message || "No pudimos eliminar el producto.");
+    } finally {
+      setDeleteSubmitting(false);
     }
   };
 
@@ -200,7 +234,12 @@ export default function ProductsPage() {
       ) : (
         <div className="products-page__grid">
           {pageItems.map((product) => (
-            <ProductCard key={product.id || product.sku} product={product} />
+            <ProductCard
+              key={product.id || product.sku}
+              product={product}
+              onEdit={setEditing}
+              onDelete={setDeleting}
+            />
           ))}
         </div>
       )}
@@ -231,6 +270,56 @@ export default function ProductsPage() {
           onCancel={() => setCreateOpen(false)}
           onSubmit={handleCreate}
         />
+      </Modal>
+
+      <Modal
+        open={!!editing}
+        onClose={() => !submitting && setEditing(null)}
+        title="Editar producto"
+        size="lg"
+      >
+        {editing && (
+          <CreateProductForm
+            categories={categories}
+            submitting={submitting}
+            onCancel={() => setEditing(null)}
+            onSubmit={handleUpdate}
+            initial={editing}
+            mode="edit"
+          />
+        )}
+      </Modal>
+
+      <Modal
+        open={!!deleting}
+        onClose={() => !deleteSubmitting && setDeleting(null)}
+        title="Eliminar producto"
+        size="sm"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => setDeleting(null)}
+              disabled={deleteSubmitting}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleDelete}
+              disabled={deleteSubmitting}
+            >
+              {deleteSubmitting ? "Eliminando…" : "Eliminar"}
+            </Button>
+          </>
+        }
+      >
+        {deleting && (
+          <p className="products-page__delete-text">
+            ¿Seguro que querés eliminar <strong>{deleting.name}</strong> (SKU: {deleting.sku})?
+            Esta acción no se puede deshacer.
+          </p>
+        )}
       </Modal>
     </div>
   );
