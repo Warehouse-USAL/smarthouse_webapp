@@ -1,10 +1,10 @@
 import AuthIlustration from "../../../../components/auth/AuthIlustration/AuthIlustration";
 import LoginForm from "../../../../components/auth/LoginForm/LoginForm";
 
-import Button from "../../../../components/ui/Button/Button";
 import { Link } from "react-router-dom";
 
 import hero from "../../../../assets/auth/CorreoEnviado_step2.png";
+import mailSentIcon from "../../../../assets/auth/IconoCorreoEnviado_step2.png";
 
 export default function Step2LinkSent(onNext) {
   return {
@@ -18,20 +18,32 @@ export default function Step2LinkSent(onNext) {
 
     rightContent: (
       <LoginForm
+
+        topContent={
+          <img
+            src={mailSentIcon}
+            alt="correo enviado"
+            className="mail_sent_image"
+          />
+        }
+
         title="¡Enlace enviado!"
+
         subtitle="Si el correo existe en nuestro sistema, vas a recibir un enlace para restablecer tu contraseña."
       >
+
         <a className="volverSesion">
-          Renviar enlace
+          Reenviar enlace
         </a>
 
         <Link to="/login" className="volverSesion">
           Volver al inicio de sesión
         </Link>
 
-        <p type="button" onClick={onNext} >
-                  boton harcodeado, pulse para seguir la secuencia
-                </p>
+        <p onClick={onNext}>
+          boton harcodeado, pulse para seguir la secuencia
+        </p>
+
       </LoginForm>
     ),
   };

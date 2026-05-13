@@ -6,6 +6,7 @@ import Button from "../../../../components/ui/Button/Button";
 import { Link } from "react-router-dom";
 
 import hero from "../../../../assets/auth/ContraseniaRestablecida_step4.png";
+import succesIcon from "../../../../assets/auth/IconoSeguroCandado_step4.png";
 
 export default function Step4Success() {
   return {
@@ -18,7 +19,21 @@ export default function Step4Success() {
     ),
 
     rightContent: (
+
+
+
+      
       <LoginForm
+
+        topContent={
+          <img
+            src={succesIcon}
+            alt="correo enviado"
+            className="mail_sent_image"
+          />
+        }
+
+
         title="Listo, ya podés inciar sesión"
         subtitle="Tu contraseña fue actualizada correctamente."
       >

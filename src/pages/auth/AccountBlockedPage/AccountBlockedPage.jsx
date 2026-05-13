@@ -2,13 +2,11 @@ import AuthLayout from "../../../components/auth/AuthLayout/AuthLayout";
 import AuthIlustration from "../../../components/auth/AuthIlustration/AuthIlustration";
 import LoginForm from "../../../components/auth/LoginForm/LoginForm";
 
-import StatusBanner from "../../../components/ui/StatusBanner/StatusBanner"
+import StatusBanner from "../../../components/ui/StatusBanner/StatusBanner";
 
 import Button from "../../../components/ui/Button/Button";
-import Input from "../../../components/ui/Input/Input";
 
 import hero from "../../../assets/auth/ImagenBloqueoCuenta.png";
-import mail from "../../../assets/icons/mail.svg";
 import lockIcon from "../../../assets/icons/lock.svg";
 
 import { Link } from "react-router-dom";
@@ -28,21 +26,30 @@ export default function AccountBlockedPage() {
         }
 
         rightContent={
+          <div className="account-blocked-content">
 
-          
-          <LoginForm
-            title="Cuenta bloqueada temporalmente"
-            subtitle="La cuenta fue bloqueada por 24hs como medida de seguridad, ya que se registraron 5 intentos erróneos de acceder a la cuenta.\nPasado ese tiempo, podrás volver a intentarlo."
-          >
+            <StatusBanner
+              icon={<img src={lockIcon} alt="lock" />}
+              text="La cuenta fue bloqueada de forma temporal"
+            />
 
+            <LoginForm
+              title="Cuenta bloqueada temporalmente"
+              subtitleClassName="account-blocked"
+              subtitle={`La cuenta fue bloqueada por 24hs como medida de seguridad, ya que se registraron 5 intentos erróneos de acceder a la cuenta.
 
-            
-            <Link to="/login">
-                <Button type="submit">
-                Volver al inicio
+Pasado ese tiempo, podrás volver a intentarlo.`}
+            >
+
+              <Link to="/login">
+                <Button type="button">
+                  Volver al inicio
                 </Button>
-            </Link>
-          </LoginForm>
+              </Link>
+
+            </LoginForm>
+
+          </div>
         }
       />
     </div>

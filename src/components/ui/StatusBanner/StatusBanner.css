@@ -1,16 +1,13 @@
 .status-banner {
-  width: 100%;
-
-  display: flex;
-  align-items: center;
-  gap: 16px;
-
-  padding: 18px 20px;
-
-  border: 1px solid #f5d9a5;
-  border-radius: 20px;
-
-  background-color: #fff8ec;
+    width: 90%;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 0 auto;
+    padding: 9px 20px;
+    border: 1px solid #f5d9a5;
+    border-radius: 20px;
+    background-color: #fff8ec;
 }
 
 .status-banner-icon {
@@ -24,6 +21,10 @@
   border-radius: 50%;
 
   background-color: #fdecc8;
+}
+
+.status-banner-icon img{
+  width: 80%;
 }
 
 .status-banner-text {
