@@ -2,7 +2,6 @@ import { useRef, useState } from "react";
 import Input from "../../ui/Input/Input";
 import Select from "../../ui/Select/Select";
 import Button from "../../ui/Button/Button";
-import { UNITS_OF_MEASURE } from "../../../services/categoryService";
 import "./CreateProductForm.css";
 
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
@@ -19,8 +18,7 @@ const INITIAL = {
   name: "",
   sku: "",
   category: "",
-  unitOfMeasure: "unidad",
-  minStock: 0,
+  availableStock: 0,
   description: "",
   imageUrl: "",
 };
@@ -31,8 +29,9 @@ const validate = (values) => {
   if (!values.sku.trim()) errors.sku = "SKU requerido";
   else if (!/^[A-Z0-9-]+$/i.test(values.sku.trim())) errors.sku = "Solo letras, números y guiones";
   if (!values.category) errors.category = "Categoría requerida";
-  if (!values.unitOfMeasure) errors.unitOfMeasure = "Unidad requerida";
-  if (values.minStock === "" || Number(values.minStock) < 0) errors.minStock = "Debe ser ≥ 0";
+  if (values.availableStock === "" || Number(values.availableStock) < 0) {
+    errors.availableStock = "Debe ser ≥ 0";
+  }
   return errors;
 };
 
@@ -77,7 +76,11 @@ export default function CreateProductForm({ categories, onSubmit, onCancel, subm
     const errs = validate(values);
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
-    onSubmit({ ...values, sku: values.sku.trim().toUpperCase(), minStock: Number(values.minStock) });
+    onSubmit({
+      ...values,
+      sku: values.sku.trim().toUpperCase(),
+      availableStock: Number(values.availableStock),
+    });
   };
 
   return (
@@ -111,24 +114,15 @@ export default function CreateProductForm({ categories, onSubmit, onCancel, subm
           error={errors.category}
           required
         />
-        <Select
-          name="unitOfMeasure"
-          label="Unidad de medida"
-          value={values.unitOfMeasure}
-          onChange={handleChange("unitOfMeasure")}
-          options={UNITS_OF_MEASURE}
-          error={errors.unitOfMeasure}
-          required
-        />
         <Input
-          name="minStock"
-          label="Stock mínimo"
+          name="availableStock"
+          label="Stock inicial"
           type="number"
           min={0}
           step={1}
-          value={values.minStock}
-          onChange={handleChange("minStock")}
-          error={errors.minStock}
+          value={values.availableStock}
+          onChange={handleChange("availableStock")}
+          error={errors.availableStock}
           required
         />
         <div className="create-product-form__image-field">

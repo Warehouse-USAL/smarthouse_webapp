@@ -27,7 +27,7 @@ export default function ProductCard({ product, onSelect }) {
         <div className="product-card__meta">
           <span className="product-card__meta-row">
             <Icon name="box" size={14} />
-            Stock: {product.availableStock ?? 0} {product.unitOfMeasure || "unidades"}
+            Stock: {product.availableStock ?? 0} unidades
           </span>
           <span className="product-card__meta-row">
             <Icon name="pin" size={14} />

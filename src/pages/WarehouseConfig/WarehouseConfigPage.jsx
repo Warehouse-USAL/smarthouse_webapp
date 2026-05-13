@@ -82,7 +82,6 @@ export default function WarehouseConfigPage() {
     { label: "Nombre", value: matchingProduct?.name },
     { label: "Código", value: matchingProduct?.sku },
     { label: "Stock actual", value: matchingProduct?.availableStock },
-    { label: "Punto de reposición", value: matchingProduct?.minStock },
     { label: "Categoría", value: matchingProduct?.category },
   ];
 

@@ -3,7 +3,6 @@ import PageHeader from "../../components/ui/PageHeader/PageHeader";
 import Button from "../../components/ui/Button/Button";
 import Input from "../../components/ui/Input/Input";
 import Select from "../../components/ui/Select/Select";
-import Checkbox from "../../components/ui/Checkbox/Checkbox";
 import Icon from "../../components/ui/Icon/Icon";
 import Card from "../../components/ui/Card/Card";
 import Spinner from "../../components/ui/Spinner/Spinner";
@@ -43,7 +42,6 @@ export default function ProductsPage() {
   const [search, setSearch] = useState("");
   const [zone, setZone] = useState("");
   const [status, setStatus] = useState("");
-  const [lowStockOnly, setLowStockOnly] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
   const [createOpen, setCreateOpen] = useState(false);
@@ -96,10 +94,9 @@ export default function ProductsPage() {
   const filtered = useMemo(() => {
     return products.filter((p) => {
       if (zone && p.zone !== zone) return false;
-      if (lowStockOnly && (p.availableStock ?? 0) > (p.minStock ?? 0)) return false;
       return true;
     });
-  }, [products, zone, lowStockOnly]);
+  }, [products, zone]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const pageStart = (page - 1) * pageSize;
@@ -170,14 +167,6 @@ export default function ProductsPage() {
             value={status}
             onChange={(e) => { setStatus(e.target.value); setPage(1); }}
             options={STATUSES}
-          />
-        </div>
-        <div className="products-page__filter products-page__filter--check">
-          <label className="products-page__filter-label">Stock reducido</label>
-          <Checkbox
-            label="Mostrar solo productos con stock reducido"
-            checked={lowStockOnly}
-            onChange={(e) => { setLowStockOnly(e.target.checked); setPage(1); }}
           />
         </div>
       </Card>

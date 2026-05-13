@@ -25,5 +25,3 @@ export const categoryService = {
     return next;
   },
 };
-
-export const UNITS_OF_MEASURE = ["unidad", "caja", "pallet", "kg", "litro", "metro"];

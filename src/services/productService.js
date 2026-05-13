@@ -1,23 +1,57 @@
 import { apiClient } from "../lib/apiClient";
-import { localStore } from "../lib/localStore";
 
-const META_KEY = "product_meta_by_sku";
-
-const readMeta = () => localStore.get(META_KEY, {});
-
-const writeMeta = (sku, patch) => {
-  const all = readMeta();
-  all[sku] = { ...(all[sku] || {}), ...patch };
-  localStore.set(META_KEY, all);
+const normalize = (raw) => {
+  if (!raw) return raw;
+  const stock = raw.stock || {};
+  const location = raw.location || {};
+  const orderConstraints = raw.order_constraints || raw.orderConstraints || {};
+  return {
+    id: raw.id,
+    sku: raw.sku,
+    name: raw.name,
+    description: raw.description,
+    category: raw.category,
+    imageUrl: raw.image_url ?? raw.imageUrl ?? "",
+    active: raw.active,
+    createdAt: raw.created_at ?? raw.createdAt,
+    availableStock: stock.available ?? 0,
+    reservedStock: stock.reserved ?? 0,
+    maxQuantityPerOrder:
+      orderConstraints.max_quantity_per_order ?? orderConstraints.maxQuantityPerOrder ?? 0,
+    zone: location.zone || "",
+    line: location.line || "",
+    position: location.position || "",
+    height: location.height || "",
+  };
 };
 
-const hydrate = (product) => {
-  const meta = readMeta()[product.sku] || {};
-  return {
-    ...product,
-    unitOfMeasure: meta.unitOfMeasure || "unidad",
-    minStock: meta.minStock ?? 0,
-  };
+const toCreatePayload = (input) => ({
+  sku: input.sku,
+  name: input.name,
+  description: input.description ?? "",
+  category: input.category,
+  image_url: input.imageUrl ?? "",
+  available_stock: input.availableStock ?? 0,
+  max_quantity_per_order: input.maxQuantityPerOrder ?? 0,
+  zone: input.zone || null,
+  line: input.line || null,
+  position: input.position || null,
+  height: input.height || null,
+});
+
+const toUpdatePayload = (input) => {
+  const out = {};
+  if (input.name !== undefined) out.name = input.name;
+  if (input.description !== undefined) out.description = input.description;
+  if (input.category !== undefined) out.category = input.category;
+  if (input.imageUrl !== undefined) out.image_url = input.imageUrl;
+  if (input.availableStock !== undefined) out.available_stock = input.availableStock;
+  if (input.maxQuantityPerOrder !== undefined) out.max_quantity_per_order = input.maxQuantityPerOrder;
+  if (input.zone !== undefined) out.zone = input.zone;
+  if (input.line !== undefined) out.line = input.line;
+  if (input.position !== undefined) out.position = input.position;
+  if (input.height !== undefined) out.height = input.height;
+  return out;
 };
 
 export const productService = {
@@ -25,35 +59,24 @@ export const productService = {
     const params = {};
     if (category) params.category = category;
     if (search) params.search = search;
-    if (isActive !== undefined) params.isActive = isActive;
+    if (isActive !== undefined) params.is_active = isActive;
     const { data } = await apiClient.get("/products", { params });
-    return (data || []).map(hydrate);
+    return (data?.products || []).map(normalize);
   },
 
   async get(id) {
     const { data } = await apiClient.get(`/products/${id}`);
-    return hydrate(data);
+    return normalize(data?.product);
   },
 
-  async create({ sku, name, description, category, imageUrl, unitOfMeasure, minStock }) {
-    const { data } = await apiClient.post("/products", {
-      sku,
-      name,
-      description: description || "",
-      category,
-      imageUrl: imageUrl || "",
-    });
-    writeMeta(sku, { unitOfMeasure, minStock });
-    return hydrate(data || { sku, name, category, imageUrl, availableStock: 0, reservedStock: 0, active: true });
+  async create(input) {
+    const { data } = await apiClient.post("/products", toCreatePayload(input));
+    return normalize(data?.product);
   },
 
   async update(id, patch) {
-    const { unitOfMeasure, minStock, sku, ...rest } = patch;
-    const { data } = await apiClient.patch(`/products/${id}`, rest);
-    if (sku && (unitOfMeasure !== undefined || minStock !== undefined)) {
-      writeMeta(sku, { unitOfMeasure, minStock });
-    }
-    return hydrate(data);
+    const { data } = await apiClient.patch(`/products/${id}`, toUpdatePayload(patch));
+    return normalize(data?.product);
   },
 
   async remove(id) {
