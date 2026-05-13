@@ -53,14 +53,59 @@
   display: block;
 }
 
+.create-product-form__location {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-surface-muted, #f9fafb);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: var(--radius-md, 8px);
+}
+
+.create-product-form__location-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.create-product-form__location-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.create-product-form__location-subtitle {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted, #6b7280);
+}
+
+.create-product-form__location-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3);
+}
+
 .create-product-form__actions {
   display: flex;
   justify-content: flex-end;
   gap: var(--space-3);
 }
 
+@media (max-width: 720px) {
+  .create-product-form__location-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 540px) {
   .create-product-form__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .create-product-form__location-grid {
     grid-template-columns: 1fr;
   }
 }
