@@ -40,29 +40,69 @@
 
 
 
+import { login as mockLogin } from "./pruebasMockUp";
+
 const API_URL = import.meta.env.VITE_API_URL;
+const USE_MOCK = import.meta.env.VITE_USE_MOCK_AUTH === "true" || !API_URL;
 
 export async function login(email, password) {
 
   try {
 
-    const response = await fetch(
-      `${API_URL}/auth/login`,
-      {
+    // fallback al mock si no hay backend configurado
+    if (USE_MOCK) {
 
-        method: "POST",
+      const data = await mockLogin(email, password);
 
-        headers: {
-          "Content-Type": "application/json",
-        },
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
 
-        body: JSON.stringify({
-          email,
-          password,
-        }),
+      return data;
 
-      }
-    );
+    }
+
+
+
+    let response;
+
+    try {
+
+      response = await fetch(
+        `${API_URL}/auth/login`,
+        {
+
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify({
+            email,
+            password,
+          }),
+
+        }
+      );
+
+    }
+
+    // backend caído / inalcanzable → fallback al mock
+    catch (networkError) {
+
+      console.warn(
+        "AUTH: backend inalcanzable, usando mock.",
+        networkError
+      );
+
+      const data = await mockLogin(email, password);
+
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+
+      return data;
+
+    }
 
 
 
