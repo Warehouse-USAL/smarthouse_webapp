@@ -4,6 +4,8 @@
   --color-primary-hover: #f5b800;
   --color-yellow-primary-alt: #FFC400;
 
+  --color-yellow-soft: #fcf4e0;
+
   --color-yellow-dark: #B77900;
   --color-yellow-dark-alt: #A86B00;
 
@@ -16,6 +18,7 @@
   --color-border: #d1d5db;
   --color-border-principal: #d1d5db;
   --color-border-soft: #e5e7eb;
+  --color-border-gray: #D1D5DB;
 
   /* Texto */
   --color-text-primary: #111827;
@@ -74,4 +77,10 @@
   /* Layout */
   --container-width: 1440px;
   --navbar-height: 72px;
+
+
+    /* Layout */
+  --container-login-width: 1000px;
+  --container-login-height: 660px;
+
 }

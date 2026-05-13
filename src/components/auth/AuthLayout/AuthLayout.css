@@ -22,4 +22,6 @@
         width: 60%;
         display: flex;
         align-items: center;
+        background-color: #fff;
+        border-radius: 0 var(--radius-cards) var(--radius-cards) 0;
     }

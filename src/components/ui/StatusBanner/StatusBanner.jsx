@@ -3,9 +3,10 @@ import "./StatusBanner.css";
 export default function StatusBanner({
   icon,
   text,
+  statusBannerState = "status-banner",
 }) {
   return (
-    <div className="status-banner">
+    <div className={statusBannerState}>
       <div className="status-banner-icon">
         {icon}
       </div>

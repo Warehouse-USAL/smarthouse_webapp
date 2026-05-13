@@ -24,6 +24,7 @@ export default function Step3ResetPassword(onNext) {
         subtitle="Creá una nueva contraseña segura para tu cuenta."
       >
         <Input
+        variant="auth"
           label="Nueva contraseña"
           type="password"
           placeholder="Ingresá tu nueva contraseña"
@@ -31,6 +32,7 @@ export default function Step3ResetPassword(onNext) {
         />
 
         <Input
+        variant="auth"
           label="Confirmar nueva contraseña"
           type="password"
           placeholder="Confirmá tu contraseña"

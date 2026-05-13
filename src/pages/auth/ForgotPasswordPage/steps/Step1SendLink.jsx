@@ -25,6 +25,7 @@ export default function Step1SendLink(onNext) {
         subtitle="Ingresá tu correo electrónico y te enviaremos un enlace."
       >
         <Input
+        variant="auth"
           label="Correo electrónico"
           placeholder="Ingresá tu correo"
           iconLeft={<img src={mail} alt="mail" />}
