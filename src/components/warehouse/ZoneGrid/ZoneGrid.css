@@ -1,0 +1,78 @@
+.zone-grid {
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-soft);
+  background-color: var(--color-white);
+}
+
+.zone-grid--a { background-color: var(--color-zone-a-soft); }
+.zone-grid--b { background-color: var(--color-zone-b-soft); }
+.zone-grid--c { background-color: var(--color-zone-c-soft); }
+.zone-grid--d { background-color: var(--color-zone-d-soft); }
+
+.zone-grid__title {
+  text-align: center;
+  margin-bottom: var(--space-3);
+}
+
+.zone-grid__chip {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.zone-grid__chip--a { background-color: var(--color-zone-a); color: #92400e; }
+.zone-grid__chip--b { background-color: var(--color-zone-b); color: #166534; }
+.zone-grid__chip--c { background-color: var(--color-zone-c); color: #1e40af; }
+.zone-grid__chip--d { background-color: var(--color-zone-d); color: #5b21b6; }
+
+.zone-grid__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.zone-grid__row {
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.zone-grid__row-label {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.zone-grid__cells {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 3px;
+}
+
+.zone-grid__cell {
+  height: 22px;
+  border-radius: 2px;
+  border: none;
+  cursor: pointer;
+  transition: filter 80ms ease, outline-offset 80ms ease;
+  padding: 0;
+}
+
+.zone-grid--a .zone-grid__cell { background-color: rgba(245, 158, 11, 0.45); }
+.zone-grid--b .zone-grid__cell { background-color: rgba(34, 197, 94, 0.45); }
+.zone-grid--c .zone-grid__cell { background-color: rgba(59, 130, 246, 0.45); }
+.zone-grid--d .zone-grid__cell { background-color: rgba(139, 92, 246, 0.45); }
+
+.zone-grid__cell:hover {
+  filter: brightness(0.9);
+}
+
+.zone-grid__cell--selected {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 1px;
+  filter: brightness(0.85);
+}

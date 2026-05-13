@@ -1,0 +1,71 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - img [ref=e7]
+        - generic [ref=e11]: SmartWarehouse
+      - navigation "Principal" [ref=e12]:
+        - link "Inicio" [ref=e13] [cursor=pointer]:
+          - /url: /inicio
+        - link "Productos" [ref=e14] [cursor=pointer]:
+          - /url: /productos
+        - link "Configuración del warehouse" [ref=e15] [cursor=pointer]:
+          - /url: /configuracion
+        - link "Vehículos" [ref=e16] [cursor=pointer]:
+          - /url: /vehiculos
+      - generic [ref=e17] [cursor=pointer]:
+        - generic [ref=e19]: User 1
+        - img [ref=e20]
+  - main [ref=e22]:
+    - generic [ref=e24]:
+      - generic [ref=e25]:
+        - generic [ref=e26]:
+          - heading "Productos" [level=1] [ref=e27]
+          - paragraph [ref=e28]: Gestioná el catálogo y visualizá la información de cada producto.
+        - button "Dar de alta producto" [ref=e30] [cursor=pointer]:
+          - img [ref=e32]
+          - generic [ref=e33]: Dar de alta producto
+      - generic [ref=e36]:
+        - generic:
+          - img
+        - textbox "Buscar por SKU" [ref=e37]
+      - generic [ref=e38]:
+        - generic [ref=e40]:
+          - generic [ref=e41]: Zonas
+          - generic [ref=e42]:
+            - combobox [ref=e43] [cursor=pointer]:
+              - option "Todas las zonas" [selected]
+              - option "Zona A"
+              - option "Zona B"
+              - option "Zona C"
+              - option "Zona D"
+            - img
+        - generic [ref=e45]:
+          - generic [ref=e46]: Categoría
+          - generic [ref=e47]:
+            - combobox [ref=e48] [cursor=pointer]:
+              - option "Todas las categorías" [selected]
+              - option "Periféricos"
+              - option "Monitores"
+              - option "Cámaras"
+              - option "Sensores"
+              - option "Almacenamiento"
+              - option "Redes"
+              - option "Accesorios"
+            - img
+        - generic [ref=e50]:
+          - generic [ref=e51]: Estado
+          - generic [ref=e52]:
+            - combobox [ref=e53] [cursor=pointer]:
+              - option "Todos los estados" [selected]
+              - option "Activos"
+              - option "Inactivos"
+            - img
+        - generic [ref=e54]:
+          - generic [ref=e55]: Stock reducido
+          - generic [ref=e56] [cursor=pointer]:
+            - checkbox "Mostrar solo productos con stock reducido"
+            - img [ref=e58]
+            - generic [ref=e60]: Mostrar solo productos con stock reducido
+      - status [ref=e62]:
+        - generic [ref=e64]: Cargando productos…

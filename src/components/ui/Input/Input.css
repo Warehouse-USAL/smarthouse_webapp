@@ -1,10 +1,11 @@
 .input-group {
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: var(--space-2);
 }
 
 .input-group label {
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -17,72 +18,43 @@
 
 .input-group input {
   width: 100%;
-  height: 49px;
-  border-radius: var(--radius-soft);
-  border: 1px solid var(--color-border-gray);
-  outline: none;
-  font-size: 15px;
-  color: var(--color-grey);
-
-  padding-left: 54px;
-  padding-right: 40px;
-
-  outline: none;
-  box-shadow: none;
-
-  transition: all var(--transition-duration-input);
-
-  
+  border: 1px solid var(--color-border);
+  background-color: var(--color-white);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  font-size: 14px;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 
-/* iconos */
-
-.icon-left img,
-.icon-right img {
-  user-select: none;
-  -webkit-user-drag: none;
-  pointer-events: none;
+.input-wrap--has-icon input {
+  padding-left: 42px;
 }
 
-.icon-left {
-  position: absolute;
-  width: 40px;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: 8px;
+.input-group input::placeholder {
+  color: var(--color-text-muted);
 }
 
-.icon-left img {
-  width: 66%;
-}
-.icon-right {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  cursor: pointer;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.icon-right img {
-  width: 22px;
-  user-select: none;
-  -webkit-user-drag: none;
-  pointer-events: none;
-}
-
-/* hover */
-.icon-right:hover {
-  opacity: 0.8;
-}
-
-/* focus pro */
 .input-group input:focus {
-  border-color: var(--color-yellow-primary);
-  /* box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15); */
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+}
+
+.input-group input:disabled {
+  background-color: var(--color-surface-muted);
+  cursor: not-allowed;
+}
+
+.input-group--error input {
+  border-color: var(--color-danger);
+}
+
+.input-group__error {
+  font-size: 12px;
+  color: var(--color-danger);
+}
+
+.input-group__hint {
+  font-size: 12px;
+  color: var(--color-text-secondary);
 }

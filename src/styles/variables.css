@@ -1,24 +1,27 @@
 :root {
    /* Amarillos */
   --color-yellow-primary: #FBC400;
+  --color-primary-hover: #f5b800;
   --color-yellow-primary-alt: #FFC400;
 
   --color-yellow-dark: #B77900;
   --color-yellow-dark-alt: #A86B00;
 
-  --color-yellow-soft: #fcf4e0;
+  /* Surfaces */
+  --color-white: #ffffff;
+  --color-surface: #f5f6f8;
+  --color-surface-muted: #f9fafb;
 
-  /* Base */
-  --color-white: #FFFFFF;
-
-  /* Grises */
-  --color-surface-gray: #F5F6F8;
-  --color-border-gray: #D1D5DB;
+  /* Borders */
+  --color-border: #d1d5db;
+  --color-border-principal: #d1d5db;
+  --color-border-soft: #e5e7eb;
 
   /* Texto */
   --color-text-primary: #111827;
   --color-text-secondary: #374151;
   --color-text-secondary-alt: #6B7280;
+  --color-text-muted: #9ca3af;
 
   /* Azules */
   --color-link-blue: #2563EB;
@@ -26,61 +29,49 @@
   --color-info-blue-soft: #DBEAFE;
   --color-info-blue: #2563EB;
 
+  /* Status */
+  --color-success: #16a34a;
+  --color-success-soft: #dcfce7;
+  --color-warning: #f59e0b;
+  --color-warning-soft: #ffedd5;
+  --color-danger: #dc2626;
+  --color-danger-soft: #fee2e2;
+
+  /* Zone palette (warehouse map) */
+  --color-zone-a: #fde68a;
+  --color-zone-a-soft: #fef3c7;
+  --color-zone-a-dot: #f59e0b;
+  --color-zone-b: #bbf7d0;
+  --color-zone-b-soft: #dcfce7;
+  --color-zone-b-dot: #22c55e;
+  --color-zone-c: #bfdbfe;
+  --color-zone-c-soft: #dbeafe;
+  --color-zone-c-dot: #3b82f6;
+  --color-zone-d: #ddd6fe;
+  --color-zone-d-soft: #ede9fe;
+  --color-zone-d-dot: #8b5cf6;
+
   /* Radius */
+  --radius-sm: 8px;
   --radius-cards: 14px;
   --radius-soft: 7px;
+  --radius-full: 999px;
 
   /* Shadow */
   --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.06);
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
 
   /* Layout */
-  --container-login-width: 1000px;
-  --container-login-height: 660px;
-
-
-  /* =========================
-     FONT FAMILIES
-  ========================= */
-
-  --font-title: "Poppins", "Noto Sans", Arial, sans-serif;
-  --font-body: "Inter", "Noto Sans", Arial, sans-serif;
-
-  /* =========================
-     FONT SIZES
-  ========================= */
-
-  --text-title-xl: 44px;
-  --text-title-lg: 38px;
-  --text-title-md: 34px;
-
-  --text-subtitle-lg: 24px;
-  --text-subtitle-md: 20px;
-  --text-subtitle-sm: 18px;
-
-  --text-label-lg: 16px;
-  --text-label-sm: 14px;
-
-  --text-button-lg: 20px;
-  --text-button-md: 16px;
-
-  --text-help-lg: 14px;
-  --text-help-sm: 12px;
-
-  /* =========================
-     FONT WEIGHTS
-  ========================= */
-
-  --weight-regular: 400;
-  --weight-medium: 500;
-  --weight-semibold: 600;
-  --weight-bold: 700;
-
-
-
-
-  /* transitions time */
-
-  --transition-duration-button: .7s;
-  --transition-duration-input: .5s;
-
+  --container-width: 1440px;
+  --navbar-height: 72px;
 }
