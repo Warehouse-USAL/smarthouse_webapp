@@ -1,5 +1,76 @@
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  width: 100%;
+  padding: 73px;
+  gap: 30px;
 }
+
+.login-form-top-content {
+  margin: 0 auto;
+    width: 100%;
+    height: 172px;
+    justify-content: center;
+    display: flex;
+    /* outline: 1px solid red; */
+    overflow: hidden;
+}
+
+.login-form-top-content img{
+  object-fit: contain;
+  transform: scale(1.5);
+}
+
+.login-form 
+  h1{
+    margin: 0 auto;
+    color: var(--color-text-primary);
+    font-weight: 700;
+    font-size: 40px;
+    text-align: center;
+  }
+
+.login-form 
+  h3{
+    margin: 0 auto;
+  color: var(--color-text-secondary);
+  font-weight: 400;
+  font-size: 18px;
+  margin-top: -20px;
+  max-width: 328px;
+  text-align: center;
+  line-height: 26px;
+
+  }
+
+.login-form 
+  h3.account-blocked{
+    margin: unset;
+  max-width: 402px;
+  text-align: left;
+  }
+
+
+  .login-form h3 {
+  white-space: pre-line;
+}
+
+  
+  .login-form
+  a.olvido_contrasenia{
+    color: var(--color-link-blue);
+    text-decoration: none;
+  }
+
+   .login-form
+  a.volverSesion{
+    color: var(--color-link-blue);
+    text-decoration: none;
+    margin: 0 auto;
+  }
+
+.login-form
+  a.registrar_proveedor{
+    color: var(--color-yellow-dark-alt);
+    margin: 0 auto;
+  }

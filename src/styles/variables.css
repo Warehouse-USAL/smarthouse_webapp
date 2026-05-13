@@ -1,9 +1,11 @@
 :root {
-  /* Brand */
-  --color-primary: #ffc400;
+   /* Amarillos */
+  --color-yellow-primary: #FBC400;
   --color-primary-hover: #f5b800;
-  --color-primary-dark: #b77900;
-  --color-primary-soft: #fff8d7;
+  --color-yellow-primary-alt: #FFC400;
+
+  --color-yellow-dark: #B77900;
+  --color-yellow-dark-alt: #A86B00;
 
   /* Surfaces */
   --color-white: #ffffff;
@@ -15,14 +17,17 @@
   --color-border-principal: #d1d5db;
   --color-border-soft: #e5e7eb;
 
-  /* Text */
+  /* Texto */
   --color-text-primary: #111827;
-  --color-text-secondary: #6b7280;
+  --color-text-secondary: #374151;
+  --color-text-secondary-alt: #6B7280;
   --color-text-muted: #9ca3af;
 
-  /* Functional */
-  --color-link: #2563eb;
-  --color-info-bg: #dbeafe;
+  /* Azules */
+  --color-link-blue: #2563EB;
+
+  --color-info-blue-soft: #DBEAFE;
+  --color-info-blue: #2563EB;
 
   /* Status */
   --color-success: #16a34a;
@@ -48,8 +53,8 @@
 
   /* Radius */
   --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 18px;
+  --radius-cards: 14px;
+  --radius-soft: 7px;
   --radius-full: 999px;
 
   /* Shadow */

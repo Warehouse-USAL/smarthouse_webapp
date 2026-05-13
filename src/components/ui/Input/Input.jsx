@@ -1,4 +1,8 @@
+import { useState } from "react";
 import "./Input.css";
+
+import eyeOpen from "../../../assets/icons/eye-open.svg";
+import eyeClosed from "../../../assets/icons/eye-closed.svg";
 
 export default function Input({
   label,
@@ -16,8 +20,13 @@ export default function Input({
   step,
   disabled,
   ...rest
+  iconLeft,
 }) {
   const fieldId = id || name;
+  const [showPassword, setShowPassword] = useState(false);
+
+  const isPassword = type === "password";
+
   return (
     <div className={`input-group ${error ? "input-group--error" : ""}`}>
       {label && (

@@ -1,29 +1,28 @@
-import Button from "../../ui/Button/Button";
-import Input from "../../ui/Input/Input";
-
 import "./LoginForm.css";
 
-export default function LoginForm() {
+export default function LoginForm({
+  title,
+  subtitle,
+  topContent,
+  subtitleClassName = "",
+  children,
+  onSubmit,
+}) {
   return (
-    <form className="login-form">
-      <h1>Iniciar sesión</h1>
+    <form className="login-form" onSubmit={onSubmit}>
 
-      <p>Accedé a SmartWarehouse</p>
+      {topContent && (
+        <div className="login-form-top-content">
+          {topContent}
+        </div>
+      )}
 
-      <Input
-        label="Correo electrónico"
-        placeholder="Ingresá tu correo"
-      />
+      <h1>{title}</h1>
 
-      <Input
-        label="Contraseña"
-        type="password"
-        placeholder="Ingresá tu contraseña"
-      />
+      <h3 className={subtitleClassName}>{subtitle}</h3>
 
-      <Button type="submit">
-        Ingresar
-      </Button>
+      {children}
+
     </form>
   );
 }
