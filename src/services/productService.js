@@ -2,7 +2,7 @@ import { apiClient } from "../lib/apiClient";
 import { productMockService } from "./mocks/productMockService";
 
 const USE_MOCK =
-  import.meta.env.VITE_USE_MOCK_AUTH === "true" || !import.meta.env.VITE_API_BASE_URL;
+  import.meta.env.VITE_USE_MOCK === "true" || !import.meta.env.VITE_API_BASE_URL;
 
 const normalize = (raw) => {
   if (!raw) return raw;

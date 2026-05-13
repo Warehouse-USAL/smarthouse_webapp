@@ -95,9 +95,12 @@ export const warehouseConfigService = {
   addZone({ name } = {}) {
     const config = readConfig();
     const id = nextZoneId(config.zones);
+    const palette = ["a", "b", "c", "d"];
+    const color = palette[config.zones.length % palette.length];
     const newZone = ensureDefaults({
       id,
       name: name || `Zona ${id}`,
+      color,
       lines: 4,
       positions: 18,
       heights: 4,

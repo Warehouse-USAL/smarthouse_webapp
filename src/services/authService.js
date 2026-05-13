@@ -33,7 +33,7 @@
 |
 | 1. Descomentar esta función
 | 2. Eliminar el mock superior
-| 3. Configurar VITE_API_URL
+| 3. Configurar VITE_API_BASE_URL
 |
 */
 
@@ -42,8 +42,8 @@
 
 import { login as mockLogin } from "./pruebasMockUp";
 
-const API_URL = import.meta.env.VITE_API_URL;
-const USE_MOCK = import.meta.env.VITE_USE_MOCK_AUTH === "true" || !API_URL;
+const API_URL = import.meta.env.VITE_API_BASE_URL;
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true" || !API_URL;
 
 export async function login(email, password) {
 
