@@ -51,7 +51,7 @@
 
   background-color: var(--color-white);
 
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
 
   padding: 12px 14px;
 
@@ -239,7 +239,7 @@
 
   font-size: 15px;
 
-  color: var(--color-grey);
+  color: var(--color-text-primary);
 
   padding-left: 54px;
   padding-right: 40px;

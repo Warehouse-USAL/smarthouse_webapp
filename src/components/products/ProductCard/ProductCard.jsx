@@ -67,11 +67,6 @@ export default function ProductCard({ product, onSelect, onEdit, onDelete }) {
             Ubicación: {formatLocation(product)}
           </span>
         </div>
-
-        <button className="product-card__detail" type="button">
-          Ver detalle
-          <Icon name="chevronRight" size={14} />
-        </button>
       </div>
     </article>
   );

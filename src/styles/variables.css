@@ -9,10 +9,16 @@
   --color-yellow-dark: #B77900;
   --color-yellow-dark-alt: #A86B00;
 
+  /* Primary aliases (point to yellow brand) */
+  --color-primary: var(--color-yellow-primary);
+  --color-primary-dark: var(--color-yellow-dark);
+  --color-primary-soft: var(--color-yellow-soft);
+
   /* Surfaces */
   --color-white: #ffffff;
   --color-surface: #f5f6f8;
   --color-surface-muted: #f9fafb;
+  --color-bg-soft: var(--color-surface-muted);
 
   /* Borders */
   --color-border: #d1d5db;
@@ -25,37 +31,50 @@
   --color-text-secondary: #374151;
   --color-text-secondary-alt: #6B7280;
   --color-text-muted: #9ca3af;
+  --color-grey: var(--color-text-secondary-alt);
 
   /* Azules */
   --color-link-blue: #2563EB;
+  --color-link: var(--color-link-blue);
 
   --color-info-blue-soft: #DBEAFE;
   --color-info-blue: #2563EB;
+  --color-info-bg: var(--color-info-blue-soft);
 
   /* Status */
   --color-success: #16a34a;
   --color-success-soft: #dcfce7;
+  --color-success-border: #4ade80;
   --color-warning: #f59e0b;
   --color-warning-soft: #ffedd5;
+  --color-warning-bg: #fff8ec;
+  --color-warning-border: #f5d9a5;
   --color-danger: #dc2626;
   --color-danger-soft: #fee2e2;
+  --color-danger-border: #f87171;
 
   /* Zone palette (warehouse map) */
   --color-zone-a: #fde68a;
   --color-zone-a-soft: #fef3c7;
   --color-zone-a-dot: #f59e0b;
+  --color-zone-a-text: #92400e;
   --color-zone-b: #bbf7d0;
   --color-zone-b-soft: #dcfce7;
   --color-zone-b-dot: #22c55e;
+  --color-zone-b-text: #166534;
   --color-zone-c: #bfdbfe;
   --color-zone-c-soft: #dbeafe;
   --color-zone-c-dot: #3b82f6;
+  --color-zone-c-text: #1e40af;
   --color-zone-d: #ddd6fe;
   --color-zone-d-soft: #ede9fe;
   --color-zone-d-dot: #8b5cf6;
+  --color-zone-d-text: #5b21b6;
 
   /* Radius */
   --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
   --radius-cards: 14px;
   --radius-soft: 7px;
   --radius-full: 999px;
@@ -63,6 +82,7 @@
   /* Shadow */
   --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.08);
   --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-dropdown: 0 6px 20px rgba(0, 0, 0, 0.08);
 
   /* Spacing */
   --space-1: 4px;
@@ -73,6 +93,19 @@
   --space-6: 24px;
   --space-8: 32px;
   --space-10: 40px;
+
+  /* Transitions */
+  --transition-duration-button: 150ms ease;
+  --transition-duration-input: 120ms ease;
+
+  /* Typography */
+  --font-base: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-title: Poppins, Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --text-button-md: 15px;
 
   /* Layout */
   --container-width: 1440px;

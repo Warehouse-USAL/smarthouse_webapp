@@ -33,17 +33,17 @@
 
 .create-product-form__image-error {
   font-size: 0.85rem;
-  color: var(--color-danger, #c0392b);
+  color: var(--color-danger);
 }
 
 .create-product-form__image-preview {
   margin-top: var(--space-2);
   width: 120px;
   height: 120px;
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--radius-md);
   overflow: hidden;
-  background: var(--color-surface-muted, #f3f4f6);
-  border: 1px solid var(--color-border, #e5e7eb);
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
 }
 
 .create-product-form__image-preview img {
@@ -58,9 +58,9 @@
   flex-direction: column;
   gap: var(--space-3);
   padding: var(--space-4);
-  background: var(--color-surface-muted, #f9fafb);
-  border: 1px solid var(--color-border, #e5e7eb);
-  border-radius: var(--radius-md, 8px);
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
 }
 
 .create-product-form__location-header {
@@ -79,7 +79,7 @@
 .create-product-form__location-subtitle {
   margin: 0;
   font-size: 0.85rem;
-  color: var(--color-text-muted, #6b7280);
+  color: var(--color-text-muted);
 }
 
 .create-product-form__location-grid {

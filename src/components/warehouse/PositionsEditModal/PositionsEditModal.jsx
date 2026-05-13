@@ -151,11 +151,14 @@ function PositionsEditBody({ onClose, onSaved }) {
 
           <div className="positions-edit__strip">
             {viewPositions.map((p) => (
-              <div
-                key={p}
-                className={`positions-edit__strip-cell positions-edit__strip-cell--${zoneColor} ${p === positionNum ? "positions-edit__strip-cell--active" : ""}`}
-              >
-                <span className="positions-edit__strip-num">{p}</span>
+              <div key={p} className="positions-edit__strip-col">
+                <span className={`positions-edit__strip-num ${p === positionNum ? "positions-edit__strip-num--active" : ""}`}>
+                  {p}
+                </span>
+                <div
+                  className={`positions-edit__strip-cell positions-edit__strip-cell--${zoneColor} ${p === positionNum ? "positions-edit__strip-cell--active" : ""}`}
+                />
+                <div className={`positions-edit__strip-link ${p === positionNum ? "positions-edit__strip-link--active" : ""}`} />
               </div>
             ))}
           </div>
@@ -163,20 +166,15 @@ function PositionsEditBody({ onClose, onSaved }) {
           <div className="positions-edit__stack-label">Altura de la posición seleccionada</div>
 
           <div className="positions-edit__stack">
-            <div className="positions-edit__stack-axis">
-              {heightLevels.map((lvl) => (
-                <span key={lvl} className="positions-edit__stack-axis-label">{lvl}</span>
-              ))}
-            </div>
-            <div className="positions-edit__stack-bars">
-              {heightLevels.map((lvl) => (
+            {heightLevels.map((lvl) => (
+              <div key={lvl} className="positions-edit__stack-row">
+                <span className="positions-edit__stack-axis-label">{lvl}</span>
                 <div
-                  key={lvl}
                   className={`positions-edit__stack-bar ${lvl <= Number(height) ? `positions-edit__stack-bar--filled positions-edit__stack-bar--${zoneColor}` : ""}`}
                 />
-              ))}
-              <span className="positions-edit__stack-base" />
-            </div>
+              </div>
+            ))}
+            <div className="positions-edit__stack-base" />
           </div>
         </div>
       </div>

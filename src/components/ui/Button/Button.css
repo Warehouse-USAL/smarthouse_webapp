@@ -51,20 +51,11 @@
 /* Variants */
 .button--primary {
   background-color: var(--color-yellow-primary);
-  color: black;
+  color: var(--color-text-primary);
   font-size: var(--text-button-md);
   font-family: var(--font-title);
   font-weight: var(--weight-bold);
   letter-spacing: 1px;
-}
-
-.button--primary:hover{
-  background-color: var(--color-white);
-  border: 1px solid var(--color-yellow-primary);
-}
-
-.button--primary:not(:disabled):hover {
-  background-color: var(--color-primary-hover);
 }
 
 .button--primary:not(:disabled):hover {
@@ -72,14 +63,14 @@
 }
 
 .button--secondary {
-  background-color: white;
+  background-color: var(--color-white);
   color: var(--color-text-primary);
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--color-border-principal);
 }
 
 .button:disabled {
-  background-color: #d1d5db;
-  color: #6b7280;
+  background-color: var(--color-border-principal);
+  color: var(--color-text-secondary-alt);
   cursor: not-allowed;
 }
 

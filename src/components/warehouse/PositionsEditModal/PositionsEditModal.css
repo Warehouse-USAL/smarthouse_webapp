@@ -6,7 +6,7 @@
 
 .positions-edit__layout {
   display: grid;
-  grid-template-columns: minmax(220px, 280px) 1fr;
+  grid-template-columns: minmax(220px, 260px) 1fr;
   gap: var(--space-5);
 }
 
@@ -33,8 +33,8 @@
   align-items: center;
   gap: var(--space-2);
   padding: 4px;
-  border: 1px solid var(--color-border, #e5e7eb);
-  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   background: var(--color-white);
   width: max-content;
 }
@@ -42,9 +42,9 @@
 .positions-edit__step-btn {
   width: 36px;
   height: 36px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: none;
-  background: var(--color-surface-muted, #f3f4f6);
+  background: var(--color-surface-muted);
   font-size: 18px;
   font-weight: 600;
   color: var(--color-text-primary);
@@ -53,7 +53,7 @@
 }
 
 .positions-edit__step-btn:hover {
-  background: var(--color-border-soft, #e5e7eb);
+  background: var(--color-border-soft);
 }
 
 .positions-edit__step-value {
@@ -66,7 +66,7 @@
 
 .positions-edit__step-hint {
   font-size: 12px;
-  color: var(--color-text-muted, #6b7280);
+  color: var(--color-text-muted);
 }
 
 .positions-edit__visual {
@@ -74,9 +74,6 @@
   flex-direction: column;
   gap: var(--space-3);
   padding: var(--space-4);
-  border-radius: var(--radius-md, 12px);
-  background: var(--color-surface-muted, #f9fafb);
-  border: 1px solid var(--color-border-soft, #e5e7eb);
 }
 
 .positions-edit__visual-header {
@@ -93,22 +90,37 @@
   color: var(--color-text-secondary);
 }
 
+/* ---------- Strip (línea horizontal) ---------- */
+
 .positions-edit__strip {
   display: grid;
   grid-template-columns: repeat(9, 1fr);
-  gap: 6px;
+  gap: 8px;
+}
+
+.positions-edit__strip-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.positions-edit__strip-num {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.positions-edit__strip-num--active {
+  color: var(--color-text-primary);
+  font-weight: 700;
 }
 
 .positions-edit__strip-cell {
+  width: 100%;
   height: 44px;
   border-radius: 8px;
   border: 1px solid transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text-muted, #6b7280);
 }
 
 .positions-edit__strip-cell--a { background: var(--color-zone-a-soft); border-color: var(--color-zone-a); }
@@ -116,60 +128,64 @@
 .positions-edit__strip-cell--c { background: var(--color-zone-c-soft); border-color: var(--color-zone-c); }
 .positions-edit__strip-cell--d { background: var(--color-zone-d-soft); border-color: var(--color-zone-d); }
 
-.positions-edit__strip-cell--active.positions-edit__strip-cell--a { background: var(--color-zone-a-dot); color: var(--color-white, #fff); border-color: var(--color-zone-a-dot); }
-.positions-edit__strip-cell--active.positions-edit__strip-cell--b { background: var(--color-zone-b-dot); color: var(--color-white, #fff); border-color: var(--color-zone-b-dot); }
-.positions-edit__strip-cell--active.positions-edit__strip-cell--c { background: var(--color-zone-c-dot); color: var(--color-white, #fff); border-color: var(--color-zone-c-dot); }
-.positions-edit__strip-cell--active.positions-edit__strip-cell--d { background: var(--color-zone-d-dot); color: var(--color-white, #fff); border-color: var(--color-zone-d-dot); }
+.positions-edit__strip-cell--active.positions-edit__strip-cell--a { background: var(--color-zone-a-dot); border-color: var(--color-zone-a-dot); }
+.positions-edit__strip-cell--active.positions-edit__strip-cell--b { background: var(--color-zone-b-dot); border-color: var(--color-zone-b-dot); }
+.positions-edit__strip-cell--active.positions-edit__strip-cell--c { background: var(--color-zone-c-dot); border-color: var(--color-zone-c-dot); }
+.positions-edit__strip-cell--active.positions-edit__strip-cell--d { background: var(--color-zone-d-dot); border-color: var(--color-zone-d-dot); }
+
+.positions-edit__strip-link {
+  width: 0;
+  height: 22px;
+  border-left: 1px dashed transparent;
+}
+
+.positions-edit__strip-link--active {
+  border-left-color: var(--color-text-muted);
+}
+
+/* ---------- Stack (torre vertical) ---------- */
 
 .positions-edit__stack-label {
   text-align: center;
   font-size: 13px;
-  color: var(--color-text-secondary);
-  margin-top: var(--space-2);
+  font-weight: 600;
+  color: var(--color-text-primary);
 }
 
 .positions-edit__stack {
-  display: grid;
-  grid-template-columns: 32px 1fr;
-  gap: var(--space-2);
-  align-items: end;
-  padding: var(--space-2) var(--space-4);
-  max-width: 220px;
-  margin: 0 auto;
-}
-
-.positions-edit__stack-axis {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  height: 168px;
-  font-size: 12px;
-  color: var(--color-text-muted, #6b7280);
-}
-
-.positions-edit__stack-axis-label {
-  line-height: 24px;
-}
-
-.positions-edit__stack-bars {
   position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  gap: 4px;
-  height: 168px;
+  gap: 6px;
+  padding: 0 var(--space-4) var(--space-3);
+  max-width: 320px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.positions-edit__stack-row {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.positions-edit__stack-axis-label {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  text-align: right;
 }
 
 .positions-edit__stack-bar {
-  height: 24px;
-  border-radius: 4px;
-  background: var(--color-border-soft, #e5e7eb);
-  border: 1px solid transparent;
+  height: 26px;
+  border-radius: var(--radius-soft);
+  background: transparent;
+  border: 1px dashed var(--color-border);
 }
 
 .positions-edit__stack-bar--filled {
   background: var(--color-zone-a);
-  border-color: var(--color-zone-a-dot);
+  border: 1px solid var(--color-zone-a-dot);
 }
 
 .positions-edit__stack-bar--filled.positions-edit__stack-bar--a { background: var(--color-zone-a); border-color: var(--color-zone-a-dot); }
@@ -178,13 +194,11 @@
 .positions-edit__stack-bar--filled.positions-edit__stack-bar--d { background: var(--color-zone-d); border-color: var(--color-zone-d-dot); }
 
 .positions-edit__stack-base {
-  position: absolute;
-  left: -8px;
-  right: -8px;
-  bottom: -4px;
+  margin-left: calc(24px + var(--space-2));
   height: 2px;
-  background: var(--color-border, #d1d5db);
+  background: var(--color-text-primary);
   border-radius: 2px;
+  margin-top: 4px;
 }
 
 .positions-edit__actions {

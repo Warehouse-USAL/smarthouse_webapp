@@ -33,9 +33,9 @@
   flex-wrap: wrap;
   gap: 4px;
   padding: var(--space-3);
-  border-radius: var(--radius-md, 12px);
-  background: var(--color-surface-muted, #f9fafb);
-  border: 1px solid var(--color-border-soft, #e5e7eb);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border-soft);
 }
 
 .lines-edit__cell {
@@ -55,7 +55,7 @@
 
 .lines-edit__cell--last {
   background: var(--color-zone-a-dot);
-  color: var(--color-white, #fff);
+  color: var(--color-white);
   border-color: var(--color-zone-a-dot);
 }
 
@@ -73,9 +73,9 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-3);
-  border-radius: var(--radius-md, 12px);
-  background: var(--color-surface-muted, #f9fafb);
-  border: 1px solid var(--color-border-soft, #e5e7eb);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border-soft);
   color: var(--color-text-secondary);
   font-size: 13px;
 }

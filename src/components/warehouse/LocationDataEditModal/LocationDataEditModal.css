@@ -16,7 +16,7 @@
   flex-direction: column;
   gap: var(--space-2);
   padding: var(--space-3) 0;
-  border-top: 1px solid var(--color-border-soft, #e5e7eb);
+  border-top: 1px solid var(--color-border-soft);
 }
 
 .location-data__section-title {
@@ -31,9 +31,9 @@
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
   margin-top: var(--space-3);
-  border-radius: var(--radius-md, 12px);
-  background: var(--color-surface-muted, #f9fafb);
-  border: 1px solid var(--color-border-soft, #e5e7eb);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border-soft);
   font-size: 14px;
 }
 

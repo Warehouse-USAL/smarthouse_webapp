@@ -88,9 +88,9 @@
 }
 
 .product-card__action--danger:hover {
-  border-color: var(--color-danger, #c0392b);
-  color: var(--color-danger, #c0392b);
-  background: var(--color-danger-soft, #fdecea);
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
 }
 
 .product-card__sku {

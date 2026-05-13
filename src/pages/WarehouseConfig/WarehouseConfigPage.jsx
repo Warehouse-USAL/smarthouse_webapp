@@ -118,7 +118,6 @@ export default function WarehouseConfigPage() {
 
   const locationInfo = [
     { label: "Código de la ubicación", value: locationCode },
-    { label: "Categoría permitida", value: matchingProduct?.category },
     { label: "Capacidad máxima", value: locationData?.capacity },
     { label: "Stock actual", value: matchingProduct?.availableStock },
   ];
