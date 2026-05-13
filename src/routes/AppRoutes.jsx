@@ -16,7 +16,7 @@ export default function AppRoutes() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route element={<AppLayout />}>
-          <Route path="/" element={<Navigate to="/inicio" replace />} />
+          {/* <Route path="/" element={<Navigate to="/inicio" replace />} /> */}
           <Route path="/inicio" element={<HomePage />} />
           <Route path="/productos" element={<ProductsPage />} />
           <Route path="/configuracion" element={<WarehouseConfigPage />} />
