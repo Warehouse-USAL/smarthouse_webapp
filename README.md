@@ -15,6 +15,42 @@ Aplicación web desarrollada en React + Vite para la gestión y monitoreo de un 
 
 ---
 
+# Flujo de trabajo Git
+
+## Estructura de ramas
+
+| Rama | Uso | Regla |
+|---|---|---|
+| `main` | Producción | Solo contiene versiones estables. No se desarrolla directamente sobre esta rama. |
+| `develop` | Desarrollo principal | Base para crear nuevas branches de trabajo. |
+
+---
+
+## Flujo obligatorio de trabajo
+
+| Paso | Acción | Comando / Descripción |
+|---|---|---|
+| 1 | Crear Issue | Toda tarea debe comenzar con un Issue en GitHub. |
+| 2 | Actualizar `develop` | `git checkout develop`<br>`git pull origin develop` |
+| 3 | Crear branch nueva | `git checkout -b feature/nombre-feature` |
+| 4 | Desarrollar cambios | Trabajar normalmente sobre la nueva branch. |
+| 5 | Guardar cambios | `git add .`<br>`git commit -m "feat: descripcion"` |
+| 6 | Subir branch | `git push origin feature/nombre-feature` |
+| 7 | Crear Pull Request | El PR debe apuntar a `develop`. |
+| 8 | Merge final | Una vez probado y aprobado, recién pasa a `main`. |
+
+---
+
+## Ejemplos de nombres de branches
+
+| Tipo | Ejemplo |
+|---|---|
+| Feature | `feature/login` |
+| Feature | `feature/dashboard` |
+| Fix | `fix/navbar-responsive` |
+| Refactor | `refactor/auth-service` |
+
+---
 # Levantar el proyecto por primera vez
 
 ## Linux
