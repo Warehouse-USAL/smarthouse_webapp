@@ -1,0 +1,39 @@
+.structure-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.structure-edit-form__head,
+.structure-edit-form__row {
+  display: grid;
+  grid-template-columns: 100px repeat(auto-fit, minmax(0, 1fr));
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.structure-edit-form__head {
+  grid-template-columns: 100px 1fr 1fr 1fr;
+}
+
+.structure-edit-form__row {
+  grid-template-columns: 100px 1fr 1fr 1fr;
+}
+
+.structure-edit-form__col-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.structure-edit-form__zone {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.structure-edit-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}

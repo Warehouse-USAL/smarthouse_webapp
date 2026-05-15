@@ -1,0 +1,13 @@
+.container_center_login{
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.login-error {
+  color: red;
+  font-size: 14px;
+  text-align: center;
+}

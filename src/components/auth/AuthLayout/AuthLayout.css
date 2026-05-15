@@ -1,0 +1,27 @@
+.container_login{
+    width: var(--container-login-width);
+    height: var(--container-login-height);
+    box-shadow: var(--shadow-card);
+    border-radius: var(--radius-cards);
+    border: 1px solid var(--color-border-principal);
+    display: flex;
+    position: relative;
+    border: 1px solid var(--color-border-gray);
+}
+
+.container_login 
+    .left_login{
+        width: 40%;
+        /* background-color: var(--color-yellow-soft); */
+        /* border-radius: var(--radius-md); */
+        
+    }
+
+.container_login
+    .right_login{
+        width: 60%;
+        display: flex;
+        align-items: center;
+        background-color: var(--color-white);
+        border-radius: 0 var(--radius-cards) var(--radius-cards) 0;
+    }

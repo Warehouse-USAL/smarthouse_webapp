@@ -1,0 +1,51 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - img [ref=e7]
+        - generic [ref=e11]: SmartWarehouse
+      - navigation "Principal" [ref=e12]:
+        - link "Inicio" [ref=e13] [cursor=pointer]:
+          - /url: /inicio
+        - link "Productos" [ref=e14] [cursor=pointer]:
+          - /url: /productos
+        - link "Configuración del warehouse" [ref=e15] [cursor=pointer]:
+          - /url: /configuracion
+        - link "Vehículos" [ref=e16] [cursor=pointer]:
+          - /url: /vehiculos
+      - generic [ref=e17] [cursor=pointer]:
+        - generic [ref=e19]: User 1
+        - img [ref=e20]
+  - main [ref=e22]:
+    - generic [ref=e24]:
+      - generic [ref=e25]:
+        - generic [ref=e26]:
+          - heading "Vehículos" [level=1] [ref=e27]
+          - paragraph [ref=e28]: Visualizá el estado y la ubicación actual de los vehículos del warehouse.
+        - button "Dar de alta vehículo" [ref=e30] [cursor=pointer]:
+          - img [ref=e32]
+          - generic [ref=e33]: Dar de alta vehículo
+      - generic [ref=e34]:
+        - generic [ref=e35]:
+          - generic [ref=e36]: Buscar vehículo
+          - generic [ref=e37]:
+            - generic:
+              - img
+            - textbox "Buscar vehículo" [ref=e38]
+        - generic [ref=e39]:
+          - generic [ref=e40]: Estado
+          - generic [ref=e41]:
+            - combobox [ref=e42] [cursor=pointer]:
+              - option "Todos los estados" [selected]
+              - option "Disponible"
+              - option "Ocupado"
+              - option "Offline"
+              - option "Mantenimiento"
+            - img
+      - generic [ref=e44]:
+        - img [ref=e46]
+        - heading "No hay vehículos" [level=3] [ref=e51]
+        - paragraph [ref=e52]: Cuando registres vehículos, los verás listados acá.
+        - button "Dar de alta vehículo" [ref=e54] [cursor=pointer]:
+          - img [ref=e56]
+          - generic [ref=e57]: Dar de alta vehículo

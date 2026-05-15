@@ -1,0 +1,350 @@
+/*
+|--------------------------------------------------------------------------
+| BASE
+|--------------------------------------------------------------------------
+*/
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.input-group label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.input-group__required {
+  color: var(--color-danger);
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| WRAPPER
+|--------------------------------------------------------------------------
+*/
+
+.input-wrapper {
+  position: relative;
+
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| INPUT
+|--------------------------------------------------------------------------
+*/
+
+.input-group input {
+  width: 100%;
+
+  border: 1px solid var(--color-border);
+
+  background-color: var(--color-white);
+
+  border-radius: var(--radius-sm);
+
+  padding: 12px 14px;
+
+  font-size: 14px;
+
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| ICON INPUT
+|--------------------------------------------------------------------------
+*/
+
+.input-wrapper--has-icon input {
+  padding-left: 46px;
+  padding-right: 46px;
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| PLACEHOLDER
+|--------------------------------------------------------------------------
+*/
+
+.input-group input::placeholder {
+  color: var(--color-text-muted);
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| FOCUS
+|--------------------------------------------------------------------------
+*/
+
+.input-group input:focus {
+  outline: none;
+
+  border-color: var(--color-primary);
+
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| DISABLED
+|--------------------------------------------------------------------------
+*/
+
+.input-group input:disabled {
+  background-color: var(--color-surface-muted);
+
+  cursor: not-allowed;
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| ERROR
+|--------------------------------------------------------------------------
+*/
+
+.input-group--error input {
+  border-color: var(--color-danger);
+}
+
+.input-group__error {
+  font-size: 12px;
+
+  color: var(--color-danger);
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| HINT
+|--------------------------------------------------------------------------
+*/
+
+.input-group__hint {
+  font-size: 12px;
+
+  color: var(--color-text-secondary);
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| ICONS
+|--------------------------------------------------------------------------
+*/
+
+.icon-left,
+.icon-right {
+  position: absolute;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-left {
+  left: 14px;
+}
+
+.icon-right {
+  right: 14px;
+
+  cursor: pointer;
+}
+
+.icon-left img,
+.icon-right img {
+  width: 20px;
+  height: 20px;
+
+  object-fit: contain;
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| AUTH VARIANT
+|--------------------------------------------------------------------------
+*/
+
+.input-group--auth {
+  gap: 9px;
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| AUTH LABEL
+|--------------------------------------------------------------------------
+*/
+
+.input-group--auth label {
+  font-weight: 600;
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| AUTH REQUIRED
+|--------------------------------------------------------------------------
+*/
+
+.input-group--auth .input-group__required {
+  display: none;
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| AUTH INPUT
+|--------------------------------------------------------------------------
+*/
+
+.input-group--auth input {
+  height: 49px;
+
+  border-radius: var(--radius-soft);
+
+  border: 1px solid var(--color-border-gray);
+
+  outline: none;
+
+  font-size: 15px;
+
+  color: var(--color-text-primary);
+
+  padding-left: 54px;
+  padding-right: 40px;
+
+  outline: none;
+
+  box-shadow: none;
+
+  transition:
+    all var(--transition-duration-input);
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| AUTH ICONS
+|--------------------------------------------------------------------------
+*/
+
+.input-group--auth .icon-left img,
+.input-group--auth .icon-right img {
+  user-select: none;
+
+  -webkit-user-drag: none;
+
+  pointer-events: none;
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| AUTH LEFT ICON
+|--------------------------------------------------------------------------
+*/
+
+.input-group--auth .icon-left {
+  position: absolute;
+
+  width: 40px;
+  height: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-left: 8px;
+  left: unset;
+}
+
+.input-group--auth .icon-left img {
+  width: 66% !important;
+  height: unset;
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| AUTH RIGHT ICON
+|--------------------------------------------------------------------------
+*/
+
+.input-group--auth .icon-right {
+  position: absolute;
+
+  right: 12px;
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.input-group--auth .icon-right img {
+  width: 22px;
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| AUTH HOVER
+|--------------------------------------------------------------------------
+*/
+
+.input-group--auth .icon-right:hover {
+  opacity: 0.8;
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| AUTH FOCUS
+|--------------------------------------------------------------------------
+*/
+
+.input-group--auth input:focus {
+  border-color: var(--color-yellow-primary);
+
+  box-shadow: none;
+}

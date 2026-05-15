@@ -1,0 +1,73 @@
+import Icon from "../../ui/Icon/Icon";
+import "./ProductCard.css";
+
+const formatLocation = (product) => {
+  const zone = product.zone ? `Zona ${product.zone}` : null;
+  const line = product.line ? `Línea ${String(product.line).padStart(2, "0")}` : null;
+  return [zone, line].filter(Boolean).join(", ") || "Sin asignar";
+};
+
+export default function ProductCard({ product, onSelect, onEdit, onDelete }) {
+  const stopAnd = (handler) => (e) => {
+    e.stopPropagation();
+    handler?.(product);
+  };
+
+  return (
+    <article className="product-card" onClick={() => onSelect?.(product)}>
+      <div className="product-card__image">
+        {product.imageUrl ? (
+          <img src={product.imageUrl} alt={product.name} />
+        ) : (
+          <div className="product-card__image-placeholder">
+            <Icon name="box" size={32} />
+          </div>
+        )}
+      </div>
+
+      <div className="product-card__body">
+        <div className="product-card__heading">
+          <h3 className="product-card__name">{product.name}</h3>
+          {(onEdit || onDelete) && (
+            <div className="product-card__actions">
+              {onEdit && (
+                <button
+                  type="button"
+                  className="product-card__action"
+                  onClick={stopAnd(onEdit)}
+                  aria-label="Editar producto"
+                  title="Editar"
+                >
+                  <Icon name="edit" size={16} />
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  type="button"
+                  className="product-card__action product-card__action--danger"
+                  onClick={stopAnd(onDelete)}
+                  aria-label="Eliminar producto"
+                  title="Eliminar"
+                >
+                  <Icon name="trash" size={16} />
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+        <p className="product-card__sku">SKU: {product.sku}</p>
+
+        <div className="product-card__meta">
+          <span className="product-card__meta-row">
+            <Icon name="box" size={14} />
+            Stock: {product.availableStock ?? 0} unidades
+          </span>
+          <span className="product-card__meta-row">
+            <Icon name="pin" size={14} />
+            Ubicación: {formatLocation(product)}
+          </span>
+        </div>
+      </div>
+    </article>
+  );
+}
