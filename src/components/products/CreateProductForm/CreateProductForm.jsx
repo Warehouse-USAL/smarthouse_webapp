@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Input from "../../ui/Input/Input";
 import Select from "../../ui/Select/Select";
 import Button from "../../ui/Button/Button";
@@ -20,7 +20,7 @@ const EMPTY = {
   sku: "",
   category: "",
   availableStock: 0,
-  reorderPoint: 0,
+  minimumStock: 0,
   description: "",
   imageUrl: "",
   zone: "",
@@ -36,7 +36,7 @@ const buildInitial = (initial) => {
     sku: initial.sku ?? "",
     category: initial.category ?? "",
     availableStock: initial.availableStock ?? 0,
-    reorderPoint: initial.reorderPoint ?? 0,
+    minimumStock: initial.minimumStock ?? 0,
     description: initial.description ?? "",
     imageUrl: initial.imageUrl ?? "",
     zone: initial.zone ?? "",
@@ -45,12 +45,6 @@ const buildInitial = (initial) => {
     height: initial.height != null ? String(initial.height) : "",
   };
 };
-
-const buildRange = (count) =>
-  Array.from({ length: Math.max(0, Number(count) || 0) }, (_, i) => {
-    const v = String(i + 1);
-    return { value: v, label: v };
-  });
 
 const validate = (values) => {
   const errors = {};
@@ -61,13 +55,12 @@ const validate = (values) => {
   if (values.availableStock === "" || Number(values.availableStock) < 0) {
     errors.availableStock = "Debe ser ≥ 0";
   }
-  if (values.reorderPoint === "" || Number(values.reorderPoint) < 0) {
-    errors.reorderPoint = "Debe ser ≥ 0";
+  if (values.minimumStock === "" || Number(values.minimumStock) < 0) {
+    errors.minimumStock = "Debe ser ≥ 0";
   }
   if (!values.zone) errors.zone = "Zona requerida";
   if (!values.line) errors.line = "Línea requerida";
   if (!values.position) errors.position = "Posición requerida";
-  if (!values.height) errors.height = "Altura requerida";
   return errors;
 };
 
@@ -85,21 +78,54 @@ export default function CreateProductForm({
   const [imageError, setImageError] = useState("");
   const fileInputRef = useRef(null);
 
-  const [warehouseConfig] = useState(() => warehouseConfigService.get());
+  const [warehouseConfig, setWarehouseConfig] = useState({ zones: [] });
+
+  useEffect(() => {
+    let cancelled = false;
+    warehouseConfigService.get().then((next) => {
+      if (!cancelled) setWarehouseConfig(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const zoneOptions = useMemo(
-    () => (warehouseConfig?.zones || []).map((z) => ({ value: z.id, label: z.name })),
+    () => (warehouseConfig?.zones || []).map((z) => ({ value: z.idZone, label: z.name })),
     [warehouseConfig]
   );
 
   const selectedZone = useMemo(
-    () => (warehouseConfig?.zones || []).find((z) => z.id === values.zone),
+    () => (warehouseConfig?.zones || []).find((z) => z.idZone === values.zone),
     [warehouseConfig, values.zone]
   );
 
-  const lineOptions = useMemo(() => buildRange(selectedZone?.lines), [selectedZone]);
-  const positionOptions = useMemo(() => buildRange(selectedZone?.positions), [selectedZone]);
-  const heightOptions = useMemo(() => buildRange(selectedZone?.heights), [selectedZone]);
+  const lineOptions = useMemo(
+    () =>
+      (selectedZone?.lines || []).map((l) => ({
+        value: String(l.numberLine),
+        label: `Línea ${String(l.numberLine).padStart(2, "0")}`,
+      })),
+    [selectedZone]
+  );
+
+  const selectedLine = useMemo(
+    () => (selectedZone?.lines || []).find((l) => String(l.numberLine) === String(values.line)),
+    [selectedZone, values.line]
+  );
+
+  const positionOptions = useMemo(
+    () =>
+      (selectedLine?.positions || []).map((p) => ({
+        value: p.positionName,
+        label: p.positionName,
+      })),
+    [selectedLine]
+  );
+
+  // Altura eliminada en Hito 2 — se mantiene el Select vacío hasta que el otro
+  // integrante remueva el bloque de ubicación del alta de producto.
+  const heightOptions = useMemo(() => [], []);
 
   const handleChange = (field) => (e) => {
     setValues((v) => ({ ...v, [field]: e.target.value }));
@@ -145,7 +171,7 @@ export default function CreateProductForm({
       ...values,
       sku: values.sku.trim().toUpperCase(),
       availableStock: Number(values.availableStock),
-      reorderPoint: Number(values.reorderPoint),
+      minimumStock: Number(values.minimumStock),
     });
   };
 
@@ -197,14 +223,14 @@ export default function CreateProductForm({
           required
         />
         <Input
-          name="reorderPoint"
+          name="minimumStock"
           label="Punto de reposición"
           type="number"
           min={0}
           step={1}
-          value={values.reorderPoint}
-          onChange={handleChange("reorderPoint")}
-          error={errors.reorderPoint}
+          value={values.minimumStock}
+          onChange={handleChange("minimumStock")}
+          error={errors.minimumStock}
           required
         />
         <div className="create-product-form__image-field">

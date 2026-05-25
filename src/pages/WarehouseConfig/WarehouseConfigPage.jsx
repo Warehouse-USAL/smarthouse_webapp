@@ -3,7 +3,6 @@ import PageHeader from "../../components/ui/PageHeader/PageHeader";
 import Card, { CardHeader } from "../../components/ui/Card/Card";
 import Select from "../../components/ui/Select/Select";
 import Icon from "../../components/ui/Icon/Icon";
-import Spinner from "../../components/ui/Spinner/Spinner";
 import ZoneGrid from "../../components/warehouse/ZoneGrid/ZoneGrid";
 import InfoList from "../../components/warehouse/InfoList/InfoList";
 import ZonesEditModal from "../../components/warehouse/ZonesEditModal/ZonesEditModal";
@@ -11,161 +10,164 @@ import LinesEditModal from "../../components/warehouse/LinesEditModal/LinesEditM
 import PositionsEditModal from "../../components/warehouse/PositionsEditModal/PositionsEditModal";
 import LocationDataEditModal from "../../components/warehouse/LocationDataEditModal/LocationDataEditModal";
 import { warehouseConfigService } from "../../services/warehouseConfigService";
-import { productService } from "../../services/productService";
 import "./WarehouseConfigPage.css";
 
-const buildOptions = (count, prefix) =>
-  Array.from({ length: count || 0 }, (_, i) => ({
-    value: String(i + 1),
-    label: `${prefix} ${String(i + 1).padStart(2, "0")}`,
-  }));
+const EMPTY_SELECTION = { idZone: "", idLine: "", idPosition: "" };
+
+const SIZE_LABEL = { PEQUEÑA: "Pequeña", MEDIANA: "Mediana", GRANDE: "Grande" };
+
+const formatStatus = (isActive) => (isActive ? "Activa" : "Inactiva");
 
 export default function WarehouseConfigPage() {
-  const [config, setConfig] = useState(() => warehouseConfigService.get());
-  const [selected, setSelected] = useState({ zone: "", line: "", position: "", height: "" });
-  const [products, setProducts] = useState([]);
+  const [config, setConfig] = useState({ zones: [] });
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(EMPTY_SELECTION);
+  const [positionDetail, setPositionDetail] = useState(null);
   const [openModal, setOpenModal] = useState(null);
 
   useEffect(() => {
-    productService
-      .list()
-      .then(setProducts)
-      .catch(() => setProducts([]))
-      .finally(() => setLoading(false));
+    let cancelled = false;
+    warehouseConfigService
+      .get()
+      .then((next) => {
+        if (!cancelled) setConfig(next);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
+  // Detalle de la posición seleccionada (incluye assignedProduct, que el
+  // listado del árbol no trae). On-demand para evitar N+1 al cargar la página.
+  useEffect(() => {
+    let cancelled = false;
+    const promise = selected.idPosition
+      ? warehouseConfigService.getPosition(selected.idPosition)
+      : Promise.resolve(null);
+    promise.then((detail) => {
+      if (!cancelled) setPositionDetail(detail);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selected.idPosition]);
+
   const selectedZone = useMemo(
-    () => config.zones.find((z) => z.id === selected.zone),
-    [config, selected.zone]
+    () => warehouseConfigService.findZone(config, selected.idZone),
+    [config, selected.idZone]
+  );
+
+  const selectedLine = useMemo(
+    () => warehouseConfigService.findLine(selectedZone, selected.idLine),
+    [selectedZone, selected.idLine]
+  );
+
+  const selectedPosition = useMemo(
+    () => warehouseConfigService.findPosition(selectedLine, selected.idPosition),
+    [selectedLine, selected.idPosition]
   );
 
   const zoneOptions = useMemo(
-    () => config.zones.map((z) => ({ value: z.id, label: z.name })),
+    () => config.zones.map((z) => ({ value: z.idZone, label: z.name })),
     [config]
   );
 
   const lineOptions = useMemo(
-    () => buildOptions(selectedZone?.lines || 0, "Línea"),
+    () =>
+      (selectedZone?.lines || []).map((l) => ({
+        value: l.idLine,
+        label: `Línea ${String(l.numberLine).padStart(2, "0")}`,
+      })),
     [selectedZone]
   );
 
-  const lineConfig = useMemo(() => {
-    if (!selectedZone || !selected.line) return null;
-    const override = selectedZone.lineOverrides?.[String(selected.line)] || {};
-    return { positions: override.positions ?? selectedZone.positions };
-  }, [selectedZone, selected.line]);
-
   const positionOptions = useMemo(
-    () => buildOptions(lineConfig?.positions || 0, "Posición"),
-    [lineConfig]
+    () =>
+      (selectedLine?.positions || []).map((p) => ({
+        value: p.idPosition,
+        label: p.positionName,
+      })),
+    [selectedLine]
   );
 
-  const positionConfig = useMemo(() => {
-    if (!selectedZone || !selected.line || !selected.position) return null;
-    const key = `L${selected.line}-P${selected.position}`;
-    const override = selectedZone.positionOverrides?.[key] || {};
-    return { height: override.height ?? selectedZone.heights };
-  }, [selectedZone, selected.line, selected.position]);
+  const locationCode = warehouseConfigService.buildLocationCode({
+    zoneCode: selectedZone?.zoneCode,
+    numberLine: selectedLine?.numberLine,
+    positionName: selectedPosition?.positionName,
+  });
 
-  const heightOptions = useMemo(
-    () => buildOptions(positionConfig?.height || 0, "Altura"),
-    [positionConfig]
-  );
-
-  const locationCode = warehouseConfigService.buildLocationCode(selected);
-
-  const locationData = useMemo(() => {
-    if (!selectedZone || !selected.line || !selected.position || !selected.height) return null;
-    const key = `L${selected.line}-P${selected.position}-H${selected.height}`;
-    return selectedZone.locationData?.[key] || null;
-  }, [selectedZone, selected.line, selected.position, selected.height]);
-
-  const matchingProduct = useMemo(() => {
-    if (!selected.zone || !selected.line || !selected.position) return null;
-    return products.find(
-      (p) =>
-        p.zone === selected.zone &&
-        String(p.line) === String(selected.line) &&
-        String(p.position) === String(selected.position) &&
-        (selected.height ? String(p.height) === String(selected.height) : true)
-    );
-  }, [products, selected]);
-
-  const handleSelectFromMap = ({ zone, line, position }) => {
-    setSelected((prev) => ({
-      zone,
-      line: String(line),
-      position: String(position),
-      height: prev.zone === zone && prev.position === String(position) && prev.line === String(line) ? prev.height : "",
-    }));
-  };
-
-  const handleModalSaved = (next) => {
-    setConfig(next);
+  const handleSelectFromMap = ({ idZone, idLine, idPosition }) => {
+    setSelected({ idZone, idLine, idPosition });
   };
 
   const handleSelectChange = (field) => (e) => {
     const value = e.target.value;
     setSelected((s) => {
       const next = { ...s, [field]: value };
-      if (field === "zone") { next.line = ""; next.position = ""; next.height = ""; }
-      if (field === "line") { next.position = ""; next.height = ""; }
-      if (field === "position") { next.height = ""; }
+      if (field === "idZone") { next.idLine = ""; next.idPosition = ""; }
+      if (field === "idLine") { next.idPosition = ""; }
       return next;
     });
   };
 
+  const handleModalSaved = (next) => {
+    setConfig(next);
+  };
+
+  // Para los campos que pueden venir del detalle más fresco, preferimos el
+  // detalle; si no, caemos al árbol.
+  const positionView = positionDetail ?? selectedPosition;
+  const assignedProduct = positionView?.assignedProduct ?? null;
+
   const locationInfo = [
     { label: "Código de la ubicación", value: locationCode },
-    { label: "Capacidad máxima", value: locationData?.capacity },
-    { label: "Stock actual", value: matchingProduct?.availableStock },
+    { label: "Tamaño de zona", value: selectedZone ? SIZE_LABEL[selectedZone.sizeStockToSave] || selectedZone.sizeStockToSave : null },
+    { label: "Capacidad máxima", value: positionView?.maximumCapacity },
+    { label: "Estado", value: positionView ? formatStatus(positionView.isActive) : null },
   ];
 
   const productInfo = [
-    { label: "Nombre", value: matchingProduct?.name },
-    { label: "Código", value: matchingProduct?.sku },
-    { label: "Stock actual", value: matchingProduct?.availableStock },
-    { label: "Punto de reposición", value: matchingProduct?.reorderPoint },
-    { label: "Categoría", value: matchingProduct?.category },
+    { label: "Nombre", value: assignedProduct?.name },
+    { label: "SKU", value: assignedProduct?.sku },
   ];
 
   return (
     <div className="warehouse-page">
       <PageHeader
         title="Configuración del warehouse"
-        subtitle="Visualizá el mapa de zonas y definí la ubicación jerárquica de cada producto."
+        subtitle="Visualizá el mapa de zonas y definí la estructura física del warehouse."
       />
+
+      {loading && (
+        <div className="warehouse-page__loading">Cargando configuración…</div>
+      )}
 
       <div className="warehouse-page__layout">
         <Card padding="lg" className="warehouse-page__map">
           <CardHeader icon={<Icon name="map" size={16} />} title="Mapa del warehouse" />
-          {loading ? (
-            <Spinner label="Cargando…" />
-          ) : (
-            <>
-              <div className="warehouse-page__grids">
-                {config.zones.map((zone) => (
-                  <ZoneGrid
-                    key={zone.id}
-                    zone={zone}
-                    selected={selected}
-                    onSelect={handleSelectFromMap}
-                  />
-                ))}
-              </div>
-              <div className="warehouse-page__legend">
-                {config.zones.map((zone) => (
-                  <span className="warehouse-page__legend-item" key={zone.id}>
-                    <span
-                      className={`warehouse-page__legend-dot warehouse-page__legend-dot--${(zone.color || zone.id).toLowerCase()}`}
-                    />
-                    {zone.name}
-                  </span>
-                ))}
-              </div>
-            </>
-          )}
+          <div className="warehouse-page__grids">
+            {config.zones.map((zone) => (
+              <ZoneGrid
+                key={zone.idZone}
+                zone={zone}
+                selected={selected}
+                onSelect={handleSelectFromMap}
+              />
+            ))}
+          </div>
+          <div className="warehouse-page__legend">
+            {config.zones.map((zone) => (
+              <span className="warehouse-page__legend-item" key={zone.idZone}>
+                <span
+                  className={`warehouse-page__legend-dot warehouse-page__legend-dot--${(zone.color || zone.zoneCode || "").toLowerCase()}`}
+                />
+                {zone.name}
+              </span>
+            ))}
+          </div>
         </Card>
 
         <aside className="warehouse-page__side">
@@ -174,34 +176,26 @@ export default function WarehouseConfigPage() {
             <div className="warehouse-page__location-selects">
               <Select
                 label="Zona"
-                value={selected.zone}
-                onChange={handleSelectChange("zone")}
+                value={selected.idZone}
+                onChange={handleSelectChange("idZone")}
                 options={zoneOptions}
                 placeholder="Seleccioná una zona"
               />
               <Select
                 label="Línea"
-                value={selected.line}
-                onChange={handleSelectChange("line")}
+                value={selected.idLine}
+                onChange={handleSelectChange("idLine")}
                 options={lineOptions}
                 placeholder="Seleccioná una línea"
-                disabled={!selected.zone}
-              />
-              <Select
-                label="Altura"
-                value={selected.height}
-                onChange={handleSelectChange("height")}
-                options={heightOptions}
-                placeholder="Seleccioná una altura"
-                disabled={!selected.position}
+                disabled={!selected.idZone}
               />
               <Select
                 label="Posición"
-                value={selected.position}
-                onChange={handleSelectChange("position")}
+                value={selected.idPosition}
+                onChange={handleSelectChange("idPosition")}
                 options={positionOptions}
                 placeholder="Seleccioná una posición"
-                disabled={!selected.line}
+                disabled={!selected.idLine}
               />
             </div>
           </Card>
@@ -212,7 +206,7 @@ export default function WarehouseConfigPage() {
           </Card>
 
           <Card>
-            <CardHeader icon={<Icon name="box" size={16} />} title="Detalles del producto" />
+            <CardHeader icon={<Icon name="box" size={16} />} title="Producto asignado" />
             <InfoList items={productInfo} />
           </Card>
         </aside>

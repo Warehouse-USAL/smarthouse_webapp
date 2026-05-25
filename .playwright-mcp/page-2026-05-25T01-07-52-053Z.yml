@@ -1,0 +1,45 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - img [ref=e7]
+        - generic [ref=e11]: SmartWarehouse
+      - navigation "Principal" [ref=e12]:
+        - link "Inicio" [ref=e13] [cursor=pointer]:
+          - /url: /inicio
+        - link "Productos" [ref=e14] [cursor=pointer]:
+          - /url: /productos
+        - link "Configuración del warehouse" [ref=e15] [cursor=pointer]:
+          - /url: /configuracion
+        - link "Vehículos" [ref=e16] [cursor=pointer]:
+          - /url: /vehiculos
+      - button "User 1" [ref=e18] [cursor=pointer]:
+        - generic [ref=e20]: User 1
+        - img [ref=e21]
+  - main [ref=e23]:
+    - generic [ref=e25]:
+      - generic [ref=e27]:
+        - heading "Inicio" [level=1] [ref=e28]
+        - paragraph [ref=e29]: Bienvenido a SmartWarehouse. Elegí qué querés gestionar.
+      - generic [ref=e30]:
+        - link "Productos Gestioná el catálogo y el stock de cada producto." [ref=e31] [cursor=pointer]:
+          - /url: /productos
+          - generic [ref=e32]:
+            - generic [ref=e34]:
+              - img [ref=e36]
+              - heading "Productos" [level=3] [ref=e39]
+            - paragraph [ref=e40]: Gestioná el catálogo y el stock de cada producto.
+        - link "Configuración del warehouse Definí zonas, líneas, posiciones y alturas." [ref=e41] [cursor=pointer]:
+          - /url: /configuracion
+          - generic [ref=e42]:
+            - generic [ref=e44]:
+              - img [ref=e46]
+              - heading "Configuración del warehouse" [level=3] [ref=e48]
+            - paragraph [ref=e49]: Definí zonas, líneas, posiciones y alturas.
+        - link "Vehículos Monitoreá el estado y la ubicación de cada vehículo." [ref=e50] [cursor=pointer]:
+          - /url: /vehiculos
+          - generic [ref=e51]:
+            - generic [ref=e53]:
+              - img [ref=e55]
+              - heading "Vehículos" [level=3] [ref=e60]
+            - paragraph [ref=e61]: Monitoreá el estado y la ubicación de cada vehículo.
