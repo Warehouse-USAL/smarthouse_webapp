@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Input from "../../ui/Input/Input";
 import Select from "../../ui/Select/Select";
 import Button from "../../ui/Button/Button";
-import { warehouseConfigService } from "../../../services/warehouseConfigService";
 import "./CreateProductForm.css";
 
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
@@ -19,14 +18,13 @@ const EMPTY = {
   name: "",
   sku: "",
   category: "",
-  availableStock: 0,
-  minimumStock: 0,
   description: "",
   imageUrl: "",
-  zone: "",
-  line: "",
-  position: "",
-  height: "",
+  minimumStock: 0,
+  maxQuantityPerOrder: 0,
+  unitsPerPallet: 0,
+  unitsPerHalfPallet: 0,
+  unitsPerBox: 0,
 };
 
 const buildInitial = (initial) => {
@@ -35,32 +33,36 @@ const buildInitial = (initial) => {
     name: initial.name ?? "",
     sku: initial.sku ?? "",
     category: initial.category ?? "",
-    availableStock: initial.availableStock ?? 0,
-    minimumStock: initial.minimumStock ?? 0,
     description: initial.description ?? "",
     imageUrl: initial.imageUrl ?? "",
-    zone: initial.zone ?? "",
-    line: initial.line != null ? String(initial.line) : "",
-    position: initial.position != null ? String(initial.position) : "",
-    height: initial.height != null ? String(initial.height) : "",
+    minimumStock: initial.minimumStock ?? 0,
+    maxQuantityPerOrder: initial.maxQuantityPerOrder ?? 0,
+    unitsPerPallet: initial.unitsPerPallet ?? 0,
+    unitsPerHalfPallet: initial.unitsPerHalfPallet ?? 0,
+    unitsPerBox: initial.unitsPerBox ?? 0,
   };
 };
 
+// Hito 2 §5–§6: el producto se crea con stock 0, sin ubicación, y declara
+// CUÁNTAS unidades entran por pallet, medio pallet y caja. Al menos una de
+// las tres capacidades tiene que estar definida (>0) para que el producto
+// sea asignable a alguna posición.
 const validate = (values) => {
   const errors = {};
   if (!values.name.trim()) errors.name = "Nombre requerido";
   if (!values.sku.trim()) errors.sku = "SKU requerido";
   else if (!/^[A-Z0-9-]+$/i.test(values.sku.trim())) errors.sku = "Solo letras, números y guiones";
   if (!values.category) errors.category = "Categoría requerida";
-  if (values.availableStock === "" || Number(values.availableStock) < 0) {
-    errors.availableStock = "Debe ser ≥ 0";
-  }
   if (values.minimumStock === "" || Number(values.minimumStock) < 0) {
     errors.minimumStock = "Debe ser ≥ 0";
   }
-  if (!values.zone) errors.zone = "Zona requerida";
-  if (!values.line) errors.line = "Línea requerida";
-  if (!values.position) errors.position = "Posición requerida";
+  const someCapacity =
+    Number(values.unitsPerPallet) > 0 ||
+    Number(values.unitsPerHalfPallet) > 0 ||
+    Number(values.unitsPerBox) > 0;
+  if (!someCapacity) {
+    errors.unitsPerPallet = "Definí al menos una capacidad";
+  }
   return errors;
 };
 
@@ -78,62 +80,8 @@ export default function CreateProductForm({
   const [imageError, setImageError] = useState("");
   const fileInputRef = useRef(null);
 
-  const [warehouseConfig, setWarehouseConfig] = useState({ zones: [] });
-
-  useEffect(() => {
-    let cancelled = false;
-    warehouseConfigService.get().then((next) => {
-      if (!cancelled) setWarehouseConfig(next);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const zoneOptions = useMemo(
-    () => (warehouseConfig?.zones || []).map((z) => ({ value: z.idZone, label: z.name })),
-    [warehouseConfig]
-  );
-
-  const selectedZone = useMemo(
-    () => (warehouseConfig?.zones || []).find((z) => z.idZone === values.zone),
-    [warehouseConfig, values.zone]
-  );
-
-  const lineOptions = useMemo(
-    () =>
-      (selectedZone?.lines || []).map((l) => ({
-        value: String(l.numberLine),
-        label: `Línea ${String(l.numberLine).padStart(2, "0")}`,
-      })),
-    [selectedZone]
-  );
-
-  const selectedLine = useMemo(
-    () => (selectedZone?.lines || []).find((l) => String(l.numberLine) === String(values.line)),
-    [selectedZone, values.line]
-  );
-
-  const positionOptions = useMemo(
-    () =>
-      (selectedLine?.positions || []).map((p) => ({
-        value: p.positionName,
-        label: p.positionName,
-      })),
-    [selectedLine]
-  );
-
-  // Altura eliminada en Hito 2 — se mantiene el Select vacío hasta que el otro
-  // integrante remueva el bloque de ubicación del alta de producto.
-  const heightOptions = useMemo(() => [], []);
-
   const handleChange = (field) => (e) => {
     setValues((v) => ({ ...v, [field]: e.target.value }));
-  };
-
-  const handleZoneChange = (e) => {
-    const nextZone = e.target.value;
-    setValues((v) => ({ ...v, zone: nextZone, line: "", position: "", height: "" }));
   };
 
   const handleFileChange = async (e) => {
@@ -170,8 +118,11 @@ export default function CreateProductForm({
     onSubmit({
       ...values,
       sku: values.sku.trim().toUpperCase(),
-      availableStock: Number(values.availableStock),
       minimumStock: Number(values.minimumStock),
+      maxQuantityPerOrder: Number(values.maxQuantityPerOrder) || 0,
+      unitsPerPallet: Number(values.unitsPerPallet) || 0,
+      unitsPerHalfPallet: Number(values.unitsPerHalfPallet) || 0,
+      unitsPerBox: Number(values.unitsPerBox) || 0,
     });
   };
 
@@ -212,17 +163,6 @@ export default function CreateProductForm({
           required
         />
         <Input
-          name="availableStock"
-          label="Stock inicial"
-          type="number"
-          min={0}
-          step={1}
-          value={values.availableStock}
-          onChange={handleChange("availableStock")}
-          error={errors.availableStock}
-          required
-        />
-        <Input
           name="minimumStock"
           label="Punto de reposición"
           type="number"
@@ -232,6 +172,15 @@ export default function CreateProductForm({
           onChange={handleChange("minimumStock")}
           error={errors.minimumStock}
           required
+        />
+        <Input
+          name="maxQuantityPerOrder"
+          label="Máximo por orden"
+          type="number"
+          min={0}
+          step={1}
+          value={values.maxQuantityPerOrder}
+          onChange={handleChange("maxQuantityPerOrder")}
         />
         <div className="create-product-form__image-field">
           <Input
@@ -275,56 +224,48 @@ export default function CreateProductForm({
 
       <section className="create-product-form__location">
         <header className="create-product-form__location-header">
-          <h3 className="create-product-form__location-title">Asignar ubicación</h3>
+          <h3 className="create-product-form__location-title">Capacidad por unidad de almacenamiento</h3>
           <p className="create-product-form__location-subtitle">
-            Asigná la ubicación donde se almacenará este producto.
+            Definí cuántas unidades de este producto entran en cada tipo de unidad de
+            almacenamiento. Dejá en 0 las que no apliquen.
           </p>
         </header>
         <div className="create-product-form__location-grid">
-          <Select
-            name="zone"
-            label="Zona"
-            value={values.zone}
-            onChange={handleZoneChange}
-            options={zoneOptions}
-            placeholder="Seleccioná zona"
-            error={errors.zone}
-            required
+          <Input
+            name="unitsPerPallet"
+            label="Unidades por Pallet"
+            type="number"
+            min={0}
+            step={1}
+            value={values.unitsPerPallet}
+            onChange={handleChange("unitsPerPallet")}
+            error={errors.unitsPerPallet}
           />
-          <Select
-            name="line"
-            label="Línea"
-            value={values.line}
-            onChange={handleChange("line")}
-            options={lineOptions}
-            placeholder="Seleccioná línea"
-            error={errors.line}
-            disabled={!values.zone}
-            required
+          <Input
+            name="unitsPerHalfPallet"
+            label="Unidades por Medio Pallet"
+            type="number"
+            min={0}
+            step={1}
+            value={values.unitsPerHalfPallet}
+            onChange={handleChange("unitsPerHalfPallet")}
           />
-          <Select
-            name="position"
-            label="Posición"
-            value={values.position}
-            onChange={handleChange("position")}
-            options={positionOptions}
-            placeholder="Seleccioná posición"
-            error={errors.position}
-            disabled={!values.zone}
-            required
-          />
-          <Select
-            name="height"
-            label="Altura"
-            value={values.height}
-            onChange={handleChange("height")}
-            options={heightOptions}
-            placeholder="Seleccioná altura"
-            error={errors.height}
-            disabled={!values.zone}
-            required
+          <Input
+            name="unitsPerBox"
+            label="Unidades por Caja"
+            type="number"
+            min={0}
+            step={1}
+            value={values.unitsPerBox}
+            onChange={handleChange("unitsPerBox")}
           />
         </div>
+        {!isEdit && (
+          <p className="create-product-form__hint">
+            El producto se crea con stock 0 y sin ubicación. Asigná stock más tarde
+            desde la pantalla <strong>Asignación de stock</strong>.
+          </p>
+        )}
       </section>
 
       <div className="create-product-form__actions">

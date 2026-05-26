@@ -66,6 +66,33 @@
   line-height: 1.5;
 }
 
+.products-page__header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.products-page__link-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  height: 36px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-white);
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: border-color 120ms ease, color 120ms ease;
+}
+
+.products-page__link-action:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary-dark);
+}
+
 .products-page__delete-text strong {
   color: var(--color-text-primary);
 }

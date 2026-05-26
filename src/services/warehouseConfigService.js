@@ -243,6 +243,25 @@ export const warehouseConfigService = {
     return normalizePosition(data);
   },
 
+  // Asigna o limpia el producto en una posición. En backend NO hay endpoint
+  // dedicado: la fuente de verdad es StockPosicion (cuando se exponga). En
+  // modo mock mantenemos un assignedProduct sintético en la posición para
+  // que el panel del warehouse muestre la ocupación sin tener que reconstruir
+  // el join cada vez.
+  async assignProductToPosition(idPosition, productSummary) {
+    if (USE_MOCK) {
+      return warehouseConfigMockService.setAssignedProduct(idPosition, productSummary);
+    }
+    // Backend pendiente: no-op silencioso. Cuando exista StockPosicion el
+    // panel del warehouse leerá la asignación derivada de allí.
+    return null;
+  },
+
+  async clearProductFromPosition(idPosition) {
+    if (USE_MOCK) return warehouseConfigMockService.setAssignedProduct(idPosition, null);
+    return null;
+  },
+
   /* ---------- Helpers (sync, locales al árbol) ---------- */
 
   buildLocationCode({ zoneCode, numberLine, positionName } = {}) {

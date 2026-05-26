@@ -9,6 +9,7 @@ import HomePage from "../pages/Home/HomePage";
 import ProductsPage from "../pages/Products/ProductsPage";
 import WarehouseConfigPage from "../pages/WarehouseConfig/WarehouseConfigPage";
 import VehiclesPage from "../pages/Vehicles/VehiclesPage";
+import StockAssignmentPage from "../pages/StockAssignment/StockAssignmentPage";
 
 export default function AppRoutes() {
   return (
@@ -20,6 +21,7 @@ export default function AppRoutes() {
           <Route path="/inicio" element={<HomePage />} />
           <Route path="/productos" element={<ProductsPage />} />
           <Route path="/configuracion" element={<WarehouseConfigPage />} />
+          <Route path="/asignacion-stock" element={<StockAssignmentPage />} />
           <Route path="/vehiculos" element={<VehiclesPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/inicio" replace />} />

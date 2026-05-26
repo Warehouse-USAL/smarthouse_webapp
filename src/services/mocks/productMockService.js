@@ -4,7 +4,18 @@
 |--------------------------------------------------------------------------
 |
 | Persiste productos en localStorage. Imita la forma normalizada que
-| devuelve productService (camelCase).
+| devuelve productService (camelCase) — Hito 2:
+|   {
+|     id, sku, name, description, category, imageUrl, active, createdAt,
+|     availableStock, reservedStock, minimumStock, maxQuantityPerOrder,
+|     unitsPerPallet, unitsPerHalfPallet, unitsPerBox,
+|     location: { zone, line, position } | null
+|   }
+|
+| Hito 2:
+| - Al crear: stock = 0, sin ubicación.
+| - 3 capacidades por unidad de almacenamiento (pallet / medio pallet / caja).
+| - Sin altura.
 |
 */
 
@@ -22,14 +33,14 @@ const SEED = [
     imageUrl: "",
     active: true,
     createdAt: "2025-09-01T10:00:00.000Z",
-    availableStock: 25,
-    reservedStock: 3,
+    availableStock: 0,
+    reservedStock: 0,
     minimumStock: 5,
     maxQuantityPerOrder: 10,
-    zone: "A",
-    line: "1",
-    position: "3",
-    height: "2",
+    unitsPerPallet: 480,
+    unitsPerHalfPallet: 240,
+    unitsPerBox: 24,
+    location: null,
   },
   {
     id: "PRD-002",
@@ -40,14 +51,14 @@ const SEED = [
     imageUrl: "",
     active: true,
     createdAt: "2025-09-04T12:00:00.000Z",
-    availableStock: 8,
+    availableStock: 0,
     reservedStock: 0,
     minimumStock: 3,
     maxQuantityPerOrder: 4,
-    zone: "B",
-    line: "2",
-    position: "1",
-    height: "1",
+    unitsPerPallet: 30,
+    unitsPerHalfPallet: 15,
+    unitsPerBox: 1,
+    location: null,
   },
   {
     id: "PRD-003",
@@ -62,18 +73,34 @@ const SEED = [
     reservedStock: 0,
     minimumStock: 2,
     maxQuantityPerOrder: 2,
-    zone: "C",
-    line: "1",
-    position: "5",
-    height: "3",
+    unitsPerPallet: 200,
+    unitsPerHalfPallet: 100,
+    unitsPerBox: 10,
+    location: null,
   },
 ];
 
-const readAll = () => localStore.get(KEY, null) ?? (localStore.set(KEY, SEED), SEED);
+// Detecta entradas con shape Hito 1 o intermedio (storage_unit, height, etc.).
+const isLegacyProduct = (p) =>
+  p &&
+  ("height" in p ||
+    "zone" in p ||
+    "storageUnit" in p ||
+    "storageCapacityPerPosition" in p ||
+    (p.location && ("idZone" in p.location || "height" in p.location)));
+
+const readAll = () => {
+  const raw = localStore.get(KEY, null);
+  if (!raw || !Array.isArray(raw) || raw.some(isLegacyProduct)) {
+    localStore.set(KEY, SEED);
+    return SEED;
+  }
+  return raw;
+};
 
 const writeAll = (list) => localStore.set(KEY, list);
 
-const delay = (ms = 250) => new Promise((r) => setTimeout(r, ms));
+const delay = (ms = 200) => new Promise((r) => setTimeout(r, ms));
 
 const nextId = (list) => {
   const max = list
@@ -109,7 +136,9 @@ export const productMockService = {
     const list = readAll();
     if (list.some((p) => p.sku === input.sku)) {
       throw {
-        response: { data: { error: { message: "Ya existe un producto con ese SKU." } } },
+        response: {
+          data: { error: { code: "SKU_ALREADY_EXISTS", message: "Ya existe un producto con ese SKU." } },
+        },
       };
     }
     const created = {
@@ -121,14 +150,15 @@ export const productMockService = {
       imageUrl: input.imageUrl ?? "",
       active: true,
       createdAt: new Date().toISOString(),
-      availableStock: Number(input.availableStock) || 0,
+      // Hito 2 §5: el producto se crea con stock = 0 y sin ubicación.
+      availableStock: 0,
       reservedStock: 0,
       minimumStock: Number(input.minimumStock) || 0,
       maxQuantityPerOrder: Number(input.maxQuantityPerOrder) || 0,
-      zone: input.zone || "",
-      line: input.line || "",
-      position: input.position || "",
-      height: input.height || "",
+      unitsPerPallet: Number(input.unitsPerPallet) || 0,
+      unitsPerHalfPallet: Number(input.unitsPerHalfPallet) || 0,
+      unitsPerBox: Number(input.unitsPerBox) || 0,
+      location: null,
     };
     writeAll([...list, created]);
     return created;
@@ -139,22 +169,40 @@ export const productMockService = {
     const list = readAll();
     const idx = list.findIndex((p) => p.id === id);
     if (idx === -1) {
-      throw { response: { data: { error: { message: "Producto no encontrado." } } } };
+      throw {
+        response: { data: { error: { code: "PRODUCT_NOT_FOUND", message: "Producto no encontrado." } } },
+      };
     }
-    const updated = { ...list[idx], ...patch };
-    const next = [...list];
-    next[idx] = updated;
-    writeAll(next);
-    return updated;
+    const current = list[idx];
+    const next = { ...current, ...patch };
+    // Normalizar location: si vienen los tres vacíos, dejarla en null.
+    if (patch.zone !== undefined || patch.line !== undefined || patch.position !== undefined) {
+      const zone = patch.zone ?? current.location?.zone ?? "";
+      const line = patch.line ?? current.location?.line ?? "";
+      const position = patch.position ?? current.location?.position ?? "";
+      next.location = zone || line || position ? { zone, line, position } : null;
+      delete next.zone;
+      delete next.line;
+      delete next.position;
+    }
+    const updated = [...list];
+    updated[idx] = next;
+    writeAll(updated);
+    return next;
   },
 
   async remove(id) {
     await delay();
     const list = readAll();
-    const next = list.filter((p) => p.id !== id);
-    if (next.length === list.length) {
-      throw { response: { data: { error: { message: "Producto no encontrado." } } } };
+    const idx = list.findIndex((p) => p.id === id);
+    if (idx === -1) {
+      throw {
+        response: { data: { error: { code: "PRODUCT_NOT_FOUND", message: "Producto no encontrado." } } },
+      };
     }
-    writeAll(next);
+    // Baja lógica (mismo comportamiento que el backend).
+    const updated = [...list];
+    updated[idx] = { ...list[idx], active: false };
+    writeAll(updated);
   },
 };
