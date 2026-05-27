@@ -1,6 +1,5 @@
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import Input from "../../ui/Input/Input";
-import Select from "../../ui/Select/Select";
 import Button from "../../ui/Button/Button";
 import "./CreateProductForm.css";
 
@@ -52,7 +51,7 @@ const validate = (values) => {
   if (!values.name.trim()) errors.name = "Nombre requerido";
   if (!values.sku.trim()) errors.sku = "SKU requerido";
   else if (!/^[A-Z0-9-]+$/i.test(values.sku.trim())) errors.sku = "Solo letras, números y guiones";
-  if (!values.category) errors.category = "Categoría requerida";
+  if (!values.category.trim()) errors.category = "Categoría requerida";
   if (values.minimumStock === "" || Number(values.minimumStock) < 0) {
     errors.minimumStock = "Debe ser ≥ 0";
   }
@@ -79,6 +78,7 @@ export default function CreateProductForm({
   const [errors, setErrors] = useState({});
   const [imageError, setImageError] = useState("");
   const fileInputRef = useRef(null);
+  const categoryListId = useId();
 
   const handleChange = (field) => (e) => {
     setValues((v) => ({ ...v, [field]: e.target.value }));
@@ -118,6 +118,7 @@ export default function CreateProductForm({
     onSubmit({
       ...values,
       sku: values.sku.trim().toUpperCase(),
+      category: values.category.trim(),
       minimumStock: Number(values.minimumStock),
       maxQuantityPerOrder: Number(values.maxQuantityPerOrder) || 0,
       unitsPerPallet: Number(values.unitsPerPallet) || 0,
@@ -152,16 +153,22 @@ export default function CreateProductForm({
           disabled={isEdit}
           required
         />
-        <Select
+        <Input
           name="category"
           label="Categoría"
+          placeholder="Escribí una categoría"
           value={values.category}
           onChange={handleChange("category")}
-          options={categories}
-          placeholder="Seleccioná una categoría"
           error={errors.category}
           required
+          list={categoryListId}
+          autoComplete="off"
         />
+        <datalist id={categoryListId}>
+          {categories?.map((c) => (
+            <option key={c} value={c} />
+          ))}
+        </datalist>
         <Input
           name="minimumStock"
           label="Punto de reposición"

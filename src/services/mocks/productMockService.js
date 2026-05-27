@@ -200,9 +200,10 @@ export const productMockService = {
         response: { data: { error: { code: "PRODUCT_NOT_FOUND", message: "Producto no encontrado." } } },
       };
     }
-    // Baja lógica (mismo comportamiento que el backend).
-    const updated = [...list];
-    updated[idx] = { ...list[idx], active: false };
-    writeAll(updated);
+    // En mock hacemos baja dura para que la UX coincida con la expectativa
+    // del usuario (el producto desaparece de la lista). El backend real hace
+    // soft delete (active=false) — ese comportamiento queda en productService
+    // contra backend, no acá.
+    writeAll(list.filter((p) => p.id !== id));
   },
 };

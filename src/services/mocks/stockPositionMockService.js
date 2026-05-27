@@ -117,4 +117,16 @@ export const stockPositionMockService = {
     const list = readAll();
     writeAll(list.filter((sp) => sp.id !== id));
   },
+
+  // Borra TODAS las entradas que apuntan a una posición. Útil cuando se
+  // vacía una posición (se "quita" el producto). Devuelve el total de
+  // unidades que estaban almacenadas ahí — el caller lo necesita para
+  // descontar del availableStock del producto.
+  async removeByPosition(idPosition) {
+    await delay();
+    const list = readAll();
+    const removed = list.filter((sp) => sp.idPosition === idPosition);
+    writeAll(list.filter((sp) => sp.idPosition !== idPosition));
+    return removed.reduce((sum, sp) => sum + (Number(sp.quantity) || 0), 0);
+  },
 };
