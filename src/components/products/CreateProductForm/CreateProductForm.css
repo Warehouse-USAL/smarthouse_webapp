@@ -23,6 +23,7 @@
 
 .create-product-form__image-actions {
   display: flex;
+  align-items: center;
   gap: var(--space-2);
   flex-wrap: wrap;
 }
@@ -35,6 +36,86 @@
   font-size: 0.85rem;
   color: var(--color-danger);
 }
+
+/* NUEVO */
+
+.create-product-form__images-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+}
+
+.create-product-form__image-card {
+  width: 220px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--color-surface);
+  transition: border-color 0.2s ease;
+}
+
+.create-product-form__image-card--cover {
+  border: 2px solid var(--color-primary);
+}
+
+.create-product-form__image-wrapper {
+  position: relative;
+  width: 100%;
+  height: 180px;
+  overflow: hidden;
+  background: var(--color-surface-muted);
+}
+
+.create-product-form__image-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.create-product-form__cover-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: white;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.create-product-form__image-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+
+.create-product-form__checkbox {
+  display: flex;
+  align-items: center;
+  min-height: 100%;
+}
+
+.create-product-form__checkbox label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.95rem;
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.create-product-form__checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* FIN NUEVO */
 
 .create-product-form__image-preview {
   margin-top: var(--space-2);
@@ -107,6 +188,10 @@
   .create-product-form__location-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  .create-product-form__image-card {
+    width: 100%;
+  }
 }
 
 @media (max-width: 540px) {
@@ -116,5 +201,9 @@
 
   .create-product-form__location-grid {
     grid-template-columns: 1fr;
+  }
+
+  .create-product-form__image-buttons {
+    flex-direction: column;
   }
 }
