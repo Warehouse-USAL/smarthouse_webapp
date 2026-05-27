@@ -1,12 +1,29 @@
 .logo {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
+  width: fit-content;
+  max-width: 100%;
+  user-select: none;
 }
 
+.logo img,
 .logo__mark {
+  display: block;
   width: 32px;
   height: 32px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.12));
+  transition:
+    transform 0.2s ease,
+    filter 0.2s ease;
+}
+
+.logo:hover img,
+.logo:hover .logo__mark {
+  transform: translateY(-1px) scale(1.04);
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.18));
 }
 
 .logo__text {
@@ -14,10 +31,121 @@
   font-weight: 700;
   color: var(--color-text-primary);
   letter-spacing: -0.01em;
+  line-height: 1;
+  white-space: nowrap;
 }
 
-.logo--sm .logo__mark { width: 24px; height: 24px; }
-.logo--sm .logo__text { font-size: 16px; }
+/* Tamaños */
+.logo--sm img,
+.logo--sm .logo__mark {
+  width: 24px;
+  height: 24px;
+}
 
-.logo--lg .logo__mark { width: 40px; height: 40px; }
-.logo--lg .logo__text { font-size: 24px; }
+.logo--sm .logo__text {
+  font-size: 16px;
+}
+
+.logo--md img,
+.logo--md .logo__mark {
+  width: 32px;
+  height: 32px;
+}
+
+.logo--md .logo__text {
+  font-size: 20px;
+}
+
+.logo--lg img,
+.logo--lg .logo__mark {
+  width: 40px;
+  height: 40px;
+}
+
+.logo--lg .logo__text {
+  font-size: 24px;
+}
+
+/* Por si el logo va dentro del header */
+.header .logo,
+.navbar .logo {
+  flex-shrink: 0;
+}
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  max-width: 100%;
+  user-select: none;
+}
+
+.logo__mark {
+  display: block;
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.14));
+}
+
+.logo__text {
+  font-family: "Inter", "Montserrat", "Segoe UI", system-ui, sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+  color: #050505;
+  letter-spacing: -0.055em;
+  white-space: nowrap;
+  transform: translateY(1px);
+}
+
+/* Tamaños */
+.logo--sm {
+  gap: 8px;
+}
+
+.logo--sm .logo__mark {
+  width: 24px;
+  height: 24px;
+}
+
+.logo--sm .logo__text {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.logo--md {
+  gap: 10px;
+}
+
+.logo--md .logo__mark {
+  width: 32px;
+  height: 32px;
+}
+
+.logo--md .logo__text {
+  font-size: 18px;
+}
+
+.logo--lg {
+  gap: 14px;
+}
+
+.logo--lg .logo__mark {
+  width: 44px;
+  height: 44px;
+}
+
+.logo--lg .logo__text {
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: -0.07em;
+}
+
+/* Para que en el header quede más fino */
+.header .logo__text,
+.navbar .logo__text {
+  font-size: 18px;
+  font-weight: 800;
+}
