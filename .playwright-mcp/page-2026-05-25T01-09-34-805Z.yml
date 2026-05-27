@@ -1,0 +1,93 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - img [ref=e7]
+        - generic [ref=e11]: SmartWarehouse
+      - navigation "Principal" [ref=e12]:
+        - link "Inicio" [ref=e13] [cursor=pointer]:
+          - /url: /inicio
+        - link "Productos" [ref=e14] [cursor=pointer]:
+          - /url: /productos
+        - link "Configuración del warehouse" [ref=e15] [cursor=pointer]:
+          - /url: /configuracion
+        - link "Vehículos" [ref=e16] [cursor=pointer]:
+          - /url: /vehiculos
+      - button "User 1" [ref=e18] [cursor=pointer]:
+        - generic [ref=e20]: User 1
+        - img [ref=e21]
+  - main [ref=e23]:
+    - generic [ref=e25]:
+      - generic [ref=e27]:
+        - heading "Configuración del warehouse" [level=1] [ref=e28]
+        - paragraph [ref=e29]: Visualizá el mapa de zonas y definí la estructura física del warehouse.
+      - generic [ref=e30]: Cargando configuración…
+      - generic [ref=e31]:
+        - generic [ref=e34]:
+          - img [ref=e36]
+          - heading "Mapa del warehouse" [level=3] [ref=e38]
+        - complementary [ref=e40]:
+          - generic [ref=e41]:
+            - generic [ref=e43]:
+              - img [ref=e45]
+              - heading "Ubicación" [level=3] [ref=e48]
+            - generic [ref=e49]:
+              - generic [ref=e50]:
+                - generic [ref=e51]: Zona
+                - generic [ref=e52]:
+                  - combobox [ref=e53] [cursor=pointer]:
+                    - option "Seleccioná una zona" [disabled] [selected]
+                  - img
+              - generic [ref=e54]:
+                - generic [ref=e55]: Línea
+                - generic [ref=e56]:
+                  - combobox [disabled] [ref=e57]:
+                    - option "Seleccioná una línea" [disabled] [selected]
+                  - img
+              - generic [ref=e58]:
+                - generic [ref=e59]: Posición
+                - generic [ref=e60]:
+                  - combobox [disabled] [ref=e61]:
+                    - option "Seleccioná una posición" [disabled] [selected]
+                  - img
+          - generic [ref=e62]:
+            - generic [ref=e64]:
+              - img [ref=e66]
+              - heading "Información de la ubicación" [level=3] [ref=e68]
+            - generic [ref=e69]:
+              - generic [ref=e70]:
+                - term [ref=e71]: Código de la ubicación
+                - definition [ref=e72]: "-"
+              - generic [ref=e73]:
+                - term [ref=e74]: Tamaño de zona
+                - definition [ref=e75]: "-"
+              - generic [ref=e76]:
+                - term [ref=e77]: Capacidad máxima
+                - definition [ref=e78]: "-"
+              - generic [ref=e79]:
+                - term [ref=e80]: Estado
+                - definition [ref=e81]: "-"
+          - generic [ref=e82]:
+            - generic [ref=e84]:
+              - img [ref=e86]
+              - heading "Producto asignado" [level=3] [ref=e89]
+            - generic [ref=e90]:
+              - generic [ref=e91]:
+                - term [ref=e92]: Nombre
+                - definition [ref=e93]: "-"
+              - generic [ref=e94]:
+                - term [ref=e95]: SKU
+                - definition [ref=e96]: "-"
+      - generic [ref=e97]:
+        - button "Modificar zonas" [ref=e98] [cursor=pointer]:
+          - img [ref=e100]
+          - generic [ref=e105]: Modificar zonas
+        - button "Modificar líneas" [ref=e106] [cursor=pointer]:
+          - img [ref=e108]
+          - generic [ref=e109]: Modificar líneas
+        - button "Modificar posiciones" [ref=e110] [cursor=pointer]:
+          - img [ref=e112]
+          - generic [ref=e116]: Modificar posiciones
+        - button "Modificar datos de ubicación" [ref=e117] [cursor=pointer]:
+          - img [ref=e119]
+          - generic [ref=e122]: Modificar datos de ubicación

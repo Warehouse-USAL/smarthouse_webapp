@@ -1,0 +1,481 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - img [ref=e7]
+        - generic [ref=e11]: SmartWarehouse
+      - navigation "Principal" [ref=e12]:
+        - link "Inicio" [ref=e13] [cursor=pointer]:
+          - /url: /inicio
+        - link "Productos" [ref=e14] [cursor=pointer]:
+          - /url: /productos
+        - link "Configuración del warehouse" [ref=e15] [cursor=pointer]:
+          - /url: /configuracion
+        - link "Vehículos" [ref=e16] [cursor=pointer]:
+          - /url: /vehiculos
+      - button "User 1" [ref=e18] [cursor=pointer]:
+        - generic [ref=e20]: User 1
+        - img [ref=e21]
+  - main [ref=e23]:
+    - generic [ref=e25]:
+      - generic [ref=e27]:
+        - heading "Configuración del warehouse" [level=1] [ref=e28]
+        - paragraph [ref=e29]: Visualizá el mapa de zonas y definí la estructura física del warehouse.
+      - generic [ref=e31]:
+        - generic [ref=e32]:
+          - generic [ref=e34]:
+            - img [ref=e36]
+            - heading "Mapa del warehouse" [level=3] [ref=e38]
+          - generic [ref=e123]:
+            - generic [ref=e124]:
+              - generic [ref=e126]: Zona A
+              - generic [ref=e127]:
+                - generic [ref=e128]:
+                  - generic [ref=e129]: Línea 01
+                  - generic [ref=e130]:
+                    - button "Zona A línea 1 posición P01" [ref=e131] [cursor=pointer]
+                    - button "Zona A línea 1 posición P02" [ref=e132] [cursor=pointer]
+                    - button "Zona A línea 1 posición P03" [ref=e133] [cursor=pointer]
+                    - button "Zona A línea 1 posición P04" [ref=e134] [cursor=pointer]
+                    - button "Zona A línea 1 posición P05" [ref=e135] [cursor=pointer]
+                    - button "Zona A línea 1 posición P06" [ref=e136] [cursor=pointer]
+                    - button "Zona A línea 1 posición P07" [ref=e137] [cursor=pointer]
+                    - button "Zona A línea 1 posición P08" [ref=e138] [cursor=pointer]
+                    - button "Zona A línea 1 posición P09" [ref=e139] [cursor=pointer]
+                    - button "Zona A línea 1 posición P10" [ref=e140] [cursor=pointer]
+                    - button "Zona A línea 1 posición P11" [ref=e141] [cursor=pointer]
+                    - button "Zona A línea 1 posición P12" [ref=e142] [cursor=pointer]
+                - generic [ref=e143]:
+                  - generic [ref=e144]: Línea 02
+                  - generic [ref=e145]:
+                    - button "Zona A línea 2 posición P01" [ref=e146] [cursor=pointer]
+                    - button "Zona A línea 2 posición P02" [ref=e147] [cursor=pointer]
+                    - button "Zona A línea 2 posición P03" [ref=e148] [cursor=pointer]
+                    - button "Zona A línea 2 posición P04" [ref=e149] [cursor=pointer]
+                    - button "Zona A línea 2 posición P05" [ref=e150] [cursor=pointer]
+                    - button "Zona A línea 2 posición P06" [ref=e151] [cursor=pointer]
+                    - button "Zona A línea 2 posición P07" [ref=e152] [cursor=pointer]
+                    - button "Zona A línea 2 posición P08" [ref=e153] [cursor=pointer]
+                    - button "Zona A línea 2 posición P09" [ref=e154] [cursor=pointer]
+                    - button "Zona A línea 2 posición P10" [ref=e155] [cursor=pointer]
+                    - button "Zona A línea 2 posición P11" [ref=e156] [cursor=pointer]
+                    - button "Zona A línea 2 posición P12" [ref=e157] [cursor=pointer]
+                - generic [ref=e158]:
+                  - generic [ref=e159]: Línea 03
+                  - generic [ref=e160]:
+                    - button "Zona A línea 3 posición P01" [ref=e161] [cursor=pointer]
+                    - button "Zona A línea 3 posición P02" [ref=e162] [cursor=pointer]
+                    - button "Zona A línea 3 posición P03" [ref=e163] [cursor=pointer]
+                    - button "Zona A línea 3 posición P04" [ref=e164] [cursor=pointer]
+                    - button "Zona A línea 3 posición P05" [ref=e165] [cursor=pointer]
+                    - button "Zona A línea 3 posición P06" [ref=e166] [cursor=pointer]
+                    - button "Zona A línea 3 posición P07" [ref=e167] [cursor=pointer]
+                    - button "Zona A línea 3 posición P08" [ref=e168] [cursor=pointer]
+                    - button "Zona A línea 3 posición P09" [ref=e169] [cursor=pointer]
+                    - button "Zona A línea 3 posición P10" [ref=e170] [cursor=pointer]
+                    - button "Zona A línea 3 posición P11" [ref=e171] [cursor=pointer]
+                    - button "Zona A línea 3 posición P12" [ref=e172] [cursor=pointer]
+                - generic [ref=e173]:
+                  - generic [ref=e174]: Línea 04
+                  - generic [ref=e175]:
+                    - button "Zona A línea 4 posición P01" [ref=e176] [cursor=pointer]
+                    - button "Zona A línea 4 posición P02" [ref=e177] [cursor=pointer]
+                    - button "Zona A línea 4 posición P03" [ref=e178] [cursor=pointer]
+                    - button "Zona A línea 4 posición P04" [ref=e179] [cursor=pointer]
+                    - button "Zona A línea 4 posición P05" [ref=e180] [cursor=pointer]
+                    - button "Zona A línea 4 posición P06" [ref=e181] [cursor=pointer]
+                    - button "Zona A línea 4 posición P07" [ref=e182] [cursor=pointer]
+                    - button "Zona A línea 4 posición P08" [ref=e183] [cursor=pointer]
+                    - button "Zona A línea 4 posición P09" [ref=e184] [cursor=pointer]
+                    - button "Zona A línea 4 posición P10" [ref=e185] [cursor=pointer]
+                    - button "Zona A línea 4 posición P11" [ref=e186] [cursor=pointer]
+                    - button "Zona A línea 4 posición P12" [ref=e187] [cursor=pointer]
+            - generic [ref=e188]:
+              - generic [ref=e190]: Zona B
+              - generic [ref=e191]:
+                - generic [ref=e192]:
+                  - generic [ref=e193]: Línea 01
+                  - generic [ref=e194]:
+                    - button "Zona B línea 1 posición P01" [ref=e195] [cursor=pointer]
+                    - button "Zona B línea 1 posición P02" [ref=e196] [cursor=pointer]
+                    - button "Zona B línea 1 posición P03" [ref=e197] [cursor=pointer]
+                    - button "Zona B línea 1 posición P04" [ref=e198] [cursor=pointer]
+                    - button "Zona B línea 1 posición P05" [ref=e199] [cursor=pointer]
+                    - button "Zona B línea 1 posición P06" [ref=e200] [cursor=pointer]
+                    - button "Zona B línea 1 posición P07" [ref=e201] [cursor=pointer]
+                    - button "Zona B línea 1 posición P08" [ref=e202] [cursor=pointer]
+                    - button "Zona B línea 1 posición P09" [ref=e203] [cursor=pointer]
+                    - button "Zona B línea 1 posición P10" [ref=e204] [cursor=pointer]
+                    - button "Zona B línea 1 posición P11" [ref=e205] [cursor=pointer]
+                    - button "Zona B línea 1 posición P12" [ref=e206] [cursor=pointer]
+                    - button "Zona B línea 1 posición P13" [ref=e207] [cursor=pointer]
+                    - button "Zona B línea 1 posición P14" [ref=e208] [cursor=pointer]
+                    - button "Zona B línea 1 posición P15" [ref=e209] [cursor=pointer]
+                    - button "Zona B línea 1 posición P16" [ref=e210] [cursor=pointer]
+                    - button "Zona B línea 1 posición P17" [ref=e211] [cursor=pointer]
+                    - button "Zona B línea 1 posición P18" [ref=e212] [cursor=pointer]
+                - generic [ref=e213]:
+                  - generic [ref=e214]: Línea 02
+                  - generic [ref=e215]:
+                    - button "Zona B línea 2 posición P01" [ref=e216] [cursor=pointer]
+                    - button "Zona B línea 2 posición P02" [ref=e217] [cursor=pointer]
+                    - button "Zona B línea 2 posición P03" [ref=e218] [cursor=pointer]
+                    - button "Zona B línea 2 posición P04" [ref=e219] [cursor=pointer]
+                    - button "Zona B línea 2 posición P05" [ref=e220] [cursor=pointer]
+                    - button "Zona B línea 2 posición P06" [ref=e221] [cursor=pointer]
+                    - button "Zona B línea 2 posición P07" [ref=e222] [cursor=pointer]
+                    - button "Zona B línea 2 posición P08" [ref=e223] [cursor=pointer]
+                    - button "Zona B línea 2 posición P09" [ref=e224] [cursor=pointer]
+                    - button "Zona B línea 2 posición P10" [ref=e225] [cursor=pointer]
+                    - button "Zona B línea 2 posición P11" [ref=e226] [cursor=pointer]
+                    - button "Zona B línea 2 posición P12" [ref=e227] [cursor=pointer]
+                    - button "Zona B línea 2 posición P13" [ref=e228] [cursor=pointer]
+                    - button "Zona B línea 2 posición P14" [ref=e229] [cursor=pointer]
+                    - button "Zona B línea 2 posición P15" [ref=e230] [cursor=pointer]
+                    - button "Zona B línea 2 posición P16" [ref=e231] [cursor=pointer]
+                    - button "Zona B línea 2 posición P17" [ref=e232] [cursor=pointer]
+                    - button "Zona B línea 2 posición P18" [ref=e233] [cursor=pointer]
+                - generic [ref=e234]:
+                  - generic [ref=e235]: Línea 03
+                  - generic [ref=e236]:
+                    - button "Zona B línea 3 posición P01" [ref=e237] [cursor=pointer]
+                    - button "Zona B línea 3 posición P02" [ref=e238] [cursor=pointer]
+                    - button "Zona B línea 3 posición P03" [ref=e239] [cursor=pointer]
+                    - button "Zona B línea 3 posición P04" [ref=e240] [cursor=pointer]
+                    - button "Zona B línea 3 posición P05" [ref=e241] [cursor=pointer]
+                    - button "Zona B línea 3 posición P06" [ref=e242] [cursor=pointer]
+                    - button "Zona B línea 3 posición P07" [ref=e243] [cursor=pointer]
+                    - button "Zona B línea 3 posición P08" [ref=e244] [cursor=pointer]
+                    - button "Zona B línea 3 posición P09" [ref=e245] [cursor=pointer]
+                    - button "Zona B línea 3 posición P10" [ref=e246] [cursor=pointer]
+                    - button "Zona B línea 3 posición P11" [ref=e247] [cursor=pointer]
+                    - button "Zona B línea 3 posición P12" [ref=e248] [cursor=pointer]
+                    - button "Zona B línea 3 posición P13" [ref=e249] [cursor=pointer]
+                    - button "Zona B línea 3 posición P14" [ref=e250] [cursor=pointer]
+                    - button "Zona B línea 3 posición P15" [ref=e251] [cursor=pointer]
+                    - button "Zona B línea 3 posición P16" [ref=e252] [cursor=pointer]
+                    - button "Zona B línea 3 posición P17" [ref=e253] [cursor=pointer]
+                    - button "Zona B línea 3 posición P18" [ref=e254] [cursor=pointer]
+                - generic [ref=e255]:
+                  - generic [ref=e256]: Línea 04
+                  - generic [ref=e257]:
+                    - button "Zona B línea 4 posición P01" [ref=e258] [cursor=pointer]
+                    - button "Zona B línea 4 posición P02" [ref=e259] [cursor=pointer]
+                    - button "Zona B línea 4 posición P03" [ref=e260] [cursor=pointer]
+                    - button "Zona B línea 4 posición P04" [ref=e261] [cursor=pointer]
+                    - button "Zona B línea 4 posición P05" [ref=e262] [cursor=pointer]
+                    - button "Zona B línea 4 posición P06" [ref=e263] [cursor=pointer]
+                    - button "Zona B línea 4 posición P07" [ref=e264] [cursor=pointer]
+                    - button "Zona B línea 4 posición P08" [ref=e265] [cursor=pointer]
+                    - button "Zona B línea 4 posición P09" [ref=e266] [cursor=pointer]
+                    - button "Zona B línea 4 posición P10" [ref=e267] [cursor=pointer]
+                    - button "Zona B línea 4 posición P11" [ref=e268] [cursor=pointer]
+                    - button "Zona B línea 4 posición P12" [ref=e269] [cursor=pointer]
+                    - button "Zona B línea 4 posición P13" [ref=e270] [cursor=pointer]
+                    - button "Zona B línea 4 posición P14" [ref=e271] [cursor=pointer]
+                    - button "Zona B línea 4 posición P15" [ref=e272] [cursor=pointer]
+                    - button "Zona B línea 4 posición P16" [ref=e273] [cursor=pointer]
+                    - button "Zona B línea 4 posición P17" [ref=e274] [cursor=pointer]
+                    - button "Zona B línea 4 posición P18" [ref=e275] [cursor=pointer]
+            - generic [ref=e276]:
+              - generic [ref=e278]: Zona C
+              - generic [ref=e279]:
+                - generic [ref=e280]:
+                  - generic [ref=e281]: Línea 01
+                  - generic [ref=e282]:
+                    - button "Zona C línea 1 posición P01" [ref=e283] [cursor=pointer]
+                    - button "Zona C línea 1 posición P02" [ref=e284] [cursor=pointer]
+                    - button "Zona C línea 1 posición P03" [ref=e285] [cursor=pointer]
+                    - button "Zona C línea 1 posición P04" [ref=e286] [cursor=pointer]
+                    - button "Zona C línea 1 posición P05" [ref=e287] [cursor=pointer]
+                    - button "Zona C línea 1 posición P06" [ref=e288] [cursor=pointer]
+                    - button "Zona C línea 1 posición P07" [ref=e289] [cursor=pointer]
+                    - button "Zona C línea 1 posición P08" [ref=e290] [cursor=pointer]
+                    - button "Zona C línea 1 posición P09" [ref=e291] [cursor=pointer]
+                    - button "Zona C línea 1 posición P10" [ref=e292] [cursor=pointer]
+                    - button "Zona C línea 1 posición P11" [ref=e293] [cursor=pointer]
+                    - button "Zona C línea 1 posición P12" [ref=e294] [cursor=pointer]
+                    - button "Zona C línea 1 posición P13" [ref=e295] [cursor=pointer]
+                    - button "Zona C línea 1 posición P14" [ref=e296] [cursor=pointer]
+                    - button "Zona C línea 1 posición P15" [ref=e297] [cursor=pointer]
+                    - button "Zona C línea 1 posición P16" [ref=e298] [cursor=pointer]
+                    - button "Zona C línea 1 posición P17" [ref=e299] [cursor=pointer]
+                    - button "Zona C línea 1 posición P18" [ref=e300] [cursor=pointer]
+                - generic [ref=e301]:
+                  - generic [ref=e302]: Línea 02
+                  - generic [ref=e303]:
+                    - button "Zona C línea 2 posición P01" [ref=e304] [cursor=pointer]
+                    - button "Zona C línea 2 posición P02" [ref=e305] [cursor=pointer]
+                    - button "Zona C línea 2 posición P03" [ref=e306] [cursor=pointer]
+                    - button "Zona C línea 2 posición P04" [ref=e307] [cursor=pointer]
+                    - button "Zona C línea 2 posición P05" [ref=e308] [cursor=pointer]
+                    - button "Zona C línea 2 posición P06" [ref=e309] [cursor=pointer]
+                    - button "Zona C línea 2 posición P07" [ref=e310] [cursor=pointer]
+                    - button "Zona C línea 2 posición P08" [ref=e311] [cursor=pointer]
+                    - button "Zona C línea 2 posición P09" [ref=e312] [cursor=pointer]
+                    - button "Zona C línea 2 posición P10" [ref=e313] [cursor=pointer]
+                    - button "Zona C línea 2 posición P11" [ref=e314] [cursor=pointer]
+                    - button "Zona C línea 2 posición P12" [ref=e315] [cursor=pointer]
+                    - button "Zona C línea 2 posición P13" [ref=e316] [cursor=pointer]
+                    - button "Zona C línea 2 posición P14" [ref=e317] [cursor=pointer]
+                    - button "Zona C línea 2 posición P15" [ref=e318] [cursor=pointer]
+                    - button "Zona C línea 2 posición P16" [ref=e319] [cursor=pointer]
+                    - button "Zona C línea 2 posición P17" [ref=e320] [cursor=pointer]
+                    - button "Zona C línea 2 posición P18" [ref=e321] [cursor=pointer]
+                - generic [ref=e322]:
+                  - generic [ref=e323]: Línea 03
+                  - generic [ref=e324]:
+                    - button "Zona C línea 3 posición P01" [ref=e325] [cursor=pointer]
+                    - button "Zona C línea 3 posición P02" [ref=e326] [cursor=pointer]
+                    - button "Zona C línea 3 posición P03" [ref=e327] [cursor=pointer]
+                    - button "Zona C línea 3 posición P04" [ref=e328] [cursor=pointer]
+                    - button "Zona C línea 3 posición P05" [ref=e329] [cursor=pointer]
+                    - button "Zona C línea 3 posición P06" [ref=e330] [cursor=pointer]
+                    - button "Zona C línea 3 posición P07" [ref=e331] [cursor=pointer]
+                    - button "Zona C línea 3 posición P08" [ref=e332] [cursor=pointer]
+                    - button "Zona C línea 3 posición P09" [ref=e333] [cursor=pointer]
+                    - button "Zona C línea 3 posición P10" [ref=e334] [cursor=pointer]
+                    - button "Zona C línea 3 posición P11" [ref=e335] [cursor=pointer]
+                    - button "Zona C línea 3 posición P12" [ref=e336] [cursor=pointer]
+                    - button "Zona C línea 3 posición P13" [ref=e337] [cursor=pointer]
+                    - button "Zona C línea 3 posición P14" [ref=e338] [cursor=pointer]
+                    - button "Zona C línea 3 posición P15" [ref=e339] [cursor=pointer]
+                    - button "Zona C línea 3 posición P16" [ref=e340] [cursor=pointer]
+                    - button "Zona C línea 3 posición P17" [ref=e341] [cursor=pointer]
+                    - button "Zona C línea 3 posición P18" [ref=e342] [cursor=pointer]
+                - generic [ref=e343]:
+                  - generic [ref=e344]: Línea 04
+                  - generic [ref=e345]:
+                    - button "Zona C línea 4 posición P01" [ref=e346] [cursor=pointer]
+                    - button "Zona C línea 4 posición P02" [ref=e347] [cursor=pointer]
+                    - button "Zona C línea 4 posición P03" [ref=e348] [cursor=pointer]
+                    - button "Zona C línea 4 posición P04" [ref=e349] [cursor=pointer]
+                    - button "Zona C línea 4 posición P05" [ref=e350] [cursor=pointer]
+                    - button "Zona C línea 4 posición P06" [ref=e351] [cursor=pointer]
+                    - button "Zona C línea 4 posición P07" [ref=e352] [cursor=pointer]
+                    - button "Zona C línea 4 posición P08" [ref=e353] [cursor=pointer]
+                    - button "Zona C línea 4 posición P09" [ref=e354] [cursor=pointer]
+                    - button "Zona C línea 4 posición P10" [ref=e355] [cursor=pointer]
+                    - button "Zona C línea 4 posición P11" [ref=e356] [cursor=pointer]
+                    - button "Zona C línea 4 posición P12" [ref=e357] [cursor=pointer]
+                    - button "Zona C línea 4 posición P13" [ref=e358] [cursor=pointer]
+                    - button "Zona C línea 4 posición P14" [ref=e359] [cursor=pointer]
+                    - button "Zona C línea 4 posición P15" [ref=e360] [cursor=pointer]
+                    - button "Zona C línea 4 posición P16" [ref=e361] [cursor=pointer]
+                    - button "Zona C línea 4 posición P17" [ref=e362] [cursor=pointer]
+                    - button "Zona C línea 4 posición P18" [ref=e363] [cursor=pointer]
+            - generic [ref=e364]:
+              - generic [ref=e366]: Zona D
+              - generic [ref=e367]:
+                - generic [ref=e368]:
+                  - generic [ref=e369]: Línea 01
+                  - generic [ref=e370]:
+                    - button "Zona D línea 1 posición P01" [ref=e371] [cursor=pointer]
+                    - button "Zona D línea 1 posición P02" [ref=e372] [cursor=pointer]
+                    - button "Zona D línea 1 posición P03" [ref=e373] [cursor=pointer]
+                    - button "Zona D línea 1 posición P04" [ref=e374] [cursor=pointer]
+                    - button "Zona D línea 1 posición P05" [ref=e375] [cursor=pointer]
+                    - button "Zona D línea 1 posición P06" [ref=e376] [cursor=pointer]
+                    - button "Zona D línea 1 posición P07" [ref=e377] [cursor=pointer]
+                    - button "Zona D línea 1 posición P08" [ref=e378] [cursor=pointer]
+                    - button "Zona D línea 1 posición P09" [ref=e379] [cursor=pointer]
+                    - button "Zona D línea 1 posición P10" [ref=e380] [cursor=pointer]
+                    - button "Zona D línea 1 posición P11" [ref=e381] [cursor=pointer]
+                    - button "Zona D línea 1 posición P12" [ref=e382] [cursor=pointer]
+                    - button "Zona D línea 1 posición P13" [ref=e383] [cursor=pointer]
+                    - button "Zona D línea 1 posición P14" [ref=e384] [cursor=pointer]
+                    - button "Zona D línea 1 posición P15" [ref=e385] [cursor=pointer]
+                    - button "Zona D línea 1 posición P16" [ref=e386] [cursor=pointer]
+                    - button "Zona D línea 1 posición P17" [ref=e387] [cursor=pointer]
+                    - button "Zona D línea 1 posición P18" [ref=e388] [cursor=pointer]
+                - generic [ref=e389]:
+                  - generic [ref=e390]: Línea 02
+                  - generic [ref=e391]:
+                    - button "Zona D línea 2 posición P01" [ref=e392] [cursor=pointer]
+                    - button "Zona D línea 2 posición P02" [ref=e393] [cursor=pointer]
+                    - button "Zona D línea 2 posición P03" [ref=e394] [cursor=pointer]
+                    - button "Zona D línea 2 posición P04" [ref=e395] [cursor=pointer]
+                    - button "Zona D línea 2 posición P05" [ref=e396] [cursor=pointer]
+                    - button "Zona D línea 2 posición P06" [ref=e397] [cursor=pointer]
+                    - button "Zona D línea 2 posición P07" [ref=e398] [cursor=pointer]
+                    - button "Zona D línea 2 posición P08" [ref=e399] [cursor=pointer]
+                    - button "Zona D línea 2 posición P09" [ref=e400] [cursor=pointer]
+                    - button "Zona D línea 2 posición P10" [ref=e401] [cursor=pointer]
+                    - button "Zona D línea 2 posición P11" [ref=e402] [cursor=pointer]
+                    - button "Zona D línea 2 posición P12" [ref=e403] [cursor=pointer]
+                    - button "Zona D línea 2 posición P13" [ref=e404] [cursor=pointer]
+                    - button "Zona D línea 2 posición P14" [ref=e405] [cursor=pointer]
+                    - button "Zona D línea 2 posición P15" [ref=e406] [cursor=pointer]
+                    - button "Zona D línea 2 posición P16" [ref=e407] [cursor=pointer]
+                    - button "Zona D línea 2 posición P17" [ref=e408] [cursor=pointer]
+                    - button "Zona D línea 2 posición P18" [ref=e409] [cursor=pointer]
+                - generic [ref=e410]:
+                  - generic [ref=e411]: Línea 03
+                  - generic [ref=e412]:
+                    - button "Zona D línea 3 posición P01" [ref=e413] [cursor=pointer]
+                    - button "Zona D línea 3 posición P02" [ref=e414] [cursor=pointer]
+                    - button "Zona D línea 3 posición P03" [ref=e415] [cursor=pointer]
+                    - button "Zona D línea 3 posición P04" [ref=e416] [cursor=pointer]
+                    - button "Zona D línea 3 posición P05" [ref=e417] [cursor=pointer]
+                    - button "Zona D línea 3 posición P06" [ref=e418] [cursor=pointer]
+                    - button "Zona D línea 3 posición P07" [ref=e419] [cursor=pointer]
+                    - button "Zona D línea 3 posición P08" [ref=e420] [cursor=pointer]
+                    - button "Zona D línea 3 posición P09" [ref=e421] [cursor=pointer]
+                    - button "Zona D línea 3 posición P10" [ref=e422] [cursor=pointer]
+                    - button "Zona D línea 3 posición P11" [ref=e423] [cursor=pointer]
+                    - button "Zona D línea 3 posición P12" [ref=e424] [cursor=pointer]
+                    - button "Zona D línea 3 posición P13" [ref=e425] [cursor=pointer]
+                    - button "Zona D línea 3 posición P14" [ref=e426] [cursor=pointer]
+                    - button "Zona D línea 3 posición P15" [ref=e427] [cursor=pointer]
+                    - button "Zona D línea 3 posición P16" [ref=e428] [cursor=pointer]
+                    - button "Zona D línea 3 posición P17" [ref=e429] [cursor=pointer]
+                    - button "Zona D línea 3 posición P18" [ref=e430] [cursor=pointer]
+                - generic [ref=e431]:
+                  - generic [ref=e432]: Línea 04
+                  - generic [ref=e433]:
+                    - button "Zona D línea 4 posición P01" [ref=e434] [cursor=pointer]
+                    - button "Zona D línea 4 posición P02" [ref=e435] [cursor=pointer]
+                    - button "Zona D línea 4 posición P03" [ref=e436] [cursor=pointer]
+                    - button "Zona D línea 4 posición P04" [ref=e437] [cursor=pointer]
+                    - button "Zona D línea 4 posición P05" [ref=e438] [cursor=pointer]
+                    - button "Zona D línea 4 posición P06" [ref=e439] [cursor=pointer]
+                    - button "Zona D línea 4 posición P07" [ref=e440] [cursor=pointer]
+                    - button "Zona D línea 4 posición P08" [ref=e441] [cursor=pointer]
+                    - button "Zona D línea 4 posición P09" [ref=e442] [cursor=pointer]
+                    - button "Zona D línea 4 posición P10" [ref=e443] [cursor=pointer]
+                    - button "Zona D línea 4 posición P11" [ref=e444] [cursor=pointer]
+                    - button "Zona D línea 4 posición P12" [ref=e445] [cursor=pointer]
+                    - button "Zona D línea 4 posición P13" [ref=e446] [cursor=pointer]
+                    - button "Zona D línea 4 posición P14" [ref=e447] [cursor=pointer]
+                    - button "Zona D línea 4 posición P15" [ref=e448] [cursor=pointer]
+                    - button "Zona D línea 4 posición P16" [ref=e449] [cursor=pointer]
+                    - button "Zona D línea 4 posición P17" [ref=e450] [cursor=pointer]
+                    - button "Zona D línea 4 posición P18" [ref=e451] [cursor=pointer]
+          - generic [ref=e39]:
+            - generic [ref=e452]: Zona A
+            - generic [ref=e454]: Zona B
+            - generic [ref=e456]: Zona C
+            - generic [ref=e458]: Zona D
+        - complementary [ref=e40]:
+          - generic [ref=e41]:
+            - generic [ref=e43]:
+              - img [ref=e45]
+              - heading "Ubicación" [level=3] [ref=e48]
+            - generic [ref=e49]:
+              - generic [ref=e50]:
+                - generic [ref=e51]: Zona
+                - generic [ref=e52]:
+                  - combobox [ref=e53] [cursor=pointer]:
+                    - option "Seleccioná una zona" [disabled] [selected]
+                    - option "Zona A"
+                    - option "Zona B"
+                    - option "Zona C"
+                    - option "Zona D"
+                  - img
+              - generic [ref=e54]:
+                - generic [ref=e55]: Línea
+                - generic [ref=e56]:
+                  - combobox [disabled] [ref=e57]:
+                    - option "Seleccioná una línea" [disabled] [selected]
+                  - img
+              - generic [ref=e58]:
+                - generic [ref=e59]: Posición
+                - generic [ref=e60]:
+                  - combobox [disabled] [ref=e61]:
+                    - option "Seleccioná una posición" [disabled] [selected]
+                  - img
+          - generic [ref=e62]:
+            - generic [ref=e64]:
+              - img [ref=e66]
+              - heading "Información de la ubicación" [level=3] [ref=e68]
+            - generic [ref=e69]:
+              - generic [ref=e70]:
+                - term [ref=e71]: Código de la ubicación
+                - definition [ref=e72]: "-"
+              - generic [ref=e73]:
+                - term [ref=e74]: Tamaño de zona
+                - definition [ref=e75]: "-"
+              - generic [ref=e76]:
+                - term [ref=e77]: Capacidad máxima
+                - definition [ref=e78]: "-"
+              - generic [ref=e79]:
+                - term [ref=e80]: Estado
+                - definition [ref=e81]: "-"
+          - generic [ref=e82]:
+            - generic [ref=e84]:
+              - img [ref=e86]
+              - heading "Producto asignado" [level=3] [ref=e89]
+            - generic [ref=e90]:
+              - generic [ref=e91]:
+                - term [ref=e92]: Nombre
+                - definition [ref=e93]: "-"
+              - generic [ref=e94]:
+                - term [ref=e95]: SKU
+                - definition [ref=e96]: "-"
+      - generic [ref=e97]:
+        - button "Modificar zonas" [ref=e98] [cursor=pointer]:
+          - img [ref=e100]
+          - generic [ref=e105]: Modificar zonas
+        - button "Modificar líneas" [ref=e106] [cursor=pointer]:
+          - img [ref=e108]
+          - generic [ref=e109]: Modificar líneas
+        - button "Modificar posiciones" [active] [ref=e110] [cursor=pointer]:
+          - img [ref=e112]
+          - generic [ref=e116]: Modificar posiciones
+        - button "Modificar datos de ubicación" [ref=e117] [cursor=pointer]:
+          - img [ref=e119]
+          - generic [ref=e122]: Modificar datos de ubicación
+      - dialog [ref=e589]:
+        - generic [ref=e590]:
+          - heading "Modificar posiciones" [level=2] [ref=e591]
+          - button "Cerrar" [ref=e592] [cursor=pointer]:
+            - img [ref=e593]
+        - generic [ref=e596]:
+          - paragraph [ref=e597]: Seleccioná una zona, una línea y una posición para definir su estado.
+          - generic [ref=e598]:
+            - generic [ref=e599]:
+              - generic [ref=e600]: Zona
+              - generic [ref=e601]:
+                - combobox [ref=e602] [cursor=pointer]:
+                  - option "Seleccioná zona" [disabled]
+                  - option "Zona A" [selected]
+                  - option "Zona B"
+                  - option "Zona C"
+                  - option "Zona D"
+                - img
+            - generic [ref=e603]:
+              - generic [ref=e604]: Línea
+              - generic [ref=e605]:
+                - combobox [ref=e606] [cursor=pointer]:
+                  - option "Seleccioná línea" [disabled] [selected]
+                  - option "Línea 01"
+                  - option "Línea 02"
+                  - option "Línea 03"
+                  - option "Línea 04"
+                - img
+            - generic [ref=e607]:
+              - generic [ref=e608]: Posición
+              - generic [ref=e609]:
+                - combobox [disabled] [ref=e610]:
+                  - option "Seleccioná posición" [disabled] [selected]
+                - img
+            - generic [ref=e611]:
+              - generic [ref=e612]: Tamaño de zona
+              - generic [ref=e613]: Pequeña
+            - generic [ref=e615] [cursor=pointer]:
+              - checkbox "Posición activa" [disabled]
+              - img [ref=e617]
+              - generic [ref=e619]: Posición activa
+          - generic [ref=e620]:
+            - text: "El tamaño lo define la zona:"
+            - strong [ref=e621]: Pequeña
+            - text: acepta Cajas,
+            - strong [ref=e622]: Mediana
+            - text: Medio Pallets y
+            - strong [ref=e623]: Grande
+            - text: Pallets.
+          - generic [ref=e624]:
+            - button "Cancelar" [ref=e625] [cursor=pointer]:
+              - generic [ref=e626]: Cancelar
+            - button "Guardar cambios" [disabled] [ref=e627]:
+              - generic [ref=e628]: Guardar cambios

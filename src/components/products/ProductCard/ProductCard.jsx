@@ -1,10 +1,28 @@
 import Icon from "../../ui/Icon/Icon";
 import "./ProductCard.css";
 
+// El producto puede tener stock distribuido en varias posiciones (StockPosicion).
+// Por compatibilidad con el listado del catálogo, mostramos:
+// - "Sin asignar" si nunca tuvo asignación.
+// - El código de la ubicación si el backend tiene la última asignación reflejada
+//   en location { zone, line, position }.
+// - El total de unidades disponibles del producto.
 const formatLocation = (product) => {
-  const zone = product.zone ? `Zona ${product.zone}` : null;
-  const line = product.line ? `Línea ${String(product.line).padStart(2, "0")}` : null;
-  return [zone, line].filter(Boolean).join(", ") || "Sin asignar";
+  const loc = product.location;
+  if (!loc || (!loc.zone && !loc.line && !loc.position)) return "Sin asignar";
+  const parts = [];
+  if (loc.zone) parts.push(`Zona ${loc.zone}`);
+  if (loc.line) parts.push(`L${String(loc.line).padStart(2, "0")}`);
+  if (loc.position) parts.push(loc.position);
+  return parts.join(" · ");
+};
+
+const formatCapacities = (product) => {
+  const out = [];
+  if (product.unitsPerPallet > 0) out.push(`${product.unitsPerPallet}/Pallet`);
+  if (product.unitsPerHalfPallet > 0) out.push(`${product.unitsPerHalfPallet}/Medio`);
+  if (product.unitsPerBox > 0) out.push(`${product.unitsPerBox}/Caja`);
+  return out.join(" · ") || "Sin capacidades";
 };
 
 export default function ProductCard({ product, onSelect, onEdit, onDelete }) {
@@ -61,6 +79,10 @@ export default function ProductCard({ product, onSelect, onEdit, onDelete }) {
           <span className="product-card__meta-row">
             <Icon name="box" size={14} />
             Stock: {product.availableStock ?? 0} unidades
+          </span>
+          <span className="product-card__meta-row">
+            <Icon name="grid" size={14} />
+            Capacidad: {formatCapacities(product)}
           </span>
           <span className="product-card__meta-row">
             <Icon name="pin" size={14} />

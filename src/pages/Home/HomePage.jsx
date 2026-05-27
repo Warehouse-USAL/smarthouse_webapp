@@ -15,7 +15,13 @@ const TILES = [
     to: "/configuracion",
     icon: "map",
     title: "Configuración del warehouse",
-    description: "Definí zonas, líneas, posiciones y alturas.",
+    description: "Definí zonas, líneas y posiciones.",
+  },
+  {
+    to: "/asignacion-stock",
+    icon: "pin",
+    title: "Asignación de stock",
+    description: "Asigná stock de un producto a posiciones físicas del warehouse.",
   },
   {
     to: "/vehiculos",

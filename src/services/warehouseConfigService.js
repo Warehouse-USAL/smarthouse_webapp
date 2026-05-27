@@ -3,194 +3,272 @@
 | WAREHOUSE CONFIG SERVICE
 |--------------------------------------------------------------------------
 |
-| Persiste la configuración del warehouse en localStorage.
+| Fachada sobre la configuración del warehouse. Cuando VITE_USE_MOCK está
+| activo (o no hay VITE_API_BASE_URL), delega en warehouseConfigMockService.
+| En modo backend usa apiClient siguiendo el contrato del RFC:
+|   GET    /warehouse/zones
+|   POST   /warehouse/zones                          { zone_code, max_allowed_lines }
+|   PATCH  /warehouse/zones/:id_zone
+|   DELETE /warehouse/zones/:id_zone
+|   GET    /warehouse/zones/:id_zone/lines
+|   POST   /warehouse/zones/:id_zone/lines           { number_line, max_allowed_positions }
+|   PATCH  /warehouse/lines/:id_line
+|   DELETE /warehouse/lines/:id_line
+|   GET    /warehouse/lines/:id_line/positions
+|   GET    /warehouse/positions/:id_position
+|   POST   /warehouse/lines/:id_line/positions       { position_name, size_stock_to_save }
+|   PATCH  /warehouse/positions/:id_position
+|   DELETE /warehouse/positions/:id_position
 |
-| Estructura:
-|   {
-|     zones: [
-|       {
-|         id, name, color,
-|         lines, positions, heights,     // defaults a nivel zona
-|         lineOverrides: { "1": { positions: 22 }, ... },
-|         positionOverrides: { "L1-P3": { height: 6 }, ... },
-|         locationData: { "L1-P3-H2": { capacity: 120 }, ... },
-|       }
-|     ]
-|   }
+| `get()` orquesta las 3 capas y devuelve el árbol completo en camelCase:
+|   { zones: [{ ..., lines: [{ ..., positions: [...] }] }] }
 |
-| Cuando se conecte el backend, reemplazar cada método por una llamada a
-| `apiClient` (ver patrón en productService.js). El shape de retorno debe
-| mantenerse para no romper la UI.
+| Decisiones de diseño:
+|   - name es siempre `Zona ${zoneCode}` (no se persiste en backend).
+|   - color es 100% cosmético, asignado en el front por hash estable del
+|     idZone (1 de 4 colores: a/b/c/d). No viaja al backend.
+|   - El tamaño se define por posición (position.sizeStockToSave) — cada
+|     posición puede tener su propio tamaño dentro de una misma zona/línea.
+|     Hubo una versión previa en la que el tamaño vivía en la zona; ya no.
+|   - assignedProduct: el listado de positions del RFC no lo devuelve. Para
+|     ver el producto asignado a una posición, usar getPosition(idPosition)
+|     que llama a GET /warehouse/positions/:id (devuelve assigned_product).
+|   - Para asignar un producto a una posición, NO se usa este service.
+|     Usar productService.assignLocation(idProduct, { idZone, idLine, idPosition })
+|     que llama a PATCH /products/:id/location.
+|
+| El código de ubicación queda como `${zoneCode}-L${numberLine}-P${positionName}`
+| (sin altura — los robots trabajan solo a altura cero).
 |
 */
 
-import { localStore } from "../lib/localStore";
+import { apiClient } from "../lib/apiClient";
+import { warehouseConfigMockService } from "./mocks/warehouseConfigMockService";
 
-const KEY = "warehouse_config";
+const USE_MOCK =
+  import.meta.env.VITE_USE_MOCK === "true" || !import.meta.env.VITE_API_BASE_URL;
 
-const DEFAULT_CONFIG = {
-  zones: [
-    { id: "A", name: "Zona A", color: "a", lines: 4, positions: 12, heights: 4 },
-    { id: "B", name: "Zona B", color: "b", lines: 4, positions: 18, heights: 4 },
-    { id: "C", name: "Zona C", color: "c", lines: 4, positions: 18, heights: 4 },
-    { id: "D", name: "Zona D", color: "d", lines: 4, positions: 18, heights: 4 },
-  ],
+const padNumber = (value, width = 2) => {
+  const str = String(value ?? "");
+  if (!str) return "";
+  if (/^\d+$/.test(str)) return str.padStart(width, "0");
+  return str;
 };
 
-const ensureDefaults = (zone) => ({
-  color: (zone.id || "").toLowerCase(),
-  lineOverrides: {},
-  positionOverrides: {},
-  locationData: {},
-  ...zone,
+export const POSITION_SIZES = ["PEQUEÑA", "MEDIANA", "GRANDE"];
+
+const COLOR_PALETTE = ["a", "b", "c", "d"];
+
+// Hash determinístico simple sobre el idZone → 1 de 4 colores. Estable entre
+// re-renders y entre usuarios, sin tener que persistir el color en backend.
+const colorForZone = (idZone) => {
+  const key = String(idZone ?? "");
+  let hash = 0;
+  for (let i = 0; i < key.length; i += 1) {
+    hash = (hash * 31 + key.charCodeAt(i)) | 0;
+  }
+  return COLOR_PALETTE[Math.abs(hash) % COLOR_PALETTE.length];
+};
+
+/* ---------- Normalizadores snake_case → camelCase ---------- */
+
+const normalizeZone = (raw) => {
+  const idZone = raw.id_zone ?? raw.idZone;
+  const zoneCode = raw.zone_code ?? raw.zoneCode;
+  return {
+    idZone,
+    zoneCode,
+    name: `Zona ${zoneCode ?? ""}`.trim(),
+    color: colorForZone(idZone ?? zoneCode),
+    maxAllowedLines: raw.max_allowed_lines ?? raw.maxAllowedLines ?? 0,
+    lines: [],
+  };
+};
+
+const normalizeLine = (raw) => ({
+  idLine: raw.id_line ?? raw.idLine,
+  numberLine: raw.number_line ?? raw.numberLine,
+  maxAllowedPositions: raw.max_allowed_positions ?? raw.maxAllowedPositions ?? 0,
+  positions: [],
 });
 
-const readConfig = () => {
-  const raw = localStore.get(KEY, null);
-  if (!raw) {
-    localStore.set(KEY, DEFAULT_CONFIG);
-    return DEFAULT_CONFIG;
-  }
-  return { ...raw, zones: (raw.zones || []).map(ensureDefaults) };
+const normalizePosition = (raw) => ({
+  idPosition: raw.id_position ?? raw.idPosition,
+  positionName: raw.position_name ?? raw.positionName,
+  sizeStockToSave: raw.size_stock_to_save ?? raw.sizeStockToSave ?? "MEDIANA",
+  assignedProduct: raw.assigned_product
+    ? {
+        id: raw.assigned_product.id,
+        sku: raw.assigned_product.sku,
+        name: raw.assigned_product.name,
+      }
+    : null,
+});
+
+/* ---------- Payload builders camelCase → snake_case ---------- */
+
+const toZonePayload = (patch) => {
+  const out = {};
+  if (patch.zoneCode !== undefined) out.zone_code = patch.zoneCode;
+  if (patch.maxAllowedLines !== undefined) out.max_allowed_lines = patch.maxAllowedLines;
+  return out;
 };
 
-const writeConfig = (config) => {
-  localStore.set(KEY, config);
-  return config;
+const toLinePayload = (patch) => {
+  const out = {};
+  if (patch.numberLine !== undefined) out.number_line = patch.numberLine;
+  if (patch.maxAllowedPositions !== undefined) out.max_allowed_positions = patch.maxAllowedPositions;
+  return out;
 };
 
-const positionKey = (line, position) => `L${line}-P${position}`;
-const cellKey = (line, position, height) => `L${line}-P${position}-H${height}`;
+const toPositionPayload = (patch) => {
+  const out = {};
+  if (patch.positionName !== undefined) out.position_name = patch.positionName;
+  if (patch.sizeStockToSave !== undefined) out.size_stock_to_save = patch.sizeStockToSave;
+  return out;
+};
 
-const nextZoneId = (zones) => {
-  const used = new Set(zones.map((z) => z.id));
+/* ---------- Helpers para el modo backend ---------- */
+
+const nextZoneCode = (zones) => {
+  const used = new Set(zones.map((z) => z.zoneCode));
   for (let code = 65; code <= 90; code += 1) {
-    const id = String.fromCharCode(code);
-    if (!used.has(id)) return id;
+    const ch = String.fromCharCode(code);
+    if (!used.has(ch)) return ch;
   }
   return `Z${zones.length + 1}`;
 };
 
-export const warehouseConfigService = {
-  get() {
-    return readConfig();
-  },
+const fetchTree = async () => {
+  const { data: zonesRes } = await apiClient.get("/warehouse/zones");
+  const zones = (zonesRes?.zones || []).map(normalizeZone);
 
-  save(config) {
-    return writeConfig(config);
+  await Promise.all(
+    zones.map(async (zone) => {
+      const { data: linesRes } = await apiClient.get(`/warehouse/zones/${zone.idZone}/lines`);
+      zone.lines = (linesRes?.lines || []).map(normalizeLine);
+
+      await Promise.all(
+        zone.lines.map(async (line) => {
+          const { data: posRes } = await apiClient.get(`/warehouse/lines/${line.idLine}/positions`);
+          line.positions = (posRes?.positions || []).map(normalizePosition);
+        })
+      );
+    })
+  );
+
+  return { zones };
+};
+
+export const warehouseConfigService = {
+  async get() {
+    if (USE_MOCK) return warehouseConfigMockService.get();
+    return fetchTree();
   },
 
   /* ---------- Zonas ---------- */
 
-  updateZone(zoneId, patch) {
-    const config = readConfig();
-    const zones = config.zones.map((z) => (z.id === zoneId ? { ...z, ...patch } : z));
-    return writeConfig({ ...config, zones });
+  async addZone(input = {}) {
+    if (USE_MOCK) return warehouseConfigMockService.addZone(input);
+    const tree = await fetchTree();
+    const body = {
+      zone_code: input.zoneCode || nextZoneCode(tree.zones),
+      max_allowed_lines: input.maxAllowedLines ?? 4,
+    };
+    await apiClient.post("/warehouse/zones", body);
+    return fetchTree();
   },
 
-  setZoneLines(zoneId, lines) {
-    return this.updateZone(zoneId, { lines: Math.max(1, Number(lines) || 1) });
+  async updateZone(idZone, patch) {
+    if (USE_MOCK) return warehouseConfigMockService.updateZone(idZone, patch);
+    await apiClient.patch(`/warehouse/zones/${idZone}`, toZonePayload(patch));
+    return fetchTree();
   },
 
-  addZone({ name } = {}) {
-    const config = readConfig();
-    const id = nextZoneId(config.zones);
-    const palette = ["a", "b", "c", "d"];
-    const color = palette[config.zones.length % palette.length];
-    const newZone = ensureDefaults({
-      id,
-      name: name || `Zona ${id}`,
-      color,
-      lines: 4,
-      positions: 18,
-      heights: 4,
-    });
-    return writeConfig({ ...config, zones: [...config.zones, newZone] });
-  },
-
-  removeZone(zoneId) {
-    const config = readConfig();
-    return writeConfig({ ...config, zones: config.zones.filter((z) => z.id !== zoneId) });
+  async removeZone(idZone) {
+    if (USE_MOCK) return warehouseConfigMockService.removeZone(idZone);
+    await apiClient.delete(`/warehouse/zones/${idZone}`);
+    return fetchTree();
   },
 
   /* ---------- Líneas ---------- */
 
-  getLineConfig(zoneId, line) {
-    const zone = readConfig().zones.find((z) => z.id === zoneId);
-    if (!zone) return null;
-    const override = zone.lineOverrides?.[String(line)] || {};
-    return {
-      positions: override.positions ?? zone.positions,
-    };
+  async addLine(idZone, input = {}) {
+    if (USE_MOCK) return warehouseConfigMockService.addLine(idZone, input);
+    const tree = await fetchTree();
+    const zone = tree.zones.find((z) => z.idZone === idZone);
+    const nextNumberLine =
+      input.numberLine ?? (zone?.lines[zone.lines.length - 1]?.numberLine ?? 0) + 1;
+    await apiClient.post(`/warehouse/zones/${idZone}/lines`, {
+      number_line: nextNumberLine,
+      max_allowed_positions: input.maxAllowedPositions ?? 12,
+    });
+    return fetchTree();
   },
 
-  updateLine(zoneId, line, patch) {
-    const config = readConfig();
-    const zones = config.zones.map((z) => {
-      if (z.id !== zoneId) return z;
-      const lineOverrides = { ...(z.lineOverrides || {}) };
-      lineOverrides[String(line)] = {
-        ...(lineOverrides[String(line)] || {}),
-        ...patch,
-      };
-      return { ...z, lineOverrides };
-    });
-    return writeConfig({ ...config, zones });
+  async updateLine(idZone, idLine, patch) {
+    if (USE_MOCK) return warehouseConfigMockService.updateLine(idZone, idLine, patch);
+    await apiClient.patch(`/warehouse/lines/${idLine}`, toLinePayload(patch));
+    return fetchTree();
+  },
+
+  async removeLine(idZone, idLine) {
+    if (USE_MOCK) return warehouseConfigMockService.removeLine(idZone, idLine);
+    await apiClient.delete(`/warehouse/lines/${idLine}`);
+    return fetchTree();
   },
 
   /* ---------- Posiciones ---------- */
 
-  getPositionConfig(zoneId, line, position) {
-    const zone = readConfig().zones.find((z) => z.id === zoneId);
-    if (!zone) return null;
-    const override = zone.positionOverrides?.[positionKey(line, position)] || {};
-    return {
-      height: override.height ?? zone.heights,
-    };
+  async updatePosition(idZone, idLine, idPosition, patch) {
+    if (USE_MOCK) return warehouseConfigMockService.updatePosition(idZone, idLine, idPosition, patch);
+    await apiClient.patch(`/warehouse/positions/${idPosition}`, toPositionPayload(patch));
+    return fetchTree();
   },
 
-  updatePosition(zoneId, line, position, patch) {
-    const config = readConfig();
-    const zones = config.zones.map((z) => {
-      if (z.id !== zoneId) return z;
-      const positionOverrides = { ...(z.positionOverrides || {}) };
-      const key = positionKey(line, position);
-      positionOverrides[key] = {
-        ...(positionOverrides[key] || {}),
-        ...patch,
-      };
-      return { ...z, positionOverrides };
-    });
-    return writeConfig({ ...config, zones });
+  // Detalle de una posición individual, incluyendo el producto asignado.
+  // Útil para vistas que solo seleccionan una posición — evita refetch del árbol.
+  async getPosition(idPosition) {
+    if (USE_MOCK) return warehouseConfigMockService.getPosition(idPosition);
+    const { data } = await apiClient.get(`/warehouse/positions/${idPosition}`);
+    return normalizePosition(data);
   },
 
-  /* ---------- Datos de ubicación (capacidad por celda) ---------- */
-
-  getLocationData(zoneId, line, position, height) {
-    const zone = readConfig().zones.find((z) => z.id === zoneId);
-    if (!zone) return null;
-    return zone.locationData?.[cellKey(line, position, height)] || null;
+  // Asigna o limpia el producto en una posición. En backend NO hay endpoint
+  // dedicado: la fuente de verdad es StockPosicion (cuando se exponga). En
+  // modo mock mantenemos un assignedProduct sintético en la posición para
+  // que el panel del warehouse muestre la ocupación sin tener que reconstruir
+  // el join cada vez.
+  async assignProductToPosition(idPosition, productSummary) {
+    if (USE_MOCK) {
+      return warehouseConfigMockService.setAssignedProduct(idPosition, productSummary);
+    }
+    // Backend pendiente: no-op silencioso. Cuando exista StockPosicion el
+    // panel del warehouse leerá la asignación derivada de allí.
+    return null;
   },
 
-  updateLocationData(zoneId, line, position, height, patch) {
-    const config = readConfig();
-    const zones = config.zones.map((z) => {
-      if (z.id !== zoneId) return z;
-      const locationData = { ...(z.locationData || {}) };
-      const key = cellKey(line, position, height);
-      locationData[key] = {
-        ...(locationData[key] || {}),
-        ...patch,
-      };
-      return { ...z, locationData };
-    });
-    return writeConfig({ ...config, zones });
+  async clearProductFromPosition(idPosition) {
+    if (USE_MOCK) return warehouseConfigMockService.setAssignedProduct(idPosition, null);
+    return null;
   },
 
-  /* ---------- Helpers ---------- */
+  /* ---------- Helpers (sync, locales al árbol) ---------- */
 
-  buildLocationCode({ zone, line, height, position }) {
-    if (!zone || !line || !height || !position) return null;
-    return `${zone}-L${String(line).padStart(2, "0")}-P${String(position).padStart(2, "0")}-H${String(height).padStart(2, "0")}`;
+  buildLocationCode({ zoneCode, numberLine, positionName } = {}) {
+    if (!zoneCode || !numberLine || !positionName) return null;
+    return `${zoneCode}-L${padNumber(numberLine)}-P${padNumber(positionName)}`;
+  },
+
+  findZone(config, idZone) {
+    return config?.zones?.find((z) => z.idZone === idZone) || null;
+  },
+
+  findLine(zone, idLine) {
+    return zone?.lines?.find((l) => l.idLine === idLine) || null;
+  },
+
+  findPosition(line, idPosition) {
+    return line?.positions?.find((p) => p.idPosition === idPosition) || null;
   },
 };
