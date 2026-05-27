@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Modal from "../../ui/Modal/Modal";
 import Button from "../../ui/Button/Button";
 import Select from "../../ui/Select/Select";
@@ -7,99 +7,163 @@ import Icon from "../../ui/Icon/Icon";
 import { warehouseConfigService } from "../../../services/warehouseConfigService";
 import "./LinesEditModal.css";
 
-const buildLineOptions = (count) =>
-  Array.from({ length: count || 0 }, (_, i) => ({
-    value: String(i + 1),
-    label: `Línea ${String(i + 1).padStart(2, "0")}`,
-  }));
-
 function LinesEditBody({ onClose, onSaved }) {
-  const [config] = useState(() => warehouseConfigService.get());
-  const initialZone = config.zones[0]?.id || "";
-  const [zoneId, setZoneId] = useState(initialZone);
-  const [line, setLine] = useState(initialZone ? "1" : "");
-  const [positions, setPositions] = useState(() => {
-    if (!initialZone) return 0;
-    return warehouseConfigService.getLineConfig(initialZone, 1)?.positions ?? 0;
-  });
+  const [config, setConfig] = useState({ zones: [] });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [idZone, setIdZone] = useState("");
+  const [idLine, setIdLine] = useState("");
+  // Override local. Se resetea cuando cambia la línea seleccionada.
+  const [maxAllowedPositionsOverride, setMaxAllowedPositionsOverride] = useState(null);
 
-  const zoneOptions = useMemo(
-    () => config.zones.map((z) => ({ value: z.id, label: z.name })),
-    [config]
-  );
+  useEffect(() => {
+    let cancelled = false;
+    warehouseConfigService
+      .get()
+      .then((next) => {
+        if (cancelled) return;
+        setConfig(next);
+        setIdZone(next.zones[0]?.idZone || "");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const selectedZone = useMemo(
-    () => config.zones.find((z) => z.id === zoneId),
-    [config, zoneId]
+    () => warehouseConfigService.findZone(config, idZone),
+    [config, idZone]
+  );
+  const selectedLine = useMemo(
+    () => warehouseConfigService.findLine(selectedZone, idLine),
+    [selectedZone, idLine]
   );
 
+  const zoneOptions = useMemo(
+    () => config.zones.map((z) => ({ value: z.idZone, label: z.name })),
+    [config]
+  );
   const lineOptions = useMemo(
-    () => buildLineOptions(selectedZone?.lines || 0),
+    () =>
+      (selectedZone?.lines || []).map((l) => ({
+        value: l.idLine,
+        label: `Línea ${String(l.numberLine).padStart(2, "0")}`,
+      })),
     [selectedZone]
   );
 
+  const maxAllowedPositions =
+    maxAllowedPositionsOverride ?? selectedLine?.maxAllowedPositions ?? 0;
+
   const handleZoneChange = (e) => {
-    const id = e.target.value;
-    setZoneId(id);
-    setLine("1");
-    setPositions(warehouseConfigService.getLineConfig(id, 1)?.positions ?? 0);
+    setIdZone(e.target.value);
+    setIdLine("");
+    setMaxAllowedPositionsOverride(null);
   };
 
   const handleLineChange = (e) => {
-    const value = e.target.value;
-    setLine(value);
-    setPositions(warehouseConfigService.getLineConfig(zoneId, Number(value))?.positions ?? 0);
+    setIdLine(e.target.value);
+    setMaxAllowedPositionsOverride(null);
   };
 
-  const handleSave = () => {
-    warehouseConfigService.updateLine(zoneId, Number(line), {
-      positions: Math.max(1, Number(positions) || 1),
-    });
-    onSaved?.(warehouseConfigService.get());
-    onClose?.();
+  const handleAddLine = async () => {
+    if (!idZone) return;
+    const next = await warehouseConfigService.addLine(idZone);
+    setConfig(next);
+    const zone = warehouseConfigService.findZone(next, idZone);
+    const lastLine = zone?.lines[zone.lines.length - 1];
+    if (lastLine) setIdLine(lastLine.idLine);
+    setMaxAllowedPositionsOverride(null);
   };
 
-  const previewCells = Array.from({ length: Math.max(0, Number(positions) || 0) }, (_, i) => i + 1);
-  const zoneColor = (selectedZone?.color || selectedZone?.id || "").toLowerCase();
+  const handleRemoveLine = async () => {
+    if (!idZone || !idLine) return;
+    const next = await warehouseConfigService.removeLine(idZone, idLine);
+    setConfig(next);
+    setIdLine("");
+    setMaxAllowedPositionsOverride(null);
+  };
+
+  const handleSave = async () => {
+    if (!idZone || !idLine) return;
+    setSaving(true);
+    try {
+      const next = await warehouseConfigService.updateLine(idZone, idLine, {
+        maxAllowedPositions: Math.max(1, Number(maxAllowedPositions) || 1),
+      });
+      setConfig(next);
+      onSaved?.(next);
+      onClose?.();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const zoneColor = (selectedZone?.color || selectedZone?.zoneCode || "").toLowerCase();
+  const previewCount = Math.max(0, Number(maxAllowedPositions) || 0);
+  const previewCells = Array.from({ length: previewCount }, (_, i) => i + 1);
+
+  if (loading) {
+    return <p className="lines-edit__subtitle">Cargando líneas…</p>;
+  }
 
   return (
     <>
       <p className="lines-edit__subtitle">
-        Seleccioná una zona y una línea para editar sus configuraciones.
+        Seleccioná una zona y una línea para configurar sus posiciones.
       </p>
 
       <div className="lines-edit__zone-field">
         <Select
           label="Zona"
-          value={zoneId}
+          value={idZone}
           onChange={handleZoneChange}
           options={zoneOptions}
           placeholder="Seleccioná zona"
         />
       </div>
 
-      <div className="lines-edit__row">
+      <div className="lines-edit__line-row">
         <Select
           label="Línea"
-          value={line}
+          value={idLine}
           onChange={handleLineChange}
           options={lineOptions}
           placeholder="Seleccioná línea"
-          disabled={!zoneId}
+          disabled={!idZone}
         />
+        <div className="lines-edit__line-actions">
+          <Button variant="secondary" type="button" onClick={handleAddLine} disabled={!idZone}>
+            <Icon name="plus" size={14} /> Agregar línea
+          </Button>
+          <Button
+            variant="secondary"
+            type="button"
+            onClick={handleRemoveLine}
+            disabled={!idLine || (selectedZone?.lines?.length ?? 0) <= 1}
+          >
+            <Icon name="trash" size={14} /> Eliminar
+          </Button>
+        </div>
+      </div>
+
+      <div className="lines-edit__row">
         <Input
-          name="positions"
-          label="Cantidad de posiciones"
+          name="maxAllowedPositions"
+          label="Posiciones permitidas"
           type="number"
           min={1}
           step={1}
-          value={positions}
-          onChange={(e) => setPositions(e.target.value)}
-          disabled={!zoneId}
+          value={maxAllowedPositions}
+          onChange={(e) => setMaxAllowedPositionsOverride(e.target.value)}
+          disabled={!idLine}
         />
       </div>
 
-      {zoneId && (
+      {idLine && (
         <div className="lines-edit__preview">
           <span className="lines-edit__preview-label">Vista previa de la línea seleccionada</span>
           <div className={`lines-edit__cells lines-edit__cells--${zoneColor}`}>
@@ -117,15 +181,17 @@ function LinesEditBody({ onClose, onSaved }) {
 
       <div className="lines-edit__hint">
         <Icon name="info" size={16} />
-        <span>Estas configuraciones se aplicarán a todas las posiciones de la línea seleccionada.</span>
+        <span>
+          Cambiar la cantidad de posiciones agrega o recorta posiciones al final de la línea.
+        </span>
       </div>
 
       <div className="lines-edit__actions">
-        <Button variant="secondary" type="button" onClick={onClose}>
+        <Button variant="secondary" type="button" onClick={onClose} disabled={saving}>
           Cancelar
         </Button>
-        <Button type="button" onClick={handleSave} disabled={!zoneId || !line}>
-          Guardar cambios
+        <Button type="button" onClick={handleSave} disabled={!idLine || saving}>
+          {saving ? "Guardando…" : "Guardar cambios"}
         </Button>
       </div>
     </>

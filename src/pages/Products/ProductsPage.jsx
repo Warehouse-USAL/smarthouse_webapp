@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
 import Button from "../../components/ui/Button/Button";
 import Input from "../../components/ui/Input/Input";
@@ -12,6 +13,7 @@ import Modal from "../../components/ui/Modal/Modal";
 import ProductCard from "../../components/products/ProductCard/ProductCard";
 import CreateProductForm from "../../components/products/CreateProductForm/CreateProductForm";
 import { productService } from "../../services/productService";
+import { warehouseConfigService } from "../../services/warehouseConfigService";
 import { categoryService } from "../../services/categoryService";
 import "./ProductsPage.css";
 
@@ -19,14 +21,6 @@ const PAGE_SIZE_OPTIONS = [
   { value: "8", label: "8 por página" },
   { value: "16", label: "16 por página" },
   { value: "32", label: "32 por página" },
-];
-
-const ZONES = [
-  { value: "", label: "Todas las zonas" },
-  { value: "A", label: "Zona A" },
-  { value: "B", label: "Zona B" },
-  { value: "C", label: "Zona C" },
-  { value: "D", label: "Zona D" },
 ];
 
 const STATUSES = [
@@ -37,6 +31,7 @@ const STATUSES = [
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
+  const [zones, setZones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
@@ -69,6 +64,19 @@ export default function ProductsPage() {
     }
   }, [search, categoryFilter, status]);
 
+  // Una sola carga del warehouse para alimentar el filtro de zonas
+  // (el filtro usa zoneCode, no idZone, porque el shape del producto en
+  // backend solo tiene `zone` como string libre).
+  useEffect(() => {
+    let cancelled = false;
+    warehouseConfigService.get().then((next) => {
+      if (!cancelled) setZones(next.zones || []);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -94,9 +102,17 @@ export default function ProductsPage() {
     };
   }, [search, categoryFilter, status]);
 
+  const zoneOptions = useMemo(
+    () => [
+      { value: "", label: "Todas las zonas" },
+      ...zones.map((z) => ({ value: z.zoneCode, label: z.name })),
+    ],
+    [zones]
+  );
+
   const filtered = useMemo(() => {
     return products.filter((p) => {
-      if (zone && p.zone !== zone) return false;
+      if (zone && p.location?.zone !== zone) return false;
       return true;
     });
   }, [products, zone]);
@@ -161,11 +177,17 @@ export default function ProductsPage() {
     <div className="products-page">
       <PageHeader
         title="Productos"
-        subtitle="Gestioná el catálogo y visualizá la información de cada producto."
+        subtitle="Gestioná el catálogo. La asignación de stock a posiciones se hace desde la pantalla Asignación de stock."
         action={
-          <Button iconLeft={<Icon name="plus" size={16} />} onClick={() => setCreateOpen(true)}>
-            Dar de alta producto
-          </Button>
+          <div className="products-page__header-actions">
+            <Link to="/asignacion-stock" className="products-page__link-action">
+              <Icon name="pin" size={16} />
+              <span>Asignar stock</span>
+            </Link>
+            <Button iconLeft={<Icon name="plus" size={16} />} onClick={() => setCreateOpen(true)}>
+              Dar de alta producto
+            </Button>
+          </div>
         }
       />
 
@@ -184,7 +206,7 @@ export default function ProductsPage() {
             label="Zonas"
             value={zone}
             onChange={(e) => { setZone(e.target.value); setPage(1); }}
-            options={ZONES}
+            options={zoneOptions}
           />
         </div>
         <div className="products-page__filter">

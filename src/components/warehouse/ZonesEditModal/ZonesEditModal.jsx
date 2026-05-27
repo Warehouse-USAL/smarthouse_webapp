@@ -1,83 +1,133 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Modal from "../../ui/Modal/Modal";
 import Button from "../../ui/Button/Button";
-import Select from "../../ui/Select/Select";
+import Input from "../../ui/Input/Input";
 import Icon from "../../ui/Icon/Icon";
 import { warehouseConfigService } from "../../../services/warehouseConfigService";
 import "./ZonesEditModal.css";
 
-const LINE_OPTIONS = Array.from({ length: 12 }, (_, i) => ({
-  value: String(i + 1),
-  label: String(i + 1),
-}));
+const draftFrom = (zone) => ({
+  idZone: zone.idZone,
+  zoneCode: zone.zoneCode,
+  name: zone.name,
+  color: zone.color,
+  maxAllowedLines: zone.maxAllowedLines,
+});
+
+// name y color son derivados (no se persisten): name = `Zona ${zoneCode}`,
+// color = hash estable del idZone → 1 de 4 paletas (a/b/c/d).
+// El tamaño ya no vive en la zona: se edita por posición desde PositionsEditModal.
 
 function ZonesEditBody({ onClose, onSaved }) {
-  const [zones, setZones] = useState(() => warehouseConfigService.get().zones);
+  const [drafts, setDrafts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const handleLinesChange = (zoneId) => (e) => {
-    const lines = Number(e.target.value);
-    setZones((zs) => zs.map((z) => (z.id === zoneId ? { ...z, lines } : z)));
+  useEffect(() => {
+    let cancelled = false;
+    warehouseConfigService
+      .get()
+      .then((config) => {
+        if (!cancelled) setDrafts(config.zones.map(draftFrom));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const updateDraft = (idZone, patch) => {
+    setDrafts((list) => list.map((z) => (z.idZone === idZone ? { ...z, ...patch } : z)));
   };
 
-  const handleAddZone = () => {
-    const next = warehouseConfigService.addZone();
-    setZones(next.zones);
+  const handleAddZone = async () => {
+    const next = await warehouseConfigService.addZone();
+    setDrafts(next.zones.map(draftFrom));
   };
 
-  const handleRemoveZone = (zoneId) => {
-    setZones((zs) => zs.filter((z) => z.id !== zoneId));
+  const handleRemoveZone = (idZone) => {
+    setDrafts((list) => list.filter((z) => z.idZone !== idZone));
   };
 
-  const handleSave = () => {
-    const current = warehouseConfigService.get();
-    const currentIds = new Set(current.zones.map((z) => z.id));
-    const nextIds = new Set(zones.map((z) => z.id));
-    currentIds.forEach((id) => {
-      if (!nextIds.has(id)) warehouseConfigService.removeZone(id);
-    });
-    zones.forEach((z) =>
-      warehouseConfigService.updateZone(z.id, { lines: z.lines, name: z.name })
-    );
-    onSaved?.(warehouseConfigService.get());
-    onClose?.();
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const current = await warehouseConfigService.get();
+      const currentIds = new Set(current.zones.map((z) => z.idZone));
+      const nextIds = new Set(drafts.map((z) => z.idZone));
+
+      const removals = [...currentIds]
+        .filter((id) => !nextIds.has(id))
+        .map((id) => warehouseConfigService.removeZone(id));
+      await Promise.all(removals);
+
+      for (const d of drafts) {
+        await warehouseConfigService.updateZone(d.idZone, {
+          zoneCode: d.zoneCode,
+          maxAllowedLines: Math.max(1, Number(d.maxAllowedLines) || 1),
+        });
+      }
+
+      const fresh = await warehouseConfigService.get();
+      onSaved?.(fresh);
+      onClose?.();
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return <p className="zones-edit__subtitle">Cargando zonas…</p>;
+  }
 
   return (
     <>
       <p className="zones-edit__subtitle">
-        Definí la cantidad de líneas que tendrá cada zona del warehouse.
+        Editá los datos de cada zona del warehouse.
       </p>
 
       <div className="zones-edit__list">
-        {zones.map((zone) => (
-          <div
-            className={`zones-edit__row zones-edit__row--${(zone.color || zone.id || "").toLowerCase()}`}
-            key={zone.id}
-          >
-            <div className="zones-edit__zone-label">
-              <span className={`zones-edit__dot zones-edit__dot--${(zone.color || zone.id || "").toLowerCase()}`} />
-              <span>{zone.name}</span>
+        {drafts.map((zone) => {
+          const colorKey = (zone.color || zone.zoneCode || "").toLowerCase();
+          return (
+            <div className={`zones-edit__row zones-edit__row--${colorKey}`} key={zone.idZone}>
+              <div className="zones-edit__zone-label">
+                <span className={`zones-edit__dot zones-edit__dot--${colorKey}`} />
+                <span>{zone.name}</span>
+              </div>
+
+              <div className="zones-edit__fields">
+                <Input
+                  name={`zone-${zone.idZone}-code`}
+                  label="Código"
+                  value={zone.zoneCode}
+                  onChange={(e) => updateDraft(zone.idZone, { zoneCode: e.target.value })}
+                />
+                <Input
+                  name={`zone-${zone.idZone}-lines`}
+                  label="Líneas permitidas"
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={zone.maxAllowedLines}
+                  onChange={(e) => updateDraft(zone.idZone, { maxAllowedLines: e.target.value })}
+                />
+              </div>
+
+              <button
+                type="button"
+                className="zones-edit__remove"
+                onClick={() => handleRemoveZone(zone.idZone)}
+                aria-label={`Eliminar ${zone.name}`}
+                disabled={drafts.length <= 1}
+              >
+                <Icon name="trash" size={16} />
+              </button>
             </div>
-            <div className="zones-edit__field">
-              <label htmlFor={`zone-${zone.id}-lines`}>Cantidad de líneas</label>
-              <Select
-                id={`zone-${zone.id}-lines`}
-                value={String(zone.lines)}
-                onChange={handleLinesChange(zone.id)}
-                options={LINE_OPTIONS}
-              />
-            </div>
-            <button
-              type="button"
-              className="zones-edit__remove"
-              onClick={() => handleRemoveZone(zone.id)}
-              aria-label={`Eliminar ${zone.name}`}
-              disabled={zones.length <= 1}
-            >
-              <Icon name="trash" size={16} />
-            </button>
-          </div>
-        ))}
+          );
+        })}
 
         <button type="button" className="zones-edit__add" onClick={handleAddZone}>
           <span className="zones-edit__add-icon">
@@ -88,11 +138,11 @@ function ZonesEditBody({ onClose, onSaved }) {
       </div>
 
       <div className="zones-edit__actions">
-        <Button variant="secondary" type="button" onClick={onClose}>
+        <Button variant="secondary" type="button" onClick={onClose} disabled={saving}>
           Cancelar
         </Button>
-        <Button type="button" onClick={handleSave}>
-          Guardar cambios
+        <Button type="button" onClick={handleSave} disabled={saving}>
+          {saving ? "Guardando…" : "Guardar cambios"}
         </Button>
       </div>
     </>

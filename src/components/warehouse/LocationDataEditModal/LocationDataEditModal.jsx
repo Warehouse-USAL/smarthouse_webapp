@@ -1,160 +1,123 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Modal from "../../ui/Modal/Modal";
 import Button from "../../ui/Button/Button";
 import Select from "../../ui/Select/Select";
-import Input from "../../ui/Input/Input";
 import { warehouseConfigService } from "../../../services/warehouseConfigService";
 import "./LocationDataEditModal.css";
 
-const buildOptions = (count, prefix) =>
-  Array.from({ length: count || 0 }, (_, i) => ({
-    value: String(i + 1),
-    label: `${prefix} ${String(i + 1).padStart(2, "0")}`,
-  }));
+// El tamaño se edita por posición desde PositionsEditModal, así que este modal
+// quedó como vista de consulta del código de ubicación. Si en el futuro no
+// suma información extra, conviene eliminarlo junto con su botón en la página.
+function LocationDataEditBody({ onClose }) {
+  const [config, setConfig] = useState({ zones: [] });
+  const [loading, setLoading] = useState(true);
+  const [idZone, setIdZone] = useState("");
+  const [idLine, setIdLine] = useState("");
+  const [idPosition, setIdPosition] = useState("");
 
-const loadCapacity = (zone, line, position, height) => {
-  if (!zone || !line || !position || !height) return "";
-  const data = warehouseConfigService.getLocationData(
-    zone,
-    Number(line),
-    Number(position),
-    Number(height)
-  );
-  return data?.capacity != null ? String(data.capacity) : "";
-};
-
-function LocationDataEditBody({ onClose, onSaved }) {
-  const [config] = useState(() => warehouseConfigService.get());
-  const [zoneId, setZoneId] = useState(config.zones[0]?.id || "");
-  const [line, setLine] = useState("");
-  const [position, setPosition] = useState("");
-  const [height, setHeight] = useState("");
-  const [capacity, setCapacity] = useState("");
-
-  const zoneOptions = useMemo(
-    () => config.zones.map((z) => ({ value: z.id, label: z.name })),
-    [config]
-  );
+  useEffect(() => {
+    let cancelled = false;
+    warehouseConfigService
+      .get()
+      .then((next) => {
+        if (cancelled) return;
+        setConfig(next);
+        setIdZone(next.zones[0]?.idZone || "");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const selectedZone = useMemo(
-    () => config.zones.find((z) => z.id === zoneId),
-    [config, zoneId]
+    () => warehouseConfigService.findZone(config, idZone),
+    [config, idZone]
+  );
+  const selectedLine = useMemo(
+    () => warehouseConfigService.findLine(selectedZone, idLine),
+    [selectedZone, idLine]
+  );
+  const selectedPosition = useMemo(
+    () => warehouseConfigService.findPosition(selectedLine, idPosition),
+    [selectedLine, idPosition]
   );
 
+  const zoneOptions = useMemo(
+    () => config.zones.map((z) => ({ value: z.idZone, label: z.name })),
+    [config]
+  );
   const lineOptions = useMemo(
-    () => buildOptions(selectedZone?.lines || 0, "Línea"),
+    () =>
+      (selectedZone?.lines || []).map((l) => ({
+        value: l.idLine,
+        label: `Línea ${String(l.numberLine).padStart(2, "0")}`,
+      })),
     [selectedZone]
   );
-
-  const lineConfig = useMemo(() => {
-    if (!zoneId || !line) return null;
-    return warehouseConfigService.getLineConfig(zoneId, Number(line));
-  }, [zoneId, line]);
-
   const positionOptions = useMemo(
-    () => buildOptions(lineConfig?.positions || 0, "Posición"),
-    [lineConfig]
-  );
-
-  const positionConfig = useMemo(() => {
-    if (!zoneId || !line || !position) return null;
-    return warehouseConfigService.getPositionConfig(zoneId, Number(line), Number(position));
-  }, [zoneId, line, position]);
-
-  const heightOptions = useMemo(
-    () => buildOptions(positionConfig?.height || 0, "Altura"),
-    [positionConfig]
+    () =>
+      (selectedLine?.positions || []).map((p) => ({
+        value: p.idPosition,
+        label: p.positionName,
+      })),
+    [selectedLine]
   );
 
   const code = warehouseConfigService.buildLocationCode({
-    zone: zoneId,
-    line,
-    position,
-    height,
+    zoneCode: selectedZone?.zoneCode,
+    numberLine: selectedLine?.numberLine,
+    positionName: selectedPosition?.positionName,
   });
 
   const handleZoneChange = (e) => {
-    setZoneId(e.target.value);
-    setLine(""); setPosition(""); setHeight(""); setCapacity("");
+    setIdZone(e.target.value);
+    setIdLine("");
+    setIdPosition("");
   };
   const handleLineChange = (e) => {
-    setLine(e.target.value);
-    setPosition(""); setHeight(""); setCapacity("");
+    setIdLine(e.target.value);
+    setIdPosition("");
   };
   const handlePositionChange = (e) => {
-    setPosition(e.target.value);
-    setHeight(""); setCapacity("");
-  };
-  const handleHeightChange = (e) => {
-    const v = e.target.value;
-    setHeight(v);
-    setCapacity(loadCapacity(zoneId, line, position, v));
+    setIdPosition(e.target.value);
   };
 
-  const handleSave = () => {
-    if (!zoneId || !line || !position || !height) return;
-    warehouseConfigService.updateLocationData(
-      zoneId,
-      Number(line),
-      Number(position),
-      Number(height),
-      { capacity: Math.max(0, Number(capacity) || 0) }
-    );
-    onSaved?.(warehouseConfigService.get());
-    onClose?.();
-  };
+  if (loading) {
+    return <p className="location-data__subtitle">Cargando ubicaciones…</p>;
+  }
 
   return (
     <>
       <p className="location-data__subtitle">
-        Seleccioná una ubicación exacta y actualizá su capacidad máxima.
+        Seleccioná una ubicación para ver su código.
       </p>
 
       <div className="location-data__fields">
         <Select
           label="Zona"
-          value={zoneId}
+          value={idZone}
           onChange={handleZoneChange}
           options={zoneOptions}
           placeholder="Seleccioná zona"
         />
         <Select
           label="Línea"
-          value={line}
+          value={idLine}
           onChange={handleLineChange}
           options={lineOptions}
           placeholder="Seleccioná línea"
-          disabled={!zoneId}
+          disabled={!idZone}
         />
         <Select
           label="Posición"
-          value={position}
+          value={idPosition}
           onChange={handlePositionChange}
           options={positionOptions}
           placeholder="Seleccioná posición"
-          disabled={!line}
-        />
-        <Select
-          label="Altura"
-          value={height}
-          onChange={handleHeightChange}
-          options={heightOptions}
-          placeholder="Seleccioná altura"
-          disabled={!position}
-        />
-      </div>
-
-      <div className="location-data__section">
-        <span className="location-data__section-title">Datos de la ubicación</span>
-        <Input
-          name="capacity"
-          label="Capacidad máxima en unidades"
-          type="number"
-          min={0}
-          step={1}
-          value={capacity}
-          onChange={(e) => setCapacity(e.target.value)}
-          disabled={!height}
+          disabled={!idLine}
         />
       </div>
 
@@ -166,21 +129,18 @@ function LocationDataEditBody({ onClose, onSaved }) {
       )}
 
       <div className="location-data__actions">
-        <Button variant="secondary" type="button" onClick={onClose}>
-          Cancelar
-        </Button>
-        <Button type="button" onClick={handleSave} disabled={!height}>
-          Guardar cambios
+        <Button type="button" onClick={onClose}>
+          Cerrar
         </Button>
       </div>
     </>
   );
 }
 
-export default function LocationDataEditModal({ open, onClose, onSaved }) {
+export default function LocationDataEditModal({ open, onClose }) {
   return (
-    <Modal open={open} onClose={onClose} title="Modificar datos de ubicación" size="lg">
-      {open && <LocationDataEditBody onClose={onClose} onSaved={onSaved} />}
+    <Modal open={open} onClose={onClose} title="Datos de ubicación" size="lg">
+      {open && <LocationDataEditBody onClose={onClose} />}
     </Modal>
   );
 }

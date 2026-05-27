@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: "/inicio", label: "Inicio" },
   { to: "/productos", label: "Productos" },
   { to: "/configuracion", label: "Configuración del warehouse" },
+  { to: "/asignacion-stock", label: "Asignación de stock" },
   { to: "/vehiculos", label: "Vehículos" },
 ];
 

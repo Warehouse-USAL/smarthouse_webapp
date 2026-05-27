@@ -1,0 +1,31 @@
+- generic [ref=e4]:
+  - generic [ref=e6]:
+    - generic [ref=e8]:
+      - heading "Gestión inteligente para tu almacén" [level=2] [ref=e9]
+      - paragraph [ref=e10]: Controlá órdenes, vehículos y monitoreo en tiempo real desde un solo lugar.
+    - img "hero" [ref=e12]
+  - generic [ref=e14]:
+    - heading "Iniciar sesión" [level=1] [ref=e15]
+    - heading "Accedé a SmartWarehouse" [level=3] [ref=e16]
+    - generic [ref=e17]:
+      - generic [ref=e18]: Correo electrónico
+      - generic [ref=e19]:
+        - generic [ref=e20]:
+          - img "mail"
+        - textbox "Correo electrónico" [ref=e21]:
+          - /placeholder: Ingresá tu correo
+    - generic [ref=e22]:
+      - generic [ref=e23]: Contraseña
+      - generic [ref=e24]:
+        - generic [ref=e25]:
+          - img "lock"
+        - textbox "Contraseña" [ref=e26]:
+          - /placeholder: Ingresá tu contraseña
+        - generic [ref=e27] [cursor=pointer]:
+          - img "toggle password"
+    - link "¿Olvidaste tu contraseña?" [ref=e28] [cursor=pointer]:
+      - /url: /forgot-password
+    - button "Ingresar" [ref=e29] [cursor=pointer]:
+      - generic [ref=e30]: Ingresar
+    - link "¿Querés sumarte como proveedor?" [ref=e31] [cursor=pointer]:
+      - /url: /register-provider

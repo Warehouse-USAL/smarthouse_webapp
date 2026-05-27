@@ -4,6 +4,12 @@
   gap: var(--space-4);
 }
 
+.warehouse-page__loading {
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-muted, #6b7280);
+  font-size: 14px;
+}
+
 .warehouse-page__layout {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
