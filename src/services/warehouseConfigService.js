@@ -96,6 +96,9 @@ const normalizePosition = (raw) => ({
   idPosition: raw.id_position ?? raw.idPosition,
   positionName: raw.position_name ?? raw.positionName,
   sizeStockToSave: raw.size_stock_to_save ?? raw.sizeStockToSave ?? "MEDIANA",
+  // Unidades físicas del producto en esta posición (no confundir con
+  // product.availableStock, que es el total del producto en todo el warehouse).
+  currentStock: raw.current_stock ?? raw.currentStock ?? 0,
   assignedProduct: raw.assigned_product
     ? {
         id: raw.assigned_product.id,
@@ -239,9 +242,13 @@ export const warehouseConfigService = {
   // modo mock mantenemos un assignedProduct sintético en la posición para
   // que el panel del warehouse muestre la ocupación sin tener que reconstruir
   // el join cada vez.
-  async assignProductToPosition(idPosition, productSummary) {
+  async assignProductToPosition(idPosition, productSummary, currentStock) {
     if (USE_MOCK) {
-      return warehouseConfigMockService.setAssignedProduct(idPosition, productSummary);
+      return warehouseConfigMockService.setAssignedProduct(
+        idPosition,
+        productSummary,
+        currentStock
+      );
     }
     // Backend pendiente: no-op silencioso. Cuando exista StockPosicion el
     // panel del warehouse leerá la asignación derivada de allí.

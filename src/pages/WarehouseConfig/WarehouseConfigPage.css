@@ -114,6 +114,19 @@
   color: var(--color-text-primary);
 }
 
+.warehouse-page__assigned-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-3, 12px);
+}
+
+.warehouse-page__clear-text {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+}
+
 @media (max-width: 980px) {
   .warehouse-page__layout { grid-template-columns: 1fr; }
   .warehouse-page__action-bar { grid-template-columns: repeat(2, 1fr); }

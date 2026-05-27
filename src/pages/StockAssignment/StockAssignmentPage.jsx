@@ -143,11 +143,15 @@ export default function StockAssignmentPage() {
       //    En producción esto lo deriva el backend desde StockPosicion.
       await Promise.all(
         allocation.plan.map((slot) =>
-          warehouseConfigService.assignProductToPosition(slot.idPosition, {
-            id: selectedProduct.id,
-            sku: selectedProduct.sku,
-            name: selectedProduct.name,
-          })
+          warehouseConfigService.assignProductToPosition(
+            slot.idPosition,
+            {
+              id: selectedProduct.id,
+              sku: selectedProduct.sku,
+              name: selectedProduct.name,
+            },
+            slot.quantity
+          )
         )
       );
 
