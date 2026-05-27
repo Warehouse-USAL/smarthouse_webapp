@@ -1,31 +1,22 @@
 import { useEffect, useState } from "react";
 import Modal from "../../ui/Modal/Modal";
 import Button from "../../ui/Button/Button";
-import Select from "../../ui/Select/Select";
 import Input from "../../ui/Input/Input";
-import Checkbox from "../../ui/Checkbox/Checkbox";
 import Icon from "../../ui/Icon/Icon";
 import { warehouseConfigService } from "../../../services/warehouseConfigService";
 import "./ZonesEditModal.css";
-
-const SIZE_OPTIONS = [
-  { value: "PEQUEÑA", label: "Pequeña" },
-  { value: "MEDIANA", label: "Mediana" },
-  { value: "GRANDE", label: "Grande" },
-];
 
 const draftFrom = (zone) => ({
   idZone: zone.idZone,
   zoneCode: zone.zoneCode,
   name: zone.name,
   color: zone.color,
-  isActive: zone.isActive,
   maxAllowedLines: zone.maxAllowedLines,
-  sizeStockToSave: zone.sizeStockToSave,
 });
 
 // name y color son derivados (no se persisten): name = `Zona ${zoneCode}`,
 // color = hash estable del idZone → 1 de 4 paletas (a/b/c/d).
+// El tamaño ya no vive en la zona: se edita por posición desde PositionsEditModal.
 
 function ZonesEditBody({ onClose, onSaved }) {
   const [drafts, setDrafts] = useState([]);
@@ -75,9 +66,7 @@ function ZonesEditBody({ onClose, onSaved }) {
       for (const d of drafts) {
         await warehouseConfigService.updateZone(d.idZone, {
           zoneCode: d.zoneCode,
-          isActive: d.isActive,
           maxAllowedLines: Math.max(1, Number(d.maxAllowedLines) || 1),
-          sizeStockToSave: d.sizeStockToSave,
         });
       }
 
@@ -125,20 +114,6 @@ function ZonesEditBody({ onClose, onSaved }) {
                   value={zone.maxAllowedLines}
                   onChange={(e) => updateDraft(zone.idZone, { maxAllowedLines: e.target.value })}
                 />
-                <Select
-                  label="Tamaño sugerido"
-                  value={zone.sizeStockToSave}
-                  onChange={(e) => updateDraft(zone.idZone, { sizeStockToSave: e.target.value })}
-                  options={SIZE_OPTIONS}
-                />
-                <div className="zones-edit__active">
-                  <Checkbox
-                    name={`zone-${zone.idZone}-active`}
-                    label="Activa"
-                    checked={zone.isActive}
-                    onChange={(e) => updateDraft(zone.idZone, { isActive: e.target.checked })}
-                  />
-                </div>
               </div>
 
               <button

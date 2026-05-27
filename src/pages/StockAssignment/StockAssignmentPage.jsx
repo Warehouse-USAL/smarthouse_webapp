@@ -197,6 +197,7 @@ export default function StockAssignmentPage() {
   }
 
   const requiredSize = storageUnit ? UNIT_TO_SIZE[storageUnit] : null;
+  const unitsPerSlot = unitsPerSlotFor(selectedProduct, storageUnit);
   const totalPlanned = allocation.plan.reduce((sum, s) => sum + s.quantity, 0);
 
   return (
@@ -246,10 +247,11 @@ export default function StockAssignmentPage() {
           <div className="stock-assignment__meta">
             <span>
               Unidades por <strong>{STORAGE_UNIT_LABEL[storageUnit]}</strong>:{" "}
-              <strong>{allocation.unitsPerSlot}</strong>
+              <strong>{unitsPerSlot}</strong>
             </span>
             <span>
-              Requiere zonas de tamaño <strong>{POSITION_SIZE_LABEL[requiredSize]}</strong>
+              Requiere posiciones de tamaño{" "}
+              <strong>{POSITION_SIZE_LABEL[requiredSize]}</strong>
             </span>
           </div>
         )}

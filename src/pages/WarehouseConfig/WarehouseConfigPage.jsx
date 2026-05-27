@@ -16,8 +16,6 @@ const EMPTY_SELECTION = { idZone: "", idLine: "", idPosition: "" };
 
 const SIZE_LABEL = { PEQUEÑA: "Pequeña", MEDIANA: "Mediana", GRANDE: "Grande" };
 
-const formatStatus = (isActive) => (isActive ? "Activa" : "Inactiva");
-
 export default function WarehouseConfigPage() {
   const [config, setConfig] = useState({ zones: [] });
   const [loading, setLoading] = useState(true);
@@ -124,9 +122,7 @@ export default function WarehouseConfigPage() {
 
   const locationInfo = [
     { label: "Código de la ubicación", value: locationCode },
-    { label: "Tamaño de zona", value: selectedZone ? SIZE_LABEL[selectedZone.sizeStockToSave] || selectedZone.sizeStockToSave : null },
-    { label: "Capacidad máxima", value: positionView?.maximumCapacity },
-    { label: "Estado", value: positionView ? formatStatus(positionView.isActive) : null },
+    { label: "Tamaño", value: positionView ? SIZE_LABEL[positionView.sizeStockToSave] || positionView.sizeStockToSave : null },
   ];
 
   const productInfo = [
@@ -227,7 +223,7 @@ export default function WarehouseConfigPage() {
         </button>
         <button type="button" className="warehouse-page__action" onClick={() => setOpenModal("data")}>
           <span className="warehouse-page__action-icon"><Icon name="file" size={20} /></span>
-          <span>Modificar datos de ubicación</span>
+          <span>Ver datos de ubicación</span>
         </button>
       </div>
 
@@ -249,7 +245,6 @@ export default function WarehouseConfigPage() {
       <LocationDataEditModal
         open={openModal === "data"}
         onClose={() => setOpenModal(null)}
-        onSaved={handleModalSaved}
       />
     </div>
   );

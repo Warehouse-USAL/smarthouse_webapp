@@ -2,15 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import Modal from "../../ui/Modal/Modal";
 import Button from "../../ui/Button/Button";
 import Select from "../../ui/Select/Select";
-import Checkbox from "../../ui/Checkbox/Checkbox";
 import { warehouseConfigService } from "../../../services/warehouseConfigService";
 import "./PositionsEditModal.css";
 
-const SIZE_LABEL = {
-  PEQUEÑA: "Pequeña",
-  MEDIANA: "Mediana",
-  GRANDE: "Grande",
-};
+const SIZE_OPTIONS = [
+  { value: "PEQUEÑA", label: "Pequeña" },
+  { value: "MEDIANA", label: "Mediana" },
+  { value: "GRANDE", label: "Grande" },
+];
 
 function PositionsEditBody({ onClose, onSaved }) {
   const [config, setConfig] = useState({ zones: [] });
@@ -19,8 +18,8 @@ function PositionsEditBody({ onClose, onSaved }) {
   const [idZone, setIdZone] = useState("");
   const [idLine, setIdLine] = useState("");
   const [idPosition, setIdPosition] = useState("");
-  // Override local de isActive. Se resetea al cambiar la posición.
-  const [activeOverride, setActiveOverride] = useState(null);
+  // Override local del tamaño. Se resetea al cambiar la posición.
+  const [sizeOverride, setSizeOverride] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,25 +72,24 @@ function PositionsEditBody({ onClose, onSaved }) {
     [selectedLine]
   );
 
-  const zoneSize = selectedZone?.sizeStockToSave ?? "MEDIANA";
-  const isActive = activeOverride ?? selectedPosition?.isActive ?? false;
+  const size = sizeOverride ?? selectedPosition?.sizeStockToSave ?? "MEDIANA";
 
   const handleZoneChange = (e) => {
     setIdZone(e.target.value);
     setIdLine("");
     setIdPosition("");
-    setActiveOverride(null);
+    setSizeOverride(null);
   };
 
   const handleLineChange = (e) => {
     setIdLine(e.target.value);
     setIdPosition("");
-    setActiveOverride(null);
+    setSizeOverride(null);
   };
 
   const handlePositionChange = (e) => {
     setIdPosition(e.target.value);
-    setActiveOverride(null);
+    setSizeOverride(null);
   };
 
   const handleSave = async () => {
@@ -99,7 +97,7 @@ function PositionsEditBody({ onClose, onSaved }) {
     setSaving(true);
     try {
       const next = await warehouseConfigService.updatePosition(idZone, idLine, idPosition, {
-        isActive,
+        sizeStockToSave: size,
       });
       setConfig(next);
       onSaved?.(next);
@@ -116,7 +114,7 @@ function PositionsEditBody({ onClose, onSaved }) {
   return (
     <>
       <p className="positions-edit__subtitle">
-        Seleccioná una zona, una línea y una posición para definir su estado.
+        Seleccioná una zona, una línea y una posición para definir su tamaño.
       </p>
 
       <div className="positions-edit__form positions-edit__form--full">
@@ -143,23 +141,17 @@ function PositionsEditBody({ onClose, onSaved }) {
           placeholder="Seleccioná posición"
           disabled={!idLine}
         />
-        <div className="positions-edit__info">
-          <span className="positions-edit__info-label">Tamaño de zona</span>
-          <span className="positions-edit__info-value">{SIZE_LABEL[zoneSize] || zoneSize}</span>
-        </div>
-        <div className="positions-edit__active-row">
-          <Checkbox
-            name="position-active"
-            label="Posición activa"
-            checked={isActive}
-            onChange={(e) => setActiveOverride(e.target.checked)}
-            disabled={!idPosition}
-          />
-        </div>
+        <Select
+          label="Tamaño"
+          value={size}
+          onChange={(e) => setSizeOverride(e.target.value)}
+          options={SIZE_OPTIONS}
+          disabled={!idPosition}
+        />
       </div>
 
       <div className="positions-edit__hint">
-        El tamaño lo define la zona: <strong>Pequeña</strong> acepta Cajas,{" "}
+        El tamaño se define por posición: <strong>Pequeña</strong> acepta Cajas,{" "}
         <strong>Mediana</strong> Medio Pallets y <strong>Grande</strong> Pallets.
       </div>
 

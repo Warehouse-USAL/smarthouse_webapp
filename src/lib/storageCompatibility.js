@@ -4,9 +4,9 @@
 |--------------------------------------------------------------------------
 |
 | Regla del Hito 2 (§4.3.2): cada tamaño de posición acepta únicamente un
-| tipo de unidad de almacenamiento. El tamaño se define a nivel de zona
-| (zone.sizeStockToSave), por lo que la compatibilidad se valida entre el
-| storageUnit del producto y el sizeStockToSave de la zona destino.
+| tipo de unidad de almacenamiento. El tamaño se define por posición
+| (position.sizeStockToSave); la compatibilidad se valida entre el
+| storageUnit del producto y el sizeStockToSave de la posición destino.
 |
 */
 
@@ -37,5 +37,5 @@ export const POSITION_SIZE_LABEL = {
   GRANDE: "Grande",
 };
 
-export const isCompatible = (zoneSize, storageUnit) =>
-  SIZE_TO_UNIT[zoneSize] === storageUnit;
+export const isCompatible = (positionSize, storageUnit) =>
+  SIZE_TO_UNIT[positionSize] === storageUnit;

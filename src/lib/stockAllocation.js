@@ -34,10 +34,9 @@
 |     PALLET       → product.unitsPerPallet
 |     MEDIO_PALLET → product.unitsPerHalfPallet
 |     CAJA         → product.unitsPerBox
-| - Cada posición usa una sola unidad (cabe lo que define maximum_capacity
-|   pero en este modelo simplificado asumimos posición = 1 unidad de
-|   almacenamiento — alineado con Hito 2 §4.3.2: "cada tipo de posición
-|   podrá almacenar únicamente un tipo de unidad").
+| - Cada posición almacena exactamente una unidad del tipo definido por su
+|   sizeStockToSave — alineado con Hito 2 §4.3.2: "cada tipo de posición
+|   podrá almacenar únicamente un tipo de unidad".
 |
 */
 
@@ -54,17 +53,15 @@ const unitsPerSlotFor = (product, storageUnit) => {
 
 /**
  * Lista todas las posiciones compatibles con un storageUnit del árbol.
- * Una posición es compatible si su zona tiene sizeStockToSave que
- * mapea a ese storageUnit y la posición está activa.
+ * Una posición es compatible si su sizeStockToSave mapea a ese storageUnit.
+ * Toda posición existente se considera usable (no hay flag de activación).
  */
 const listCompatiblePositions = (tree, storageUnit) => {
   const out = [];
   for (const zone of tree.zones || []) {
-    if (SIZE_TO_UNIT[zone.sizeStockToSave] !== storageUnit) continue;
     for (const line of zone.lines || []) {
-      if (!line.isActive) continue;
       for (const position of line.positions || []) {
-        if (!position.isActive) continue;
+        if (SIZE_TO_UNIT[position.sizeStockToSave] !== storageUnit) continue;
         out.push({
           idPosition: position.idPosition,
           zoneName: zone.name,

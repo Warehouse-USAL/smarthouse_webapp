@@ -2,20 +2,18 @@ import { useEffect, useMemo, useState } from "react";
 import Modal from "../../ui/Modal/Modal";
 import Button from "../../ui/Button/Button";
 import Select from "../../ui/Select/Select";
-import Input from "../../ui/Input/Input";
 import { warehouseConfigService } from "../../../services/warehouseConfigService";
 import "./LocationDataEditModal.css";
 
-function LocationDataEditBody({ onClose, onSaved }) {
+// El tamaño se edita por posición desde PositionsEditModal, así que este modal
+// quedó como vista de consulta del código de ubicación. Si en el futuro no
+// suma información extra, conviene eliminarlo junto con su botón en la página.
+function LocationDataEditBody({ onClose }) {
   const [config, setConfig] = useState({ zones: [] });
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [idZone, setIdZone] = useState("");
   const [idLine, setIdLine] = useState("");
   const [idPosition, setIdPosition] = useState("");
-  // Override local sobre la capacidad de la posición seleccionada.
-  // Se resetea al cambiar la posición.
-  const [capacityOverride, setCapacityOverride] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,12 +66,6 @@ function LocationDataEditBody({ onClose, onSaved }) {
     [selectedLine]
   );
 
-  const capacity =
-    capacityOverride ??
-    (selectedPosition?.maximumCapacity != null
-      ? String(selectedPosition.maximumCapacity)
-      : "");
-
   const code = warehouseConfigService.buildLocationCode({
     zoneCode: selectedZone?.zoneCode,
     numberLine: selectedLine?.numberLine,
@@ -84,31 +76,13 @@ function LocationDataEditBody({ onClose, onSaved }) {
     setIdZone(e.target.value);
     setIdLine("");
     setIdPosition("");
-    setCapacityOverride(null);
   };
   const handleLineChange = (e) => {
     setIdLine(e.target.value);
     setIdPosition("");
-    setCapacityOverride(null);
   };
   const handlePositionChange = (e) => {
     setIdPosition(e.target.value);
-    setCapacityOverride(null);
-  };
-
-  const handleSave = async () => {
-    if (!idZone || !idLine || !idPosition) return;
-    setSaving(true);
-    try {
-      const next = await warehouseConfigService.updatePosition(idZone, idLine, idPosition, {
-        maximumCapacity: Math.max(0, Number(capacity) || 0),
-      });
-      setConfig(next);
-      onSaved?.(next);
-      onClose?.();
-    } finally {
-      setSaving(false);
-    }
   };
 
   if (loading) {
@@ -118,7 +92,7 @@ function LocationDataEditBody({ onClose, onSaved }) {
   return (
     <>
       <p className="location-data__subtitle">
-        Seleccioná una ubicación y actualizá su capacidad máxima.
+        Seleccioná una ubicación para ver su código.
       </p>
 
       <div className="location-data__fields">
@@ -147,20 +121,6 @@ function LocationDataEditBody({ onClose, onSaved }) {
         />
       </div>
 
-      <div className="location-data__section">
-        <span className="location-data__section-title">Datos de la ubicación</span>
-        <Input
-          name="capacity"
-          label="Capacidad máxima en unidades"
-          type="number"
-          min={0}
-          step={1}
-          value={capacity}
-          onChange={(e) => setCapacityOverride(e.target.value)}
-          disabled={!idPosition}
-        />
-      </div>
-
       {code && (
         <div className="location-data__code">
           <span className="location-data__code-label">Código de ubicación:</span>
@@ -169,21 +129,18 @@ function LocationDataEditBody({ onClose, onSaved }) {
       )}
 
       <div className="location-data__actions">
-        <Button variant="secondary" type="button" onClick={onClose} disabled={saving}>
-          Cancelar
-        </Button>
-        <Button type="button" onClick={handleSave} disabled={!idPosition || saving}>
-          {saving ? "Guardando…" : "Guardar cambios"}
+        <Button type="button" onClick={onClose}>
+          Cerrar
         </Button>
       </div>
     </>
   );
 }
 
-export default function LocationDataEditModal({ open, onClose, onSaved }) {
+export default function LocationDataEditModal({ open, onClose }) {
   return (
-    <Modal open={open} onClose={onClose} title="Modificar datos de ubicación" size="lg">
-      {open && <LocationDataEditBody onClose={onClose} onSaved={onSaved} />}
+    <Modal open={open} onClose={onClose} title="Datos de ubicación" size="lg">
+      {open && <LocationDataEditBody onClose={onClose} />}
     </Modal>
   );
 }

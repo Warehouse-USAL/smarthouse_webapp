@@ -1,10 +1,7 @@
 import "./ZoneGrid.css";
 
-const positionState = (position) => {
-  if (!position.isActive) return "inactive";
-  if (!position.assignedProduct) return "empty";
-  return "occupied";
-};
+const positionState = (position) =>
+  position.assignedProduct ? "occupied" : "empty";
 
 const sizeModifier = (size) => {
   switch (size) {
@@ -16,9 +13,6 @@ const sizeModifier = (size) => {
 
 export default function ZoneGrid({ zone, selected, onSelect }) {
   const colorKey = (zone.color || zone.zoneCode || "").toLowerCase();
-  // El tamaño se define a nivel de zona, no de posición.
-  const sizeKey = sizeModifier(zone.sizeStockToSave);
-  const sizeTitle = zone.sizeStockToSave || "—";
 
   return (
     <div className={`zone-grid zone-grid--${colorKey}`}>
@@ -38,6 +32,9 @@ export default function ZoneGrid({ zone, selected, onSelect }) {
                   selected?.idLine === line.idLine &&
                   selected?.idPosition === position.idPosition;
                 const state = positionState(position);
+                // Cada posición tiene su propio tamaño.
+                const sizeKey = sizeModifier(position.sizeStockToSave);
+                const sizeTitle = position.sizeStockToSave || "—";
                 return (
                   <button
                     key={position.idPosition}
@@ -65,7 +62,6 @@ export default function ZoneGrid({ zone, selected, onSelect }) {
 
 const stateLabel = (state) => {
   switch (state) {
-    case "inactive": return "Inactiva";
     case "empty": return "Vacía";
     case "occupied": return "Ocupada";
     default: return "";

@@ -3,7 +3,6 @@ import Modal from "../../ui/Modal/Modal";
 import Button from "../../ui/Button/Button";
 import Select from "../../ui/Select/Select";
 import Input from "../../ui/Input/Input";
-import Checkbox from "../../ui/Checkbox/Checkbox";
 import Icon from "../../ui/Icon/Icon";
 import { warehouseConfigService } from "../../../services/warehouseConfigService";
 import "./LinesEditModal.css";
@@ -14,8 +13,8 @@ function LinesEditBody({ onClose, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [idZone, setIdZone] = useState("");
   const [idLine, setIdLine] = useState("");
-  // Overrides locales. Se resetean cuando cambia la línea seleccionada.
-  const [override, setOverride] = useState({ maxAllowedPositions: null, isActive: null });
+  // Override local. Se resetea cuando cambia la línea seleccionada.
+  const [maxAllowedPositionsOverride, setMaxAllowedPositionsOverride] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -57,18 +56,17 @@ function LinesEditBody({ onClose, onSaved }) {
   );
 
   const maxAllowedPositions =
-    override.maxAllowedPositions ?? selectedLine?.maxAllowedPositions ?? 0;
-  const isActive = override.isActive ?? selectedLine?.isActive ?? false;
+    maxAllowedPositionsOverride ?? selectedLine?.maxAllowedPositions ?? 0;
 
   const handleZoneChange = (e) => {
     setIdZone(e.target.value);
     setIdLine("");
-    setOverride({ maxAllowedPositions: null, isActive: null });
+    setMaxAllowedPositionsOverride(null);
   };
 
   const handleLineChange = (e) => {
     setIdLine(e.target.value);
-    setOverride({ maxAllowedPositions: null, isActive: null });
+    setMaxAllowedPositionsOverride(null);
   };
 
   const handleAddLine = async () => {
@@ -78,7 +76,7 @@ function LinesEditBody({ onClose, onSaved }) {
     const zone = warehouseConfigService.findZone(next, idZone);
     const lastLine = zone?.lines[zone.lines.length - 1];
     if (lastLine) setIdLine(lastLine.idLine);
-    setOverride({ maxAllowedPositions: null, isActive: null });
+    setMaxAllowedPositionsOverride(null);
   };
 
   const handleRemoveLine = async () => {
@@ -86,7 +84,7 @@ function LinesEditBody({ onClose, onSaved }) {
     const next = await warehouseConfigService.removeLine(idZone, idLine);
     setConfig(next);
     setIdLine("");
-    setOverride({ maxAllowedPositions: null, isActive: null });
+    setMaxAllowedPositionsOverride(null);
   };
 
   const handleSave = async () => {
@@ -95,7 +93,6 @@ function LinesEditBody({ onClose, onSaved }) {
     try {
       const next = await warehouseConfigService.updateLine(idZone, idLine, {
         maxAllowedPositions: Math.max(1, Number(maxAllowedPositions) || 1),
-        isActive,
       });
       setConfig(next);
       onSaved?.(next);
@@ -161,22 +158,9 @@ function LinesEditBody({ onClose, onSaved }) {
           min={1}
           step={1}
           value={maxAllowedPositions}
-          onChange={(e) =>
-            setOverride((o) => ({ ...o, maxAllowedPositions: e.target.value }))
-          }
+          onChange={(e) => setMaxAllowedPositionsOverride(e.target.value)}
           disabled={!idLine}
         />
-        <div className="lines-edit__active">
-          <Checkbox
-            name="line-active"
-            label="Línea activa"
-            checked={isActive}
-            onChange={(e) =>
-              setOverride((o) => ({ ...o, isActive: e.target.checked }))
-            }
-            disabled={!idLine}
-          />
-        </div>
       </div>
 
       {idLine && (

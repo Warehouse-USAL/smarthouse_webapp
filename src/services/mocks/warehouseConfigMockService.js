@@ -12,18 +12,19 @@
 | Shape (alineado con warehouseConfigService):
 |   {
 |     zones: [{
-|       idZone, zoneCode, name, color, isActive, maxAllowedLines, sizeStockToSave,
+|       idZone, zoneCode, name, color, maxAllowedLines,
 |       lines: [{
-|         idLine, numberLine, isActive, maxAllowedPositions,
+|         idLine, numberLine, maxAllowedPositions,
 |         positions: [{
-|           idPosition, positionName, isActive, maximumCapacity,
+|           idPosition, positionName, sizeStockToSave,
 |           assignedProduct   // { id, sku, name } | null
 |         }]
 |       }]
 |     }]
 |   }
 |
-| Nota: el tamaño es por zona (zone.sizeStockToSave), no por posición.
+| Nota: el tamaño se define por posición (position.sizeStockToSave).
+| No hay flag isActive: toda zona/línea/posición existente se considera usable.
 |
 */
 
@@ -47,46 +48,49 @@ const colorForZone = (idZone) => {
   return COLOR_PALETTE[Math.abs(hash) % COLOR_PALETTE.length];
 };
 
-const buildPosition = ({ positionIndex }) => ({
+const buildPosition = ({ positionIndex, sizeStockToSave = "MEDIANA" }) => ({
   idPosition: uid("pos"),
   positionName: `P${String(positionIndex).padStart(2, "0")}`,
-  isActive: false,
-  maximumCapacity: 0,
+  sizeStockToSave,
   assignedProduct: null,
 });
 
-const buildLine = ({ numberLine, maxAllowedPositions }) => ({
+const buildLine = ({ numberLine, maxAllowedPositions, sizeStockToSave }) => ({
   idLine: uid("line"),
   numberLine,
-  isActive: false,
   maxAllowedPositions,
   positions: Array.from({ length: maxAllowedPositions }, (_, i) =>
-    buildPosition({ positionIndex: i + 1 })
+    buildPosition({ positionIndex: i + 1, sizeStockToSave })
   ),
 });
 
-const buildZone = ({ zoneCode, maxAllowedLines, sizeStockToSave, maxPositionsPerLine }) => {
+// defaultPositionSize: tamaño con el que se siembran las posiciones recién creadas.
+// Es solo un valor inicial — cada posición se puede cambiar después de forma
+// independiente desde PositionsEditModal.
+const buildZone = ({ zoneCode, maxAllowedLines, defaultPositionSize, maxPositionsPerLine }) => {
   const idZone = uid("zone");
   return {
     idZone,
     zoneCode,
     name: `Zona ${zoneCode}`,
     color: colorForZone(idZone),
-    isActive: false,
     maxAllowedLines,
-    sizeStockToSave: sizeStockToSave || "MEDIANA",
     lines: Array.from({ length: maxAllowedLines }, (_, i) =>
-      buildLine({ numberLine: i + 1, maxAllowedPositions: maxPositionsPerLine })
+      buildLine({
+        numberLine: i + 1,
+        maxAllowedPositions: maxPositionsPerLine,
+        sizeStockToSave: defaultPositionSize,
+      })
     ),
   };
 };
 
 const buildDefaultConfig = () => ({
   zones: [
-    buildZone({ zoneCode: "A", maxAllowedLines: 4, sizeStockToSave: "PEQUEÑA", maxPositionsPerLine: 12 }),
-    buildZone({ zoneCode: "B", maxAllowedLines: 4, sizeStockToSave: "MEDIANA", maxPositionsPerLine: 18 }),
-    buildZone({ zoneCode: "C", maxAllowedLines: 4, sizeStockToSave: "MEDIANA", maxPositionsPerLine: 18 }),
-    buildZone({ zoneCode: "D", maxAllowedLines: 4, sizeStockToSave: "GRANDE", maxPositionsPerLine: 18 }),
+    buildZone({ zoneCode: "A", maxAllowedLines: 4, defaultPositionSize: "PEQUEÑA", maxPositionsPerLine: 12 }),
+    buildZone({ zoneCode: "B", maxAllowedLines: 4, defaultPositionSize: "MEDIANA", maxPositionsPerLine: 18 }),
+    buildZone({ zoneCode: "C", maxAllowedLines: 4, defaultPositionSize: "MEDIANA", maxPositionsPerLine: 18 }),
+    buildZone({ zoneCode: "D", maxAllowedLines: 4, defaultPositionSize: "GRANDE", maxPositionsPerLine: 18 }),
   ],
 });
 
@@ -99,6 +103,16 @@ const isLegacyShape = (raw) => {
   if ("positionOverrides" in sample) return true;
   if ("locationData" in sample) return true;
   if (!Array.isArray(sample.lines)) return true;
+  // sizeStockToSave dejó de vivir en la zona y pasó a la posición.
+  if ("sizeStockToSave" in sample) return true;
+  // isActive (en zona, línea o posición) ya no existe.
+  if ("isActive" in sample) return true;
+  const sampleLine = sample.lines?.[0];
+  if (sampleLine && "isActive" in sampleLine) return true;
+  const samplePosition = sampleLine?.positions?.[0];
+  if (samplePosition && "maximumCapacity" in samplePosition) return true;
+  if (samplePosition && "isActive" in samplePosition) return true;
+  if (samplePosition && !("sizeStockToSave" in samplePosition)) return true;
   return false;
 };
 
@@ -142,8 +156,14 @@ const mapPosition = (line, idPosition, mapper) => ({
 const resizePositions = (positions, nextCount) => {
   if (nextCount === positions.length) return positions;
   if (nextCount < positions.length) return positions.slice(0, nextCount);
+  // Las posiciones nuevas heredan el tamaño de la última existente para que
+  // las líneas que ya estaban en un tamaño no pierdan el sesgo al crecer.
+  const inheritedSize = positions[positions.length - 1]?.sizeStockToSave;
   const extra = Array.from({ length: nextCount - positions.length }, (_, i) =>
-    buildPosition({ positionIndex: positions.length + i + 1 })
+    buildPosition({
+      positionIndex: positions.length + i + 1,
+      sizeStockToSave: inheritedSize,
+    })
   );
   return [...positions, ...extra];
 };
@@ -156,14 +176,14 @@ export const warehouseConfigMockService = {
 
   /* ---------- Zonas ---------- */
 
-  async addZone({ sizeStockToSave } = {}) {
+  async addZone({ defaultPositionSize } = {}) {
     await delay();
     const config = readConfig();
     const zoneCode = nextZoneCode(config.zones);
     const zone = buildZone({
       zoneCode,
       maxAllowedLines: 4,
-      sizeStockToSave: sizeStockToSave || "MEDIANA",
+      defaultPositionSize: defaultPositionSize || "MEDIANA",
       maxPositionsPerLine: 12,
     });
     return writeConfig({ ...config, zones: [...config.zones, zone] });

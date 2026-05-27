@@ -7,7 +7,7 @@
 | activo (o no hay VITE_API_BASE_URL), delega en warehouseConfigMockService.
 | En modo backend usa apiClient siguiendo el contrato del RFC:
 |   GET    /warehouse/zones
-|   POST   /warehouse/zones                          { zone_code, max_allowed_lines, size_stock_to_save }
+|   POST   /warehouse/zones                          { zone_code, max_allowed_lines }
 |   PATCH  /warehouse/zones/:id_zone
 |   DELETE /warehouse/zones/:id_zone
 |   GET    /warehouse/zones/:id_zone/lines
@@ -16,7 +16,7 @@
 |   DELETE /warehouse/lines/:id_line
 |   GET    /warehouse/lines/:id_line/positions
 |   GET    /warehouse/positions/:id_position
-|   POST   /warehouse/lines/:id_line/positions       { position_name, maximum_capacity }
+|   POST   /warehouse/lines/:id_line/positions       { position_name, size_stock_to_save }
 |   PATCH  /warehouse/positions/:id_position
 |   DELETE /warehouse/positions/:id_position
 |
@@ -27,9 +27,9 @@
 |   - name es siempre `Zona ${zoneCode}` (no se persiste en backend).
 |   - color es 100% cosmético, asignado en el front por hash estable del
 |     idZone (1 de 4 colores: a/b/c/d). No viaja al backend.
-|   - El tamaño es por zona (zone.sizeStockToSave), NO por posición. El
-|     campo position.size se derivó hasta acá pero ya no se expone — la UI
-|     debe leer zone.sizeStockToSave.
+|   - El tamaño se define por posición (position.sizeStockToSave) — cada
+|     posición puede tener su propio tamaño dentro de una misma zona/línea.
+|     Hubo una versión previa en la que el tamaño vivía en la zona; ya no.
 |   - assignedProduct: el listado de positions del RFC no lo devuelve. Para
 |     ver el producto asignado a una posición, usar getPosition(idPosition)
 |     que llama a GET /warehouse/positions/:id (devuelve assigned_product).
@@ -55,7 +55,7 @@ const padNumber = (value, width = 2) => {
   return str;
 };
 
-export const ZONE_SIZES = ["PEQUEÑA", "MEDIANA", "GRANDE"];
+export const POSITION_SIZES = ["PEQUEÑA", "MEDIANA", "GRANDE"];
 
 const COLOR_PALETTE = ["a", "b", "c", "d"];
 
@@ -80,9 +80,7 @@ const normalizeZone = (raw) => {
     zoneCode,
     name: `Zona ${zoneCode ?? ""}`.trim(),
     color: colorForZone(idZone ?? zoneCode),
-    isActive: raw.is_active ?? raw.isActive ?? false,
     maxAllowedLines: raw.max_allowed_lines ?? raw.maxAllowedLines ?? 0,
-    sizeStockToSave: raw.size_stock_to_save ?? raw.sizeStockToSave ?? "MEDIANA",
     lines: [],
   };
 };
@@ -90,7 +88,6 @@ const normalizeZone = (raw) => {
 const normalizeLine = (raw) => ({
   idLine: raw.id_line ?? raw.idLine,
   numberLine: raw.number_line ?? raw.numberLine,
-  isActive: raw.is_active ?? raw.isActive ?? false,
   maxAllowedPositions: raw.max_allowed_positions ?? raw.maxAllowedPositions ?? 0,
   positions: [],
 });
@@ -98,8 +95,7 @@ const normalizeLine = (raw) => ({
 const normalizePosition = (raw) => ({
   idPosition: raw.id_position ?? raw.idPosition,
   positionName: raw.position_name ?? raw.positionName,
-  isActive: raw.is_active ?? raw.isActive ?? false,
-  maximumCapacity: raw.maximum_capacity ?? raw.maximumCapacity ?? 0,
+  sizeStockToSave: raw.size_stock_to_save ?? raw.sizeStockToSave ?? "MEDIANA",
   assignedProduct: raw.assigned_product
     ? {
         id: raw.assigned_product.id,
@@ -114,16 +110,13 @@ const normalizePosition = (raw) => ({
 const toZonePayload = (patch) => {
   const out = {};
   if (patch.zoneCode !== undefined) out.zone_code = patch.zoneCode;
-  if (patch.isActive !== undefined) out.is_active = patch.isActive;
   if (patch.maxAllowedLines !== undefined) out.max_allowed_lines = patch.maxAllowedLines;
-  if (patch.sizeStockToSave !== undefined) out.size_stock_to_save = patch.sizeStockToSave;
   return out;
 };
 
 const toLinePayload = (patch) => {
   const out = {};
   if (patch.numberLine !== undefined) out.number_line = patch.numberLine;
-  if (patch.isActive !== undefined) out.is_active = patch.isActive;
   if (patch.maxAllowedPositions !== undefined) out.max_allowed_positions = patch.maxAllowedPositions;
   return out;
 };
@@ -131,8 +124,7 @@ const toLinePayload = (patch) => {
 const toPositionPayload = (patch) => {
   const out = {};
   if (patch.positionName !== undefined) out.position_name = patch.positionName;
-  if (patch.isActive !== undefined) out.is_active = patch.isActive;
-  if (patch.maximumCapacity !== undefined) out.maximum_capacity = patch.maximumCapacity;
+  if (patch.sizeStockToSave !== undefined) out.size_stock_to_save = patch.sizeStockToSave;
   return out;
 };
 
@@ -182,7 +174,6 @@ export const warehouseConfigService = {
     const body = {
       zone_code: input.zoneCode || nextZoneCode(tree.zones),
       max_allowed_lines: input.maxAllowedLines ?? 4,
-      size_stock_to_save: input.sizeStockToSave || "MEDIANA",
     };
     await apiClient.post("/warehouse/zones", body);
     return fetchTree();
