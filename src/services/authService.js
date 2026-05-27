@@ -42,8 +42,15 @@
 
 import { login as mockLogin } from "./pruebasMockUp";
 
-const API_URL = import.meta.env.VITE_API_BASE_URL;
-const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true" || !API_URL;
+// Auth tiene su propio interruptor: VITE_USE_MOCK_AUTH. Así podemos tener
+// login contra backend real mientras el resto de la app sigue en mock.
+// Si VITE_USE_MOCK_AUTH no está seteado, cae al flag global VITE_USE_MOCK.
+const API_URL = import.meta.env.VITE_API_BASE_URL ?? "";
+const AUTH_MOCK_FLAG = import.meta.env.VITE_USE_MOCK_AUTH;
+const USE_MOCK =
+  AUTH_MOCK_FLAG !== undefined
+    ? AUTH_MOCK_FLAG === "true"
+    : import.meta.env.VITE_USE_MOCK === "true";
 
 export async function login(email, password) {
 

@@ -72,4 +72,15 @@ export const stockPositionService = {
     if (USE_MOCK || !BACKEND_ENABLED) return stockPositionMockService.remove(id);
     await apiClient.delete(`/stock-positions/${id}`);
   },
+
+  // Vacía una posición completa. Devuelve el total de unidades removidas
+  // para que el caller pueda descontar del availableStock del producto.
+  async removeByPosition(idPosition) {
+    if (USE_MOCK || !BACKEND_ENABLED) return stockPositionMockService.removeByPosition(idPosition);
+    // Sin endpoint dedicado en backend: listamos, borramos uno a uno y
+    // devolvemos el total.
+    const list = await this.list({ idPosition });
+    await Promise.all(list.map((sp) => this.remove(sp.id)));
+    return list.reduce((sum, sp) => sum + (Number(sp.quantity) || 0), 0);
+  },
 };

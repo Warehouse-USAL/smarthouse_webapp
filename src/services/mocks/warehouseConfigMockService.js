@@ -31,6 +31,21 @@
 import { localStore } from "../../lib/localStore";
 
 const KEY = "warehouse_config";
+const STOCK_POSITIONS_KEY = "mock_stock_positions";
+
+// Suma de unidades almacenadas en una posición (fuente de verdad:
+// stockPositionMockService). Se calcula al vuelo para no duplicar estado.
+const stockForPosition = (idPosition) => {
+  if (!idPosition) return 0;
+  const all = localStore.get(STOCK_POSITIONS_KEY, []);
+  if (!Array.isArray(all)) return 0;
+  return all
+    .filter((sp) => sp.idPosition === idPosition)
+    .reduce((sum, sp) => sum + (Number(sp.quantity) || 0), 0);
+};
+
+const withDerivedStock = (position) =>
+  position ? { ...position, currentStock: stockForPosition(position.idPosition) } : position;
 
 const uid = (prefix) =>
   `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -53,6 +68,7 @@ const buildPosition = ({ positionIndex, sizeStockToSave = "MEDIANA" }) => ({
   positionName: `P${String(positionIndex).padStart(2, "0")}`,
   sizeStockToSave,
   assignedProduct: null,
+  // currentStock no se persiste: se deriva de stockPositions al leer.
 });
 
 const buildLine = ({ numberLine, maxAllowedPositions, sizeStockToSave }) => ({
@@ -171,7 +187,17 @@ const resizePositions = (positions, nextCount) => {
 export const warehouseConfigMockService = {
   async get() {
     await delay();
-    return readConfig();
+    const config = readConfig();
+    return {
+      ...config,
+      zones: config.zones.map((z) => ({
+        ...z,
+        lines: z.lines.map((l) => ({
+          ...l,
+          positions: l.positions.map(withDerivedStock),
+        })),
+      })),
+    };
   },
 
   /* ---------- Zonas ---------- */
@@ -260,7 +286,7 @@ export const warehouseConfigMockService = {
     for (const z of config.zones) {
       for (const l of z.lines) {
         const found = l.positions.find((p) => p.idPosition === idPosition);
-        if (found) return found;
+        if (found) return withDerivedStock(found);
       }
     }
     return null;
@@ -271,7 +297,12 @@ export const warehouseConfigMockService = {
   // dejamos en el mock para que el flujo de asignación end-to-end funcione
   // localmente sin tocar el productService (cuando se prenda el backend, el
   // productService toma el control y este método deja de usarse).
-  async setAssignedProduct(idPosition, productSummary) {
+  // `currentStock` se ignora a propósito: la cantidad de unidades vive en
+  // stockPositions y se deriva al leer la posición. Lo aceptamos en la firma
+  // para que la llamada del service pueda pasarlo sin romper, pero no se
+  // persiste acá.
+  // eslint-disable-next-line no-unused-vars
+  async setAssignedProduct(idPosition, productSummary, currentStock) {
     await delay();
     const config = readConfig();
     const zones = config.zones.map((z) => ({
@@ -283,7 +314,19 @@ export const warehouseConfigMockService = {
         ),
       })),
     }));
-    return writeConfig({ ...config, zones });
+    const written = writeConfig({ ...config, zones });
+    // Devolvemos el árbol con currentStock derivado para que el caller no
+    // tenga que llamar a get() de nuevo.
+    return {
+      ...written,
+      zones: written.zones.map((z) => ({
+        ...z,
+        lines: z.lines.map((l) => ({
+          ...l,
+          positions: l.positions.map(withDerivedStock),
+        })),
+      })),
+    };
   },
 };
 
