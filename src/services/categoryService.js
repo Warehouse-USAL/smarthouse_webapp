@@ -1,27 +1,50 @@
-import { localStore } from "../lib/localStore";
+/*
+|--------------------------------------------------------------------------
+| CATEGORY SERVICE
+|--------------------------------------------------------------------------
+|
+| Contrato Backend:
+|
+|   GET /products/categories
+|
+| Response:
+| {
+|   "categories": [
+|     "CHUPETINES",
+|     "GOLOSINAS",
+|     "SNACKS",
+|     "BEBIDAS"
+|   ]
+| }
+|
+| Las categorías son definidas por Backend.
+| El Front NO crea categorías nuevas.
+|
+*/
 
-const KEY = "product_categories";
+import { apiClient } from "../lib/apiClient";
 
-const DEFAULT_CATEGORIES = [
-  "Periféricos",
-  "Monitores",
-  "Cámaras",
-  "Sensores",
-  "Almacenamiento",
-  "Redes",
-  "Accesorios",
+const USE_MOCK =
+  import.meta.env.VITE_USE_MOCK === "true" ||
+  !import.meta.env.VITE_API_BASE_URL;
+
+const MOCK_CATEGORIES = [
+  "CHUPETINES",
+  "GOLOSINAS",
+  "SNACKS",
+  "BEBIDAS",
 ];
 
 export const categoryService = {
-  list() {
-    return localStore.get(KEY, DEFAULT_CATEGORIES);
-  },
+  async list() {
+    if (USE_MOCK) {
+      return MOCK_CATEGORIES;
+    }
 
-  add(name) {
-    const list = this.list();
-    if (!name || list.includes(name)) return list;
-    const next = [...list, name];
-    localStore.set(KEY, next);
-    return next;
+    const { data } = await apiClient.get(
+      "/products/categories"
+    );
+
+    return data?.categories || [];
   },
 };

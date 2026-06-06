@@ -1,103 +1,102 @@
-/*
-|--------------------------------------------------------------------------
-| PRODUCT MOCK SERVICE
-|--------------------------------------------------------------------------
-|
-| Persiste productos en localStorage. Imita la forma normalizada que
-| devuelve productService (camelCase) — Hito 2:
-|   {
-|     id, sku, name, description, category, imageUrl, active, createdAt,
-|     availableStock, reservedStock, minimumStock, maxQuantityPerOrder,
-|     unitsPerPallet, unitsPerHalfPallet, unitsPerBox,
-|     location: { zone, line, position } | null
-|   }
-|
-| Hito 2:
-| - Al crear: stock = 0, sin ubicación.
-| - 3 capacidades por unidad de almacenamiento (pallet / medio pallet / caja).
-| - Sin altura.
-|
-*/
-
 import { localStore } from "../../lib/localStore";
 
 const KEY = "mock_products";
 
 const SEED = [
   {
-    id: "PRD-001",
-    sku: "MOU-001",
-    name: "Mouse inalámbrico",
-    description: "Mouse óptico Bluetooth 5.0.",
-    category: "Periféricos",
-    imageUrl: "",
+    id: "PROD-001",
+    sku: "SKU-ABC-123",
+    name: "Chupetin Bazooka",
+    description: "Chupetín sabor frutilla.",
+
+    category: "CHUPETINES",
+
+    images: [
+      {
+        url: "https://imgs.search.brave.com/YKke6v3DNmYtozajM5wsPNgGIwp17JJmLHIxVhOGbw8/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9odHRw/Mi5tbHN0YXRpYy5j/b20vRF9RX05QXzJY/XzkxNjU1Ni1NTFU3/NTgzNzk5NTgxNl8w/NDIwMjQtVi53ZWJw",
+        alt: "Chupetin Bazooka",
+        is_primary: true,
+      },
+    ],
+
+    price: {
+      amount_cents: 15000,
+      currency: "ARS",
+      tax_included: true,
+    },
+
+    specs: [
+      { label: "Alto",       value: "10 cm" },
+      { label: "Ancho",      value: "4 cm"  },
+      { label: "Profundidad",value: "2 cm"  },
+      { label: "Peso",       value: "15 g"  },
+    ],
+
+    stock: {
+      available: 120,
+      reserved: 30,
+      min: 10,
+    },
+
+    order_constraints: {
+      max_quantity_per_order: 50,
+    },
+
+    location: null,
+
     active: true,
-    createdAt: "2025-09-01T10:00:00.000Z",
-    availableStock: 0,
-    reservedStock: 0,
-    minimumStock: 5,
-    maxQuantityPerOrder: 10,
-    unitsPerPallet: 480,
-    unitsPerHalfPallet: 240,
-    unitsPerBox: 24,
-    location: null,
+
+    created_at: "2026-05-01T00:00:00Z",
   },
+
   {
-    id: "PRD-002",
-    sku: "MON-014",
-    name: 'Monitor 24" Full HD',
-    description: "Monitor LED IPS 24 pulgadas.",
-    category: "Monitores",
-    imageUrl: "",
+    id: "PROD-002",
+    sku: "SKU-GOL-001",
+    name: "Caramelo Masticable",
+    description: "Caramelo sabor limón.",
+
+    category: "GOLOSINAS",
+
+    images: [
+      {
+        url: "https://imgs.search.brave.com/av5Bf-Dk3UhxUfBFcxBX4N8xG1ns-UxrmcG4ys0w2z0/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly93d3cu/dmlkYWxnb2xvc2lu/YXMuY29tL21lZGlh/L2NhdGFsb2cvcHJv/ZHVjdC9jYWNoZS8w/Mjk2ZTMwZGZkY2Q1/ZTk1MDlkNzc0M2U1/ZDM4MjE5Ni9tL2Uv/bWVsb25lcy1lc3R1/Y2hlLWVudnVlbHRh/cy04MDBnLWNoaWNs/ZXMtb25saW5lLTEt/MjQuanBn",
+        alt: "Caramelo Masticable",
+        is_primary: true,
+      },
+    ],
+
+    price: {
+      amount_cents: 9000,
+      currency: "ARS",
+      tax_included: true,
+    },
+
+    specs: [
+      { label: "Alto",       value: "8 cm" },
+      { label: "Ancho",      value: "3 cm" },
+      { label: "Profundidad",value: "1 cm" },
+      { label: "Peso",       value: "10 g" },
+    ],
+
+    stock: {
+      available: 300,
+      reserved: 0,
+      min: 20,
+    },
+
+    order_constraints: {
+      max_quantity_per_order: 100,
+    },
+
+    location: null,
+
     active: true,
-    createdAt: "2025-09-04T12:00:00.000Z",
-    availableStock: 0,
-    reservedStock: 0,
-    minimumStock: 3,
-    maxQuantityPerOrder: 4,
-    unitsPerPallet: 30,
-    unitsPerHalfPallet: 15,
-    unitsPerBox: 1,
-    location: null,
-  },
-  {
-    id: "PRD-003",
-    sku: "CAM-007",
-    name: "Cámara IP exterior",
-    description: "Cámara de vigilancia con visión nocturna.",
-    category: "Cámaras",
-    imageUrl: "",
-    active: false,
-    createdAt: "2025-09-10T09:30:00.000Z",
-    availableStock: 0,
-    reservedStock: 0,
-    minimumStock: 2,
-    maxQuantityPerOrder: 2,
-    unitsPerPallet: 200,
-    unitsPerHalfPallet: 100,
-    unitsPerBox: 10,
-    location: null,
+
+    created_at: "2026-05-02T00:00:00Z",
   },
 ];
 
-// Detecta entradas con shape Hito 1 o intermedio (storage_unit, height, etc.).
-const isLegacyProduct = (p) =>
-  p &&
-  ("height" in p ||
-    "zone" in p ||
-    "storageUnit" in p ||
-    "storageCapacityPerPosition" in p ||
-    (p.location && ("idZone" in p.location || "height" in p.location)));
-
-const readAll = () => {
-  const raw = localStore.get(KEY, null);
-  if (!raw || !Array.isArray(raw) || raw.some(isLegacyProduct)) {
-    localStore.set(KEY, SEED);
-    return SEED;
-  }
-  return raw;
-};
-
+const readAll = () => localStore.get(KEY, SEED);
 const writeAll = (list) => localStore.set(KEY, list);
 
 const delay = (ms = 200) => new Promise((r) => setTimeout(r, ms));
@@ -106,24 +105,28 @@ const nextId = (list) => {
   const max = list
     .map((p) => parseInt(String(p.id).replace(/\D/g, ""), 10) || 0)
     .reduce((a, b) => Math.max(a, b), 0);
-  return `PRD-${String(max + 1).padStart(3, "0")}`;
+  return `PROD-${String(max + 1).padStart(3, "0")}`;
 };
 
-const matches = (p, { category, search, isActive }) => {
-  if (category && p.category !== category) return false;
-  if (isActive !== undefined && p.active !== isActive) return false;
-  if (search) {
-    const q = search.toLowerCase();
-    const hay = `${p.sku} ${p.name}`.toLowerCase();
-    if (!hay.includes(q)) return false;
+/**
+ * Normaliza el input de imágenes.
+ * Acepta tanto el formato del contrato (images[]) como una
+ * imageUrl string suelta (compatibilidad con formularios que aún no migraron).
+ */
+const normalizeImages = (input) => {
+  if (Array.isArray(input.images) && input.images.length > 0) {
+    return input.images;
   }
-  return true;
+  if (input.imageUrl) {
+    return [{ url: input.imageUrl, alt: input.name || "", is_primary: true }];
+  }
+  return [];
 };
 
 export const productMockService = {
-  async list(filters = {}) {
+  async list() {
     await delay();
-    return readAll().filter((p) => matches(p, filters));
+    return readAll();
   },
 
   async get(id) {
@@ -131,78 +134,136 @@ export const productMockService = {
     return readAll().find((p) => p.id === id) || null;
   },
 
+  async getCategories() {
+    await delay();
+    return ["CHUPETINES", "GOLOSINAS", "SNACKS", "BEBIDAS"];
+  },
+
   async create(input) {
     await delay();
+
     const list = readAll();
+
     if (list.some((p) => p.sku === input.sku)) {
       throw {
         response: {
-          data: { error: { code: "SKU_ALREADY_EXISTS", message: "Ya existe un producto con ese SKU." } },
+          data: {
+            error: {
+              code: "SKU_ALREADY_EXISTS",
+              message: "Ya existe un producto con ese SKU.",
+            },
+          },
         },
       };
     }
+
     const created = {
       id: nextId(list),
+
       sku: input.sku,
       name: input.name,
-      description: input.description ?? "",
+      description: input.description || "",
       category: input.category,
-      imageUrl: input.imageUrl ?? "",
-      active: true,
-      createdAt: new Date().toISOString(),
-      // Hito 2 §5: el producto se crea con stock = 0 y sin ubicación.
-      availableStock: 0,
-      reservedStock: 0,
-      minimumStock: Number(input.minimumStock) || 0,
-      maxQuantityPerOrder: Number(input.maxQuantityPerOrder) || 0,
-      unitsPerPallet: Number(input.unitsPerPallet) || 0,
-      unitsPerHalfPallet: Number(input.unitsPerHalfPallet) || 0,
-      unitsPerBox: Number(input.unitsPerBox) || 0,
+
+      // ✅ Array de imágenes según contrato
+      images: normalizeImages(input),
+
+      price: input.price || {
+        amount_cents: 0,
+        currency: "ARS",
+        tax_included: true,
+      },
+
+      specs: input.specs || [],
+
+      stock: {
+        available: 0,
+        reserved: 0,
+        min: 0,
+      },
+
+      order_constraints: {
+        max_quantity_per_order:
+          input?.order_constraints?.max_quantity_per_order || 0,
+      },
+
       location: null,
+
+      active: true,
+
+      created_at: new Date().toISOString(),
     };
+
     writeAll([...list, created]);
     return created;
   },
 
   async update(id, patch) {
     await delay();
+
     const list = readAll();
     const idx = list.findIndex((p) => p.id === id);
+
     if (idx === -1) {
       throw {
-        response: { data: { error: { code: "PRODUCT_NOT_FOUND", message: "Producto no encontrado." } } },
+        response: {
+          data: {
+            error: {
+              code: "PRODUCT_NOT_FOUND",
+              message: "Producto no encontrado.",
+            },
+          },
+        },
       };
     }
-    const current = list[idx];
-    const next = { ...current, ...patch };
-    // Normalizar location: si vienen los tres vacíos, dejarla en null.
-    if (patch.zone !== undefined || patch.line !== undefined || patch.position !== undefined) {
-      const zone = patch.zone ?? current.location?.zone ?? "";
-      const line = patch.line ?? current.location?.line ?? "";
-      const position = patch.position ?? current.location?.position ?? "";
-      next.location = zone || line || position ? { zone, line, position } : null;
-      delete next.zone;
-      delete next.line;
-      delete next.position;
+
+    // Si el patch trae imageUrl suelta, convertirla antes de persistir
+    const normalizedPatch = { ...patch };
+    if (patch.imageUrl !== undefined) {
+      normalizedPatch.images = [
+        { url: patch.imageUrl, alt: patch.name || list[idx].name, is_primary: true },
+      ];
+      delete normalizedPatch.imageUrl;
     }
+
     const updated = [...list];
-    updated[idx] = next;
+    updated[idx] = { ...updated[idx], ...normalizedPatch };
+
     writeAll(updated);
-    return next;
+    return updated[idx];
+  },
+
+  /**
+   * Asigna o actualiza la ubicación física de un producto.
+   * location debe cumplir la forma del contrato:
+   * { id_position, id_line, id_zone, position_name, zone_code, number_line }
+   */
+  async assignLocation(productId, location) {
+    return this.update(productId, { location });
   },
 
   async remove(id) {
     await delay();
+
     const list = readAll();
     const idx = list.findIndex((p) => p.id === id);
+
     if (idx === -1) {
       throw {
-        response: { data: { error: { code: "PRODUCT_NOT_FOUND", message: "Producto no encontrado." } } },
+        response: {
+          data: {
+            error: {
+              code: "PRODUCT_NOT_FOUND",
+              message: "Producto no encontrado.",
+            },
+          },
+        },
       };
     }
-    // Baja lógica (mismo comportamiento que el backend).
+
     const updated = [...list];
-    updated[idx] = { ...list[idx], active: false };
+    updated[idx] = { ...updated[idx], active: false };
+
     writeAll(updated);
   },
 };
