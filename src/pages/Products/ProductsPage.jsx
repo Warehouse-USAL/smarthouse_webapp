@@ -17,34 +17,35 @@ import { warehouseConfigService } from "../../services/warehouseConfigService";
 import "./ProductsPage.css";
 
 const PAGE_SIZE_OPTIONS = [
-  { value: "8",  label: "8 por página"  },
+  { value: "8", label: "8 por página" },
   { value: "16", label: "16 por página" },
   { value: "32", label: "32 por página" },
 ];
 
 const STATUSES = [
-  { value: "",         label: "Todos los estados" },
-  { value: "active",   label: "Activos"            },
-  { value: "inactive", label: "Inactivos"           },
+  { value: "", label: "Todos los estados" },
+  { value: "active", label: "Activos" },
+  { value: "inactive", label: "Inactivos" },
 ];
 
 export default function ProductsPage() {
-  const [products,         setProducts]         = useState([]);
-  const [zones,            setZones]            = useState([]);
-  const [categories,       setCategories]       = useState([]);
-  const [loading,          setLoading]          = useState(true);
-  const [error,            setError]            = useState(null);
-  const [search,           setSearch]           = useState("");
-  const [zone,             setZone]             = useState("");
-  const [status,           setStatus]           = useState("");
-  const [categoryFilter,   setCategoryFilter]   = useState("");
-  const [page,             setPage]             = useState(1);
-  const [pageSize,         setPageSize]         = useState(8);
-  const [createOpen,       setCreateOpen]       = useState(false);
-  const [editing,          setEditing]          = useState(null);
-  const [deleting,         setDeleting]         = useState(null);
-  const [submitting,       setSubmitting]       = useState(false);
+  const [products, setProducts] = useState([]);
+  const [zones, setZones] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [search, setSearch] = useState("");
+  const [zone, setZone] = useState("");
+  const [status, setStatus] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(8);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [deleting, setDeleting] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+
 
   // Carga de categorías — async para que sea intercambiable con el backend real
   useEffect(() => {
@@ -70,12 +71,12 @@ export default function ProductsPage() {
     setError(null);
     try {
       const list = await productService.list({
-        search:   search          || undefined,
-        category: categoryFilter  || undefined,
+        search: search || undefined,
+        category: categoryFilter || undefined,
         isActive:
-          status === "active"   ? true  :
-          status === "inactive" ? false :
-          undefined,
+          status === "active" ? true :
+            status === "inactive" ? false :
+              undefined,
       });
       setProducts(list);
     } catch (err) {
@@ -101,21 +102,21 @@ export default function ProductsPage() {
   const filtered = useMemo(() => {
     if (!zone) return products;
     return products.filter(
-      (p) => p.location?.zone_code === zone
+      (p) => p.location?.zoneCode === zone
     );
   }, [products, zone]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const pageStart  = (page - 1) * pageSize;
-  const pageItems  = filtered.slice(pageStart, pageStart + pageSize);
+  const pageStart = (page - 1) * pageSize;
+  const pageItems = filtered.slice(pageStart, pageStart + pageSize);
 
   // zone_code es la clave del contrato; no hay campo "name" en Zone
   const zoneOptions = useMemo(
     () => [
       { value: "", label: "Todas las zonas" },
       ...zones.map((z) => ({
-        value: z.zone_code,
-        label: `Zona ${z.zone_code}`,
+        value: z.zoneCode,
+        label: `Zona ${z.zoneCode}`,
       })),
     ],
     [zones]
@@ -189,10 +190,15 @@ export default function ProductsPage() {
         subtitle="Gestioná el catálogo. La asignación de stock a posiciones se hace desde la pantalla Asignación de stock."
         action={
           <div className="products-page__header-actions">
-            <Link to="/asignacion-stock" className="products-page__link-action">
-              <Icon name="pin" size={16} />
-              <span>Asignar stock</span>
-            </Link>
+            <Link to="/asignacion-stock">
+  <Button
+    variant="secondary"
+    size="sm"
+    iconLeft={<Icon name="pin" size={14} />}
+  >
+    Asignar stock
+  </Button>
+</Link>
             <Button
               iconLeft={<Icon name="plus" size={16} />}
               onClick={() => setCreateOpen(true)}

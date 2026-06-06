@@ -25,6 +25,7 @@ const EMPTY = {
   minimumStock: "",
   maxQuantityPerOrder: "",
   specs: DEFAULT_SPECS,
+  active: true,
 };
 
 const buildInitial = (initial) => {
@@ -35,6 +36,7 @@ const buildInitial = (initial) => {
     sku: initial.sku ?? "",
     category: initial.category ?? "",
     currency: initial.price?.currency ?? "ARS",
+    active: initial.active ?? true,
     description: initial.description ?? "",
     images: initial.images ?? [],
     price:
@@ -84,6 +86,7 @@ const toApiPayload = (values, coverImageIndex) => {
     name: values.name.trim(),
     description: values.description.trim(),
     category: values.category,
+    active: values.active,
     images,
     price: {
       amount_cents: Math.round(Number(values.price) * 100),
@@ -227,6 +230,20 @@ export default function CreateProductForm({
             options={categories} placeholder="Seleccioná una categoría"
             error={errors.category} required
           />
+
+          {/* ── Estado ── */}
+          <Select
+            name="active"
+            label="Estado"
+            value={values.active ? "true" : "false"}
+            onChange={(e) =>
+              setValues((v) => ({ ...v, active: e.target.value === "true" }))
+            }
+            options={[
+              { value: "true", label: "Activo" },
+              { value: "false", label: "Inactivo" },
+            ]}
+          />
           <div className="cpf-description">
             <label className="cpf-description__label" htmlFor="description">
               Descripción
@@ -241,6 +258,8 @@ export default function CreateProductForm({
               onChange={handleChange("description")}
             />
           </div>
+
+
         </div>
       </FormSection>
 
@@ -294,6 +313,10 @@ export default function CreateProductForm({
               El precio incluye impuestos
             </label>
           </div>
+
+
+
+
         </div>
       </FormSection>
 
@@ -373,22 +396,22 @@ export default function CreateProductForm({
                       {isCover && <div className="cpf-cover-badge">PORTADA</div>}
                     </div>
                     <div className="cpf-image-meta">
-  <input
-    className="cpf-image-alt-input"
-    type="text"
-    placeholder="Texto alternativo"
-    value={img.alt}
-    onChange={(e) => {
-      const newAlt = e.target.value;
-      setValues((v) => ({
-        ...v,
-        images: v.images.map((im, i) =>
-          i === index ? { ...im, alt: newAlt } : im
-        ),
-      }));
-    }}
-  />
-</div>
+                      <input
+                        className="cpf-image-alt-input"
+                        type="text"
+                        placeholder="Texto alternativo"
+                        value={img.alt}
+                        onChange={(e) => {
+                          const newAlt = e.target.value;
+                          setValues((v) => ({
+                            ...v,
+                            images: v.images.map((im, i) =>
+                              i === index ? { ...im, alt: newAlt } : im
+                            ),
+                          }));
+                        }}
+                      />
+                    </div>
                     <div className="cpf-image-buttons">
                       {!isCover && (
                         <Button type="button" variant="secondary" onClick={() => setCoverImageIndex(index)}>

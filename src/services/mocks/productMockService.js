@@ -124,10 +124,30 @@ const normalizeImages = (input) => {
 };
 
 export const productMockService = {
-  async list() {
-    await delay();
-    return readAll();
-  },
+  async list({ category, search, isActive } = {}) {
+  await delay();
+
+  let results = readAll();
+
+  if (category) {
+    results = results.filter((p) => p.category === category);
+  }
+
+  if (search) {
+    const q = search.toLowerCase();
+    results = results.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.sku.toLowerCase().includes(q)
+    );
+  }
+
+  if (isActive !== undefined) {
+    results = results.filter((p) => p.active === isActive);
+  }
+
+  return results;
+},
 
   async get(id) {
     await delay();
@@ -261,9 +281,7 @@ export const productMockService = {
       };
     }
 
-    const updated = [...list];
-    updated[idx] = { ...updated[idx], active: false };
-
-    writeAll(updated);
+    // Hard delete: filtrar el producto del array
+    writeAll(list.filter((p) => p.id !== id));
   },
 };
