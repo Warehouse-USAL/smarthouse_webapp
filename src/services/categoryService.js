@@ -1,27 +1,3 @@
-/*
-|--------------------------------------------------------------------------
-| CATEGORY SERVICE
-|--------------------------------------------------------------------------
-|
-| Contrato Backend:
-|
-|   GET /products/categories
-|
-| Response:
-| {
-|   "categories": [
-|     "CHUPETINES",
-|     "GOLOSINAS",
-|     "SNACKS",
-|     "BEBIDAS"
-|   ]
-| }
-|
-| Las categorías son definidas por Backend.
-| El Front NO crea categorías nuevas.
-|
-*/
-
 import { apiClient } from "../lib/apiClient";
 
 const USE_MOCK =
@@ -29,10 +5,23 @@ const USE_MOCK =
   !import.meta.env.VITE_API_BASE_URL;
 
 const MOCK_CATEGORIES = [
-  "CHUPETINES",
-  "GOLOSINAS",
-  "SNACKS",
+  "ALIMENTOS",
   "BEBIDAS",
+  "LIMPIEZA",
+  "HIGIENE_PERSONAL",
+  "ELECTRONICA",
+  "ELECTRODOMESTICOS",
+  "INDUMENTARIA",
+  "CALZADO",
+  "FERRETERIA",
+  "MUEBLES",
+  "JUGUETES",
+  "LIBRERIA",
+  "FARMACIA",
+  "MASCOTAS",
+  "AUTOMOTOR",
+  "DEPORTES",
+  "OTROS",
 ];
 
 export const categoryService = {
