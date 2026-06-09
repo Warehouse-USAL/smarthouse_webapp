@@ -14,8 +14,13 @@
 | El backend serializa en snake_case (JacksonConfig SNAKE_CASE). Este service
 | es el único dueño de la traducción camelCase (UI) ↔ snake_case (cable).
 |
+| `category` es un enum del backend (ProductCategory: TECNOLOGIA, HERRAMIENTAS,
+| ALIMENTOS, OTROS). Viaja como string con el nombre del enum y el backend lo
+| valida (case-insensitive) en listado/alta/edición → 400 INVALID_CATEGORY si no
+| coincide. categoryService mantiene el espejo de esos valores en el front.
+|
 | NO existe en el backend (se ignora / se resuelve en el front):
-|   - GET /products/categories      → categoryService usa lista estática
+|   - GET /products/categories      → categoryService espeja el enum (no hay endpoint)
 |   - PATCH /products/:id/location  → la asignación se hace por posición
 |     (warehouseConfigService.assignProductToPosition / PATCH positions)
 |   - stock no se envía: el backend lo computa desde current_stock de las

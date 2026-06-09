@@ -22,12 +22,6 @@ const PAGE_SIZE_OPTIONS = [
   { value: "32", label: "32 por página" },
 ];
 
-const STATUSES = [
-  { value: "", label: "Todos los estados" },
-  { value: "active", label: "Activos" },
-  { value: "inactive", label: "Inactivos" },
-];
-
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
   const [zones, setZones] = useState([]);
@@ -36,7 +30,6 @@ export default function ProductsPage() {
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [zone, setZone] = useState("");
-  const [status, setStatus] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
@@ -70,13 +63,10 @@ export default function ProductsPage() {
     setLoading(true);
     setError(null);
     try {
+      // No filtramos por estado: se listan tanto activos como inactivos.
       const list = await productService.list({
         search: search || undefined,
         category: categoryFilter || undefined,
-        isActive:
-          status === "active" ? true :
-            status === "inactive" ? false :
-              undefined,
       });
       // GET /products no trae ubicación; se consulta aparte por producto para
       // poder filtrar por zona en cliente. Un producto puede estar en varias.
@@ -95,7 +85,7 @@ export default function ProductsPage() {
     } finally {
       setLoading(false);
     }
-  }, [search, categoryFilter, status]);
+  }, [search, categoryFilter]);
 
   useEffect(() => {
     let cancelled = false;
@@ -131,11 +121,9 @@ export default function ProductsPage() {
     [zones]
   );
 
+  // categoryService ya entrega { value, label } (espejo del enum del backend).
   const categoryOptions = useMemo(
-    () => [
-      { value: "", label: "Todas las categorías" },
-      ...categories.map((c) => ({ value: c, label: c })),
-    ],
+    () => [{ value: "", label: "Todas las categorías" }, ...categories],
     [categories]
   );
 
@@ -239,14 +227,6 @@ export default function ProductsPage() {
             value={categoryFilter}
             onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
             options={categoryOptions}
-          />
-        </div>
-        <div className="products-page__filter">
-          <Select
-            label="Estado"
-            value={status}
-            onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-            options={STATUSES}
           />
         </div>
       </Card>

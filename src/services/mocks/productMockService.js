@@ -1,4 +1,5 @@
 import { localStore } from "../../lib/localStore";
+import { CATEGORIES } from "../categoryService";
 
 const KEY = "mock_products";
 
@@ -35,7 +36,7 @@ const SEED = [
     sku: "SKU-BEB-001",
     name: "Agua Mineral 1.5L",
     description: "Agua mineral natural sin gas, botella de PET reciclable. Sin sodio agregado.",
-    category: "BEBIDAS",
+    category: "ALIMENTOS",
     images: [
       { url: "https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=400", alt: "Botella agua mineral", is_primary: true },
       { url: "https://images.unsplash.com/photo-1560023907-5f339617ea30?w=400", alt: "Agua cristalina", is_primary: false },
@@ -62,7 +63,7 @@ const SEED = [
     sku: "SKU-ELE-001",
     name: "Smartphone Samsung Galaxy A15",
     description: "Smartphone 6.5 pulgadas, 128GB almacenamiento, 4GB RAM, cámara triple 50MP, batería 5000mAh.",
-    category: "ELECTRONICA",
+    category: "TECNOLOGIA",
     images: [
       { url: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=400", alt: "Smartphone frontal", is_primary: true },
       { url: "https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=400", alt: "Smartphone lateral", is_primary: false },
@@ -89,7 +90,7 @@ const SEED = [
     sku: "SKU-LIM-001",
     name: "Detergente Líquido 750ml",
     description: "Detergente concentrado para vajilla, fórmula antibacterial con aloe vera. Rinde hasta 600 lavados.",
-    category: "LIMPIEZA",
+    category: "OTROS",
     images: [
       { url: "https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?w=400", alt: "Detergente botella", is_primary: true },
       { url: "https://images.unsplash.com/photo-1563453392212-326f5e854473?w=400", alt: "Productos limpieza estante", is_primary: false },
@@ -116,7 +117,7 @@ const SEED = [
     sku: "SKU-IND-001",
     name: "Remera Básica Algodón Talle M",
     description: "Remera de algodón 100% peinado, talle M, cuello redondo. Disponible en blanco.",
-    category: "INDUMENTARIA",
+    category: "OTROS",
     images: [
       { url: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400", alt: "Remera blanca frente", is_primary: true },
       { url: "https://images.unsplash.com/photo-1503341504253-dff4815485f1?w=400", alt: "Remera dobladad", is_primary: false },
@@ -143,7 +144,7 @@ const SEED = [
     sku: "SKU-FAR-001",
     name: "Ibuprofeno 400mg x 20 comp",
     description: "Antiinflamatorio y analgésico. Ibuprofeno 400mg, caja x 20 comprimidos recubiertos.",
-    category: "FARMACIA",
+    category: "OTROS",
     images: [
       { url: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400", alt: "Caja medicamento", is_primary: true },
       { url: "https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=400", alt: "Comprimidos blíster", is_primary: false },
@@ -170,7 +171,7 @@ const SEED = [
     sku: "SKU-AUT-001",
     name: "Aceite de Motor 10W-40 1L",
     description: "Aceite mineral multigrado para motores nafteros y diesel. Protección contra desgaste y oxidación.",
-    category: "AUTOMOTOR",
+    category: "HERRAMIENTAS",
     images: [
       { url: "https://images.unsplash.com/photo-1635784063388-b4d4b4b4b4e0?w=400", alt: "Bidón aceite motor", is_primary: true },
       { url: "https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=400", alt: "Motor de auto", is_primary: false },
@@ -197,7 +198,7 @@ const SEED = [
     sku: "SKU-DEP-001",
     name: "Pelota de Fútbol N°5",
     description: "Pelota de fútbol oficial talle 5, cubierta de PU termosellada, cámara de butilo. Apta para césped natural y sintético.",
-    category: "DEPORTES",
+    category: "OTROS",
     images: [
       { url: "https://images.unsplash.com/photo-1575361204480-aadea25e6e68?w=400", alt: "Pelota fútbol campo", is_primary: true },
       { url: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=400", alt: "Pelota detalle costura", is_primary: false },
@@ -279,27 +280,10 @@ export const productMockService = {
   },
 
   async getCategories() {
-  await delay();
-  return [
-    "ALIMENTOS",
-    "BEBIDAS",
-    "LIMPIEZA",
-    "HIGIENE_PERSONAL",
-    "ELECTRONICA",
-    "ELECTRODOMESTICOS",
-    "INDUMENTARIA",
-    "CALZADO",
-    "FERRETERIA",
-    "MUEBLES",
-    "JUGUETES",
-    "LIBRERIA",
-    "FARMACIA",
-    "MASCOTAS",
-    "AUTOMOTOR",
-    "DEPORTES",
-    "OTROS",
-  ];
-},
+    await delay();
+    // Espejo del enum del backend: misma fuente que el modo real (categoryService).
+    return CATEGORIES;
+  },
 
   async create(input) {
     await delay();
