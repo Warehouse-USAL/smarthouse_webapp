@@ -1,5 +1,6 @@
 import { useId, useState } from "react";
 import Input from "../../ui/Input/Input";
+import Select from "../../ui/Select/Select";
 import Button from "../../ui/Button/Button";
 import "./CreateProductForm.css";
 
