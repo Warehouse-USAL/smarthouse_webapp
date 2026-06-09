@@ -1,0 +1,33 @@
+/* Estilos específicos del grid seleccionable. Reutiliza ZoneGrid.css para la
+   estructura/colores; acá solo agregamos los estados de selección. */
+
+/* Posición elegible: invitamos al clic con un borde marcado. */
+.zone-picker__cell--selectable {
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+}
+
+.zone-picker__cell--selectable:hover {
+  filter: brightness(0.9);
+  transform: translateY(-1px);
+}
+
+/* Posición ya elegida en esta asignación. */
+.zone-picker__cell--selected {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 1px;
+  filter: brightness(0.8);
+  cursor: pointer;
+}
+
+/* No disponible (ocupada por otro producto o tamaño incompatible). */
+.zone-grid__cell--disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  filter: grayscale(0.6);
+}
+
+.zone-grid__cell--disabled:hover {
+  filter: grayscale(0.6);
+  transform: none;
+}

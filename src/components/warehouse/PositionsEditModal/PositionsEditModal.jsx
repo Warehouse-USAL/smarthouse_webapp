@@ -11,15 +11,16 @@ const SIZE_OPTIONS = [
   { value: "GRANDE", label: "Grande" },
 ];
 
-function PositionsEditBody({ onClose, onSaved }) {
+function PositionsEditBody({ onClose, onSaved, initialSelection }) {
   const [config, setConfig] = useState({ zones: [] });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [idZone, setIdZone] = useState("");
-  const [idLine, setIdLine] = useState("");
-  const [idPosition, setIdPosition] = useState("");
-  // Override local del tamaño. Se resetea al cambiar la posición.
+  const [idZone, setIdZone] = useState(initialSelection?.idZone || "");
+  const [idLine, setIdLine] = useState(initialSelection?.idLine || "");
+  const [idPosition, setIdPosition] = useState(initialSelection?.idPosition || "");
+  // Overrides locales. Se resetean al cambiar la posición.
   const [sizeOverride, setSizeOverride] = useState(null);
+  const [activeOverride, setActiveOverride] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -28,7 +29,11 @@ function PositionsEditBody({ onClose, onSaved }) {
       .then((next) => {
         if (cancelled) return;
         setConfig(next);
-        setIdZone(next.zones[0]?.idZone || "");
+        // Si vinimos desde un click en el mapa, respetamos esa selección;
+        // si no, arrancamos en la primera zona.
+        if (!initialSelection?.idZone) {
+          setIdZone(next.zones[0]?.idZone || "");
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -36,7 +41,7 @@ function PositionsEditBody({ onClose, onSaved }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialSelection]);
 
   const selectedZone = useMemo(
     () => warehouseConfigService.findZone(config, idZone),
@@ -73,23 +78,27 @@ function PositionsEditBody({ onClose, onSaved }) {
   );
 
   const size = sizeOverride ?? selectedPosition?.sizeStockToSave ?? "MEDIANA";
+  const active = activeOverride ?? selectedPosition?.isActive ?? false;
 
   const handleZoneChange = (e) => {
     setIdZone(e.target.value);
     setIdLine("");
     setIdPosition("");
     setSizeOverride(null);
+    setActiveOverride(null);
   };
 
   const handleLineChange = (e) => {
     setIdLine(e.target.value);
     setIdPosition("");
     setSizeOverride(null);
+    setActiveOverride(null);
   };
 
   const handlePositionChange = (e) => {
     setIdPosition(e.target.value);
     setSizeOverride(null);
+    setActiveOverride(null);
   };
 
   const handleSave = async () => {
@@ -98,6 +107,7 @@ function PositionsEditBody({ onClose, onSaved }) {
     try {
       const next = await warehouseConfigService.updatePosition(idZone, idLine, idPosition, {
         sizeStockToSave: size,
+        isActive: active,
       });
       setConfig(next);
       onSaved?.(next);
@@ -148,6 +158,16 @@ function PositionsEditBody({ onClose, onSaved }) {
           options={SIZE_OPTIONS}
           disabled={!idPosition}
         />
+        <Select
+          label="Estado"
+          value={active ? "true" : "false"}
+          onChange={(e) => setActiveOverride(e.target.value === "true")}
+          options={[
+            { value: "true", label: "Activa" },
+            { value: "false", label: "Inactiva" },
+          ]}
+          disabled={!idPosition}
+        />
       </div>
 
       <div className="positions-edit__hint">
@@ -167,10 +187,20 @@ function PositionsEditBody({ onClose, onSaved }) {
   );
 }
 
-export default function PositionsEditModal({ open, onClose, onSaved }) {
+export default function PositionsEditModal({ open, onClose, onSaved, initialSelection }) {
+  // Remontamos el body cuando cambia la posición de origen para reinicializar
+  // los selects desde la selección del mapa.
+  const bodyKey = initialSelection?.idPosition || "default";
   return (
     <Modal open={open} onClose={onClose} title="Modificar posiciones" size="lg">
-      {open && <PositionsEditBody onClose={onClose} onSaved={onSaved} />}
+      {open && (
+        <PositionsEditBody
+          key={bodyKey}
+          onClose={onClose}
+          onSaved={onSaved}
+          initialSelection={initialSelection}
+        />
+      )}
     </Modal>
   );
 }

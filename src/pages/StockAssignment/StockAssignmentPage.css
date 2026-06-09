@@ -22,13 +22,69 @@
   color: var(--color-text-secondary);
 }
 
+.stock-assignment__map-hint {
+  margin: var(--space-3) 0;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+/* Misma distribución que el mapa de Configuración del warehouse:
+   grid de 2 columnas fijas que colapsa a 1 en mobile + leyenda de zonas. */
+.stock-assignment__map {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.stock-assignment__legend {
+  display: flex;
+  gap: var(--space-6);
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border-soft);
+}
+
+.stock-assignment__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.stock-assignment__legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.stock-assignment__legend-dot--a { background-color: var(--color-zone-a-dot); }
+.stock-assignment__legend-dot--b { background-color: var(--color-zone-b-dot); }
+.stock-assignment__legend-dot--c { background-color: var(--color-zone-c-dot); }
+.stock-assignment__legend-dot--d { background-color: var(--color-zone-d-dot); }
+
 .stock-assignment__plan {
   list-style: none;
   padding: 0;
-  margin: var(--space-3) 0 0;
+  margin: var(--space-4) 0 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+}
+
+.stock-assignment__plan-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background: var(--color-text-primary);
+  color: var(--color-white);
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
 }
 
 .stock-assignment__plan-item {
@@ -51,18 +107,20 @@
   color: var(--color-text-primary);
 }
 
-.stock-assignment__plan-meta {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.stock-assignment__plan-qty {
+.stock-assignment__plan-unit {
   font-size: 14px;
   font-weight: 600;
   color: var(--color-text-primary);
-  min-width: 64px;
-  text-align: right;
+}
+
+.stock-assignment__plan-unit small {
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.stock-assignment__plan-cap--over {
+  color: var(--color-danger, #d92d20);
+  font-weight: 700;
 }
 
 .stock-assignment__summary {
@@ -75,10 +133,6 @@
   gap: 4px;
   font-size: 13px;
   color: var(--color-text-secondary);
-}
-
-.stock-assignment__remainder {
-  color: var(--color-danger, #b3261e);
 }
 
 .stock-assignment__feedback {
@@ -109,6 +163,9 @@
 
 @media (max-width: 720px) {
   .stock-assignment__form {
+    grid-template-columns: 1fr;
+  }
+  .stock-assignment__map {
     grid-template-columns: 1fr;
   }
 }

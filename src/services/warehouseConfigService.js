@@ -45,8 +45,23 @@
 import { apiClient } from "../lib/apiClient";
 import { warehouseConfigMockService } from "./mocks/warehouseConfigMockService";
 
-const USE_MOCK =
-  import.meta.env.VITE_USE_MOCK === "true" || !import.meta.env.VITE_API_BASE_URL;
+// Backend same-origin vía proxy de Vite: el único interruptor es el flag.
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
+
+// El enum del backend es PEQUENO/MEDIANO/GRANDE (masculino, sin Ñ); el front
+// usa PEQUEÑA/MEDIANA/GRANDE. Se traduce en ambos sentidos en el borde.
+const SIZE_BE_TO_FE = { PEQUENO: "PEQUEÑA", MEDIANO: "MEDIANA", GRANDE: "GRANDE" };
+const SIZE_FE_TO_BE = { PEQUEÑA: "PEQUENO", MEDIANA: "MEDIANO", GRANDE: "GRANDE" };
+
+// Defaults al materializar estructura. El backend NO auto-genera hijos: zonas,
+// líneas y posiciones se crean explícitamente y nacen inactivas (is_active=false).
+const DEFAULT_MAX_ALLOWED_LINES = 4;
+const DEFAULT_MAX_ALLOWED_POSITIONS = 12;
+const DEFAULT_POSITION_SIZE = "MEDIANA"; // dominio front (con Ñ)
+// CreatePositionRequest exige maximum_capacity >= 1. El front todavía no modela
+// capacidad por posición (planAllocation usa las unidades del producto, no este
+// tope), así que usamos un default generoso para no bloquear asignaciones.
+const DEFAULT_POSITION_CAPACITY = 1000;
 
 const padNumber = (value, width = 2) => {
   const str = String(value ?? "");
@@ -80,6 +95,7 @@ const normalizeZone = (raw) => {
     zoneCode,
     name: `Zona ${zoneCode ?? ""}`.trim(),
     color: colorForZone(idZone ?? zoneCode),
+    isActive: raw.is_active ?? raw.isActive ?? false,
     maxAllowedLines: raw.max_allowed_lines ?? raw.maxAllowedLines ?? 0,
     lines: [],
   };
@@ -87,26 +103,42 @@ const normalizeZone = (raw) => {
 
 const normalizeLine = (raw) => ({
   idLine: raw.id_line ?? raw.idLine,
+  idZone: raw.id_zone ?? raw.idZone,
   numberLine: raw.number_line ?? raw.numberLine,
+  isActive: raw.is_active ?? raw.isActive ?? false,
   maxAllowedPositions: raw.max_allowed_positions ?? raw.maxAllowedPositions ?? 0,
   positions: [],
 });
 
-const normalizePosition = (raw) => ({
-  idPosition: raw.id_position ?? raw.idPosition,
-  positionName: raw.position_name ?? raw.positionName,
-  sizeStockToSave: raw.size_stock_to_save ?? raw.sizeStockToSave ?? "MEDIANA",
-  // Unidades físicas del producto en esta posición (no confundir con
-  // product.availableStock, que es el total del producto en todo el warehouse).
-  currentStock: raw.current_stock ?? raw.currentStock ?? 0,
-  assignedProduct: raw.assigned_product
-    ? {
-        id: raw.assigned_product.id,
-        sku: raw.assigned_product.sku,
-        name: raw.assigned_product.name,
-      }
-    : null,
-});
+const normalizePosition = (raw) => {
+  const beSize = raw.size_stock_to_save ?? raw.sizeStockToSave ?? "MEDIANO";
+  const productId = raw.product_id ?? raw.productId ?? null;
+  // El detalle (GET /positions/:id) trae assigned_product con sku/name; el
+  // listado (GET /lines/:id/positions) solo trae product_id. Para que la UI
+  // pueda detectar ocupación en ambos casos, derivamos assignedProduct de
+  // assigned_product si está, o de product_id (parcial: solo id) si no.
+  const assigned = raw.assigned_product ?? raw.assignedProduct ?? null;
+  const assignedProduct = assigned
+    ? { id: assigned.id, sku: assigned.sku, name: assigned.name }
+    : productId
+      ? { id: productId, sku: null, name: null }
+      : null;
+  return {
+    idPosition: raw.id_position ?? raw.idPosition,
+    idLine: raw.id_line ?? raw.idLine,
+    idZone: raw.id_zone ?? raw.idZone,
+    positionName: raw.position_name ?? raw.positionName,
+    isActive: raw.is_active ?? raw.isActive ?? false,
+    // Tamaño traducido al dominio del front (con Ñ).
+    sizeStockToSave: SIZE_BE_TO_FE[beSize] ?? beSize,
+    maximumCapacity: raw.maximum_capacity ?? raw.maximumCapacity ?? 0,
+    // Unidades físicas del producto en esta posición (no confundir con
+    // product.availableStock, que es el total del producto en todo el warehouse).
+    currentStock: raw.current_stock ?? raw.currentStock ?? 0,
+    productId,
+    assignedProduct,
+  };
+};
 
 /* ---------- Payload builders camelCase → snake_case ---------- */
 
@@ -127,7 +159,10 @@ const toLinePayload = (patch) => {
 const toPositionPayload = (patch) => {
   const out = {};
   if (patch.positionName !== undefined) out.position_name = patch.positionName;
-  if (patch.sizeStockToSave !== undefined) out.size_stock_to_save = patch.sizeStockToSave;
+  if (patch.sizeStockToSave !== undefined)
+    out.size_stock_to_save = SIZE_FE_TO_BE[patch.sizeStockToSave] ?? patch.sizeStockToSave;
+  if (patch.isActive !== undefined) out.is_active = patch.isActive;
+  if (patch.currentStock !== undefined) out.current_stock = patch.currentStock;
   return out;
 };
 
@@ -142,25 +177,103 @@ const nextZoneCode = (zones) => {
   return `Z${zones.length + 1}`;
 };
 
+// Listados CRUDOS (incluyen inactivos). El backend hace soft-delete (is_active
+// =false) y mantiene índices únicos sobre zone_code, {id_zone, number_line} y
+// {id_line, position_name} aun para registros borrados. Por eso, para generar
+// códigos/números/nombres sin chocar con esos índices, hay que mirar TODO, no
+// solo lo activo.
+const fetchRawZones = async () => {
+  const { data } = await apiClient.get("/warehouse/zones");
+  return (data?.zones || []).map(normalizeZone);
+};
+
+const fetchRawLines = async (idZone) => {
+  const { data } = await apiClient.get(`/warehouse/zones/${idZone}/lines`);
+  return (data?.lines || []).map(normalizeLine);
+};
+
+const fetchRawPositions = async (idLine) => {
+  const { data } = await apiClient.get(`/warehouse/lines/${idLine}/positions`);
+  return (data?.positions || []).map(normalizePosition);
+};
+
+// El árbol que consume la UI muestra SOLO lo activo: como el backend no hace
+// hard-delete, tratar is_active=false como "borrado/borrador" es lo que hace que
+// eliminar (y recortar posiciones) realmente oculte las cosas en el mapa.
 const fetchTree = async () => {
-  const { data: zonesRes } = await apiClient.get("/warehouse/zones");
-  const zones = (zonesRes?.zones || []).map(normalizeZone);
+  const zones = (await fetchRawZones()).filter((zone) => zone.isActive);
 
   await Promise.all(
     zones.map(async (zone) => {
-      const { data: linesRes } = await apiClient.get(`/warehouse/zones/${zone.idZone}/lines`);
-      zone.lines = (linesRes?.lines || []).map(normalizeLine);
+      const lines = (await fetchRawLines(zone.idZone)).filter((line) => line.isActive);
+      zone.lines = lines;
 
       await Promise.all(
-        zone.lines.map(async (line) => {
-          const { data: posRes } = await apiClient.get(`/warehouse/lines/${line.idLine}/positions`);
-          line.positions = (posRes?.positions || []).map(normalizePosition);
+        lines.map(async (line) => {
+          line.positions = (await fetchRawPositions(line.idLine)).filter(
+            (position) => position.isActive
+          );
         })
       );
     })
   );
 
   return { zones };
+};
+
+const positionIndexFromName = (name) => {
+  const match = /(\d+)\s*$/.exec(String(name ?? ""));
+  return match ? Number(match[1]) : 0;
+};
+
+const activatePosition = (idPosition) =>
+  apiClient.patch(`/warehouse/positions/${idPosition}`, { is_active: true });
+
+// Lleva la cantidad de posiciones ACTIVAS de una línea a `target`.
+//   - Crecer: primero reactiva posiciones inactivas (soft-deleted) y, si faltan,
+//     crea nuevas con nombres por encima del índice más alto ya usado — así no
+//     choca con el índice único {id_line, position_name}. Las posiciones nacen
+//     inactivas, por lo que se activan tras crearlas.
+//   - Recortar: desactiva las sobrantes de la cola (soft-delete del backend).
+const materializePositions = async (idLine, target) => {
+  const desired = Math.max(0, Number(target) || 0);
+  const all = await fetchRawPositions(idLine);
+  const active = all.filter((p) => p.isActive);
+
+  if (active.length === desired) return;
+
+  if (active.length > desired) {
+    const surplus = active.slice(desired);
+    await Promise.all(
+      surplus.map((p) =>
+        apiClient.patch(`/warehouse/positions/${p.idPosition}`, { is_active: false })
+      )
+    );
+    return;
+  }
+
+  let missing = desired - active.length;
+
+  const reusable = all.filter((p) => !p.isActive).slice(0, missing);
+  await Promise.all(reusable.map((p) => activatePosition(p.idPosition)));
+  missing -= reusable.length;
+  if (missing <= 0) return;
+
+  const maxIndex = all.reduce(
+    (max, p) => Math.max(max, positionIndexFromName(p.positionName)),
+    0
+  );
+  await Promise.all(
+    Array.from({ length: missing }, async (_, i) => {
+      const { data: created } = await apiClient.post(`/warehouse/lines/${idLine}/positions`, {
+        position_name: `P${String(maxIndex + i + 1).padStart(2, "0")}`,
+        maximum_capacity: DEFAULT_POSITION_CAPACITY,
+        size_stock_to_save: SIZE_FE_TO_BE[DEFAULT_POSITION_SIZE],
+      });
+      const idPosition = created?.id_position ?? created?.idPosition;
+      if (idPosition) await activatePosition(idPosition);
+    })
+  );
 };
 
 export const warehouseConfigService = {
@@ -173,12 +286,17 @@ export const warehouseConfigService = {
 
   async addZone(input = {}) {
     if (USE_MOCK) return warehouseConfigMockService.addZone(input);
-    const tree = await fetchTree();
-    const body = {
-      zone_code: input.zoneCode || nextZoneCode(tree.zones),
-      max_allowed_lines: input.maxAllowedLines ?? 4,
-    };
-    await apiClient.post("/warehouse/zones", body);
+    // Código sobre TODAS las zonas (incl. inactivas): zone_code es único en el
+    // backend y no hay hard-delete, así que reusar un código borrado daría 409.
+    const rawZones = await fetchRawZones();
+    const { data: created } = await apiClient.post("/warehouse/zones", {
+      zone_code: input.zoneCode || nextZoneCode(rawZones),
+      max_allowed_lines: input.maxAllowedLines ?? DEFAULT_MAX_ALLOWED_LINES,
+    });
+    // La zona nace inactiva; se activa para poder colgarle líneas (createLine
+    // rechaza con 400 ZONE_INACTIVE si la zona no está activa).
+    const idZone = created?.id_zone ?? created?.idZone;
+    if (idZone) await apiClient.patch(`/warehouse/zones/${idZone}`, { is_active: true });
     return fetchTree();
   },
 
@@ -198,20 +316,37 @@ export const warehouseConfigService = {
 
   async addLine(idZone, input = {}) {
     if (USE_MOCK) return warehouseConfigMockService.addLine(idZone, input);
-    const tree = await fetchTree();
-    const zone = tree.zones.find((z) => z.idZone === idZone);
+    const maxAllowedPositions = input.maxAllowedPositions ?? DEFAULT_MAX_ALLOWED_POSITIONS;
+    // Defensa: la zona debe estar activa para aceptar líneas (400 ZONE_INACTIVE).
+    // addZone ya la activa; lo reforzamos por si viene de un alta anterior.
+    await apiClient.patch(`/warehouse/zones/${idZone}`, { is_active: true });
+    // number_line sobre TODAS las líneas de la zona: {id_zone, number_line} es
+    // único en el backend y no hay hard-delete.
+    const rawLines = await fetchRawLines(idZone);
     const nextNumberLine =
-      input.numberLine ?? (zone?.lines[zone.lines.length - 1]?.numberLine ?? 0) + 1;
-    await apiClient.post(`/warehouse/zones/${idZone}/lines`, {
+      input.numberLine ?? rawLines.reduce((max, l) => Math.max(max, l.numberLine || 0), 0) + 1;
+    const { data: created } = await apiClient.post(`/warehouse/zones/${idZone}/lines`, {
       number_line: nextNumberLine,
-      max_allowed_positions: input.maxAllowedPositions ?? 12,
+      max_allowed_positions: maxAllowedPositions,
     });
+    // La línea nace inactiva; se activa para aceptar posiciones (createPosition
+    // rechaza con 400 LINE_INACTIVE) y luego se materializan sus posiciones.
+    const idLine = created?.id_line ?? created?.idLine;
+    if (idLine) {
+      await apiClient.patch(`/warehouse/lines/${idLine}`, { is_active: true });
+      await materializePositions(idLine, maxAllowedPositions);
+    }
     return fetchTree();
   },
 
   async updateLine(idZone, idLine, patch) {
     if (USE_MOCK) return warehouseConfigMockService.updateLine(idZone, idLine, patch);
     await apiClient.patch(`/warehouse/lines/${idLine}`, toLinePayload(patch));
+    // En la UI "posiciones permitidas" ES la cantidad real de posiciones, así que
+    // materializamos para que el conteo coincida (crea/reactiva o recorta).
+    if (patch.maxAllowedPositions !== undefined) {
+      await materializePositions(idLine, patch.maxAllowedPositions);
+    }
     return fetchTree();
   },
 
@@ -237,11 +372,11 @@ export const warehouseConfigService = {
     return normalizePosition(data);
   },
 
-  // Asigna o limpia el producto en una posición. En backend NO hay endpoint
-  // dedicado: la fuente de verdad es StockPosicion (cuando se exponga). En
-  // modo mock mantenemos un assignedProduct sintético en la posición para
-  // que el panel del warehouse muestre la ocupación sin tener que reconstruir
-  // el join cada vez.
+  // Asigna un producto a una posición. La fuente de verdad en el backend es la
+  // propia Position (product_id + current_stock). Se activa la posición al
+  // ocuparla. El backend rechaza con 409 si ya tiene OTRO producto: en ese caso
+  // hay que limpiar primero (la UI filtra posiciones ocupadas, así que no
+  // debería pasar en el flujo normal).
   async assignProductToPosition(idPosition, productSummary, currentStock) {
     if (USE_MOCK) {
       return warehouseConfigMockService.setAssignedProduct(
@@ -250,13 +385,19 @@ export const warehouseConfigService = {
         currentStock
       );
     }
-    // Backend pendiente: no-op silencioso. Cuando exista StockPosicion el
-    // panel del warehouse leerá la asignación derivada de allí.
+    await apiClient.patch(`/warehouse/positions/${idPosition}`, {
+      product_id: productSummary?.id,
+      current_stock: currentStock ?? 0,
+      is_active: true,
+    });
     return null;
   },
 
+  // Libera la posición: el backend pone product_id=null y current_stock=0. El
+  // available del producto baja solo (se computa de las posiciones).
   async clearProductFromPosition(idPosition) {
     if (USE_MOCK) return warehouseConfigMockService.setAssignedProduct(idPosition, null);
+    await apiClient.patch(`/warehouse/positions/${idPosition}`, { unassign_product: true });
     return null;
   },
 

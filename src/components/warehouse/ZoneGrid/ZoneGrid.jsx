@@ -11,7 +11,7 @@ const sizeModifier = (size) => {
   }
 };
 
-export default function ZoneGrid({ zone, selected, onSelect }) {
+export default function ZoneGrid({ zone, selected, onSelect, onActivate }) {
   const colorKey = (zone.color || zone.zoneCode || "").toLowerCase();
 
   return (
@@ -44,6 +44,13 @@ export default function ZoneGrid({ zone, selected, onSelect }) {
                     title={`${position.positionName} · ${sizeTitle} · ${stateLabel(state)}`}
                     onClick={() =>
                       onSelect?.({
+                        idZone: zone.idZone,
+                        idLine: line.idLine,
+                        idPosition: position.idPosition,
+                      })
+                    }
+                    onDoubleClick={() =>
+                      onActivate?.({
                         idZone: zone.idZone,
                         idLine: line.idLine,
                         idPosition: position.idPosition,
