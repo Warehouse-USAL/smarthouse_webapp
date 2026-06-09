@@ -22,13 +22,40 @@
   color: var(--color-text-secondary);
 }
 
+.stock-assignment__map-hint {
+  margin: var(--space-3) 0;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.stock-assignment__map {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
 .stock-assignment__plan {
   list-style: none;
   padding: 0;
-  margin: var(--space-3) 0 0;
+  margin: var(--space-4) 0 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+}
+
+.stock-assignment__plan-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background: var(--color-text-primary);
+  color: var(--color-white);
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
 }
 
 .stock-assignment__plan-item {
