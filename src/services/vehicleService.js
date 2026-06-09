@@ -1,8 +1,7 @@
 import { apiClient } from "../lib/apiClient";
 import { vehicleMockService } from "./mocks/vehicleMockService";
 
-const USE_MOCK =
-  import.meta.env.VITE_USE_MOCK === "true" || !import.meta.env.VITE_API_BASE_URL;
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 
 export const vehicleService = {
   async list() {
