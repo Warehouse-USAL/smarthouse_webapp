@@ -1,10 +1,18 @@
-import { apiClient } from "../lib/apiClient";
+/*
+|--------------------------------------------------------------------------
+| CATEGORY SERVICE
+|--------------------------------------------------------------------------
+|
+| El backend (wh-backend) NO expone un endpoint de categorías: la categoría es
+| un string libre dentro de cada producto (Product.category). Por eso la lista
+| de categorías es canónica del front y no depende de mocks ni de la red.
+|
+| Si en el futuro el backend agrega GET /products/categories, basta cambiar el
+| cuerpo de list() para consumirlo.
+|
+*/
 
-const USE_MOCK =
-  import.meta.env.VITE_USE_MOCK === "true" ||
-  !import.meta.env.VITE_API_BASE_URL;
-
-const MOCK_CATEGORIES = [
+export const CATEGORIES = [
   "ALIMENTOS",
   "BEBIDAS",
   "LIMPIEZA",
@@ -21,19 +29,12 @@ const MOCK_CATEGORIES = [
   "MASCOTAS",
   "AUTOMOTOR",
   "DEPORTES",
+  "SEGURIDAD",
   "OTROS",
 ];
 
 export const categoryService = {
   async list() {
-    if (USE_MOCK) {
-      return MOCK_CATEGORIES;
-    }
-
-    const { data } = await apiClient.get(
-      "/products/categories"
-    );
-
-    return data?.categories || [];
+    return CATEGORIES;
   },
 };

@@ -61,6 +61,7 @@ export default function ZonePickerGrid({ zone, selectedIds, isSelectable, onTogg
                         zoneName: zone.name,
                         lineNumber: line.numberLine,
                         positionName: position.positionName,
+                        maximumCapacity: position.maximumCapacity ?? 0,
                       })
                     }
                   />

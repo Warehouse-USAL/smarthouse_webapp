@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useState } from "react";
 import Input from "../../ui/Input/Input";
 import Select from "../../ui/Select/Select";
 import Button from "../../ui/Button/Button";
@@ -74,36 +74,26 @@ const validate = (values) => {
   return errors;
 };
 
-const toApiPayload = (values, coverImageIndex) => {
-  const images = values.images.map((img, idx) => ({
+// Devuelve valores limpios en camelCase. La traducción al contrato del backend
+// (snake_case, centavos) la hace productService — este form no la conoce.
+const buildSubmitValues = (values, coverImageIndex) => ({
+  sku: values.sku.trim().toUpperCase(),
+  name: values.name.trim(),
+  description: values.description.trim(),
+  category: values.category.trim(),
+  active: values.active,
+  currency: values.currency.trim().toUpperCase() || "ARS",
+  includesTaxes: values.includesTaxes,
+  price: values.price,
+  minimumStock: Number(values.minimumStock) || 0,
+  maxQuantityPerOrder: Number(values.maxQuantityPerOrder) || 0,
+  images: values.images.map((img, idx) => ({
     url: img.url,
     alt: img.alt || values.name.trim() || `Imagen ${idx + 1}`,
-    is_primary: idx === coverImageIndex,
-  }));
-
-  return {
-    sku: values.sku.trim().toUpperCase(),
-    name: values.name.trim(),
-    description: values.description.trim(),
-    category: values.category,
-    active: values.active,
-    images,
-    price: {
-      amount_cents: Math.round(Number(values.price) * 100),
-      currency: values.currency.trim().toUpperCase() || "ARS",
-      tax_included: values.includesTaxes,
-    },
-    stock: {
-      min: Number(values.minimumStock) || 0,
-    },
-    order_constraints: {
-      max_quantity_per_order: Number(values.maxQuantityPerOrder) || 0,
-    },
-    specs: values.specs
-      .filter((s) => s.label.trim() && s.value.trim())
-      .map((s) => ({ label: s.label.trim(), value: s.value.trim() })),
-  };
-};
+    isPrimary: idx === coverImageIndex,
+  })),
+  specs: values.specs.filter((s) => s.label.trim() && s.value.trim()),
+});
 
 const isValidUrl = (str) => {
   try {
@@ -143,8 +133,6 @@ export default function CreateProductForm({
     const idx = initial.images.findIndex((img) => img.is_primary);
     return idx === -1 ? 0 : idx;
   });
-  const categoryListId = useId();
-
   const handleChange = (field) => (e) =>
     setValues((v) => ({ ...v, [field]: e.target.value }));
 
@@ -202,17 +190,7 @@ export default function CreateProductForm({
     const errs = validate(values);
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
-    onSubmit({
-      ...values,
-      sku: values.sku.trim().toUpperCase(),
-      category: values.category.trim(),
-      minimumStock: Number(values.minimumStock),
-      maxQuantityPerOrder: Number(values.maxQuantityPerOrder) || 0,
-      unitsPerPallet: Number(values.unitsPerPallet) || 0,
-      unitsPerHalfPallet: Number(values.unitsPerHalfPallet) || 0,
-      unitsPerBox: Number(values.unitsPerBox) || 0,
-    });
-    onSubmit(toApiPayload(values, coverImageIndex));
+    onSubmit(buildSubmitValues(values, coverImageIndex));
   };
 
   const submitLabel = isEdit ? (submitting ? "Guardando…" : "Guardar cambios") : (submitting ? "Guardando…" : "Crear producto");

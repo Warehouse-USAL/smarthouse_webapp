@@ -18,8 +18,9 @@ function PositionsEditBody({ onClose, onSaved, initialSelection }) {
   const [idZone, setIdZone] = useState(initialSelection?.idZone || "");
   const [idLine, setIdLine] = useState(initialSelection?.idLine || "");
   const [idPosition, setIdPosition] = useState(initialSelection?.idPosition || "");
-  // Override local del tamaño. Se resetea al cambiar la posición.
+  // Overrides locales. Se resetean al cambiar la posición.
   const [sizeOverride, setSizeOverride] = useState(null);
+  const [activeOverride, setActiveOverride] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -77,23 +78,27 @@ function PositionsEditBody({ onClose, onSaved, initialSelection }) {
   );
 
   const size = sizeOverride ?? selectedPosition?.sizeStockToSave ?? "MEDIANA";
+  const active = activeOverride ?? selectedPosition?.isActive ?? false;
 
   const handleZoneChange = (e) => {
     setIdZone(e.target.value);
     setIdLine("");
     setIdPosition("");
     setSizeOverride(null);
+    setActiveOverride(null);
   };
 
   const handleLineChange = (e) => {
     setIdLine(e.target.value);
     setIdPosition("");
     setSizeOverride(null);
+    setActiveOverride(null);
   };
 
   const handlePositionChange = (e) => {
     setIdPosition(e.target.value);
     setSizeOverride(null);
+    setActiveOverride(null);
   };
 
   const handleSave = async () => {
@@ -102,6 +107,7 @@ function PositionsEditBody({ onClose, onSaved, initialSelection }) {
     try {
       const next = await warehouseConfigService.updatePosition(idZone, idLine, idPosition, {
         sizeStockToSave: size,
+        isActive: active,
       });
       setConfig(next);
       onSaved?.(next);
@@ -150,6 +156,16 @@ function PositionsEditBody({ onClose, onSaved, initialSelection }) {
           value={size}
           onChange={(e) => setSizeOverride(e.target.value)}
           options={SIZE_OPTIONS}
+          disabled={!idPosition}
+        />
+        <Select
+          label="Estado"
+          value={active ? "true" : "false"}
+          onChange={(e) => setActiveOverride(e.target.value === "true")}
+          options={[
+            { value: "true", label: "Activa" },
+            { value: "false", label: "Inactiva" },
+          ]}
           disabled={!idPosition}
         />
       </div>

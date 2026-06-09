@@ -110,6 +110,16 @@ export default function StockAssignmentPage() {
     }));
   }, [selected, totalQuantity]);
 
+  // Primera posición cuyo reparto supera su capacidad máxima. El backend
+  // rechazaría con 400 STOCK_EXCEEDS_CAPACITY; lo bloqueamos antes.
+  const overCapacitySlot = useMemo(
+    () =>
+      plan.find(
+        (slot) => slot.maximumCapacity > 0 && slot.quantity > slot.maximumCapacity
+      ) || null,
+    [plan]
+  );
+
   const resetSelection = () => {
     setSelected([]);
     setFeedback(null);
@@ -148,10 +158,20 @@ export default function StockAssignmentPage() {
 
   const handleConfirm = async () => {
     if (!canConfirm) return;
+    if (overCapacitySlot) {
+      setFeedback({
+        type: "error",
+        message: `La posición ${overCapacitySlot.positionName} no admite ${overCapacitySlot.quantity} unidades (capacidad ${overCapacitySlot.maximumCapacity}).`,
+      });
+      return;
+    }
     setSubmitting(true);
     setFeedback(null);
     try {
-      // 1. Persistir StockPosicion para cada posición elegida.
+      // Asignar producto + cantidad a cada posición elegida. Esto hace un
+      // PATCH /warehouse/positions/:id por posición (product_id + current_stock).
+      // El stock disponible del producto lo computa el backend desde las
+      // posiciones; no hay que actualizarlo a mano.
       const entries = plan.map((slot) => ({
         productId: selectedProduct.id,
         idPosition: slot.idPosition,
@@ -160,29 +180,7 @@ export default function StockAssignmentPage() {
       }));
       await stockPositionService.createMany(entries);
 
-      // 2. Marcar las posiciones como ocupadas en el warehouse (mock).
-      //    En producción esto lo deriva el backend desde StockPosicion.
-      await Promise.all(
-        plan.map((slot) =>
-          warehouseConfigService.assignProductToPosition(
-            slot.idPosition,
-            {
-              id: selectedProduct.id,
-              sku: selectedProduct.sku,
-              name: selectedProduct.name,
-            },
-            slot.quantity
-          )
-        )
-      );
-
-      // 3. Sumar el stock asignado al availableStock del producto.
-      const totalAssigned = plan.reduce((sum, s) => sum + s.quantity, 0);
-      await productService.update(selectedProduct.id, {
-        availableStock: (selectedProduct.availableStock || 0) + totalAssigned,
-      });
-
-      // 4. Recargar datasets para reflejar el nuevo estado del mapa.
+      // Recargar datasets para reflejar el nuevo estado del mapa y los stocks.
       const [nextProds, nextTree] = await Promise.all([
         productService.list({ isActive: true }),
         warehouseConfigService.get(),
@@ -190,6 +188,7 @@ export default function StockAssignmentPage() {
       setProducts(nextProds);
       setTree(nextTree);
 
+      const totalAssigned = plan.reduce((sum, s) => sum + s.quantity, 0);
       setFeedback({
         type: "success",
         message: `Asignadas ${totalAssigned} unidades en ${plan.length} posiciones.`,
@@ -334,19 +333,31 @@ export default function StockAssignmentPage() {
         {formReady && plan.length > 0 && (
           <>
             <ul className="stock-assignment__plan">
-              {plan.map((slot, idx) => (
-                <li key={slot.idPosition} className="stock-assignment__plan-item">
-                  <div className="stock-assignment__plan-pos">
-                    <span className="stock-assignment__plan-index">{idx + 1}</span>
-                    <Icon name="pin" size={14} />
-                    <span>
-                      {slot.zoneName} · Línea {String(slot.lineNumber).padStart(2, "0")} ·{" "}
-                      {slot.positionName}
+              {plan.map((slot, idx) => {
+                const over = slot.maximumCapacity > 0 && slot.quantity > slot.maximumCapacity;
+                return (
+                  <li key={slot.idPosition} className="stock-assignment__plan-item">
+                    <div className="stock-assignment__plan-pos">
+                      <span className="stock-assignment__plan-index">{idx + 1}</span>
+                      <Icon name="pin" size={14} />
+                      <span>
+                        {slot.zoneName} · Línea {String(slot.lineNumber).padStart(2, "0")} ·{" "}
+                        {slot.positionName}
+                      </span>
+                    </div>
+                    <span className="stock-assignment__plan-unit">
+                      {slot.quantity} u
+                      {slot.maximumCapacity > 0 && (
+                        <small
+                          className={over ? "stock-assignment__plan-cap--over" : undefined}
+                        >
+                          {" "}/ {slot.maximumCapacity}
+                        </small>
+                      )}
                     </span>
-                  </div>
-                  <span className="stock-assignment__plan-unit">{slot.quantity} u</span>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
 
             <div className="stock-assignment__summary">
@@ -355,6 +366,14 @@ export default function StockAssignmentPage() {
                 <strong>{plan.length}</strong> posiciones.
               </span>
             </div>
+
+            {overCapacitySlot && (
+              <div className="stock-assignment__feedback stock-assignment__feedback--error">
+                <Icon name="info" size={14} /> La posición {overCapacitySlot.positionName}{" "}
+                supera su capacidad ({overCapacitySlot.quantity} &gt;{" "}
+                {overCapacitySlot.maximumCapacity}). Elegí más posiciones o reducí la cantidad.
+              </div>
+            )}
           </>
         )}
 
@@ -365,7 +384,11 @@ export default function StockAssignmentPage() {
         )}
 
         <div className="stock-assignment__actions">
-          <Button type="button" onClick={handleConfirm} disabled={!canConfirm || submitting}>
+          <Button
+            type="button"
+            onClick={handleConfirm}
+            disabled={!canConfirm || submitting || !!overCapacitySlot}
+          >
             {submitting ? "Asignando…" : "Confirmar asignación"}
           </Button>
         </div>

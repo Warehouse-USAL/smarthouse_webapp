@@ -13,7 +13,7 @@ import hero from "../../../assets/auth/ImagenInicioLogin.png";
 import mail from "../../../assets/icons/mail.svg";
 import lock from "../../../assets/icons/lock.svg";
 
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 
 import { login } from "../../../services/authService";
 
@@ -22,6 +22,8 @@ import "./LoginPage.css";
 export default function LoginPage() {
 
   const navigate = useNavigate();
+
+  const location = useLocation();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -102,12 +104,15 @@ export default function LoginPage() {
 
       /*
       |--------------------------------------------------------------------------
-      | TODO:
-      | cambiar por ruta real del sistema
+      | REDIRECCIÓN POST-LOGIN
       |--------------------------------------------------------------------------
+      | Si el usuario fue redirigido al login desde una ruta protegida,
+      | lo devolvemos ahí. Si no, va al inicio.
       */
 
-      navigate("/dashboard");
+      const from = location.state?.from?.pathname || "/inicio";
+
+      navigate(from, { replace: true });
 
     }
 

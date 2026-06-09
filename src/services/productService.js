@@ -3,37 +3,34 @@
 | PRODUCT SERVICE
 |--------------------------------------------------------------------------
 |
-| Contrato tomado de:
-| 3.3 Productos
+| Contrato REAL del backend (wh-backend, ProductController):
+|   GET    /products            params: category, search, is_active, page, size
+|   GET    /products/:id        params: is_active
+|   POST   /products            CreateProductRequest
+|   PATCH  /products/:id        UpdateProductRequest (parcial)
+|   DELETE /products/:id        baja lógica (active=false)
+|   GET    /products/:id/location → { locations: [...] }  (array)
 |
-| GET    /products
-| GET    /products/:id
-| GET    /products/categories
-| POST   /products
-| PATCH  /products/:id
-| PATCH  /products/:id/location
-| DELETE /products/:id
+| El backend serializa en snake_case (JacksonConfig SNAKE_CASE). Este service
+| es el único dueño de la traducción camelCase (UI) ↔ snake_case (cable).
 |
-| NOTA:
-| - El frontend conserva temporalmente precio y dimensiones
-|   (alto/ancho/profundidad/peso) aunque todavía no estén documentados
-|   explícitamente en POST/PATCH.
+| NO existe en el backend (se ignora / se resuelve en el front):
+|   - GET /products/categories      → categoryService usa lista estática
+|   - PATCH /products/:id/location  → la asignación se hace por posición
+|     (warehouseConfigService.assignProductToPosition / PATCH positions)
+|   - stock no se envía: el backend lo computa desde current_stock de las
+|     posiciones. Solo `minimum_stock` viaja en el alta/edición.
 |
-| - Se eliminó el concepto de:
-|     unitsPerPallet
-|     unitsPerHalfPallet
-|     unitsPerBox
-|
-|   porque ya no existe asignación automática.
+| Las dimensiones (alto/ancho/profundidad/peso) viajan dentro de `specs`.
+| Se eliminó unitsPerPallet/HalfPallet/Box (ya no hay asignación automática).
 |
 */
 
 import { apiClient } from "../lib/apiClient";
 import { productMockService } from "./mocks/productMockService";
 
-const USE_MOCK =
-  import.meta.env.VITE_USE_MOCK === "true" ||
-  !import.meta.env.VITE_API_BASE_URL;
+// Backend same-origin vía proxy de Vite: el único interruptor es el flag.
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 
 /*
 |--------------------------------------------------------------------------
@@ -44,6 +41,8 @@ const USE_MOCK =
 const normalizeLocation = (raw) => {
   if (!raw) return null;
 
+  // Se exponen ambas convenciones: camelCase para lógica nueva y snake_case
+  // porque ProductCard.formatLocation lee zone_code/number_line/position_name.
   return {
     idPosition: raw.id_position,
     idLine: raw.id_line,
@@ -51,6 +50,13 @@ const normalizeLocation = (raw) => {
     positionName: raw.position_name,
     zoneCode: raw.zone_code,
     numberLine: raw.number_line,
+    currentStock: raw.current_stock ?? 0,
+    id_position: raw.id_position,
+    id_line: raw.id_line,
+    id_zone: raw.id_zone,
+    position_name: raw.position_name,
+    zone_code: raw.zone_code,
+    number_line: raw.number_line,
   };
 };
 
@@ -73,7 +79,6 @@ const normalize = (raw) => {
   if (!raw) return null;
 
   const stock = raw.stock || {};
-  const price = raw.price || {};
   const orderConstraints =
     raw.order_constraints ||
     raw.orderConstraints ||
@@ -93,8 +98,6 @@ const normalize = (raw) => {
     category: raw.category,
 
     imageUrl:
-      raw.image_url ??
-      raw.imageUrl ??
       raw.images?.find((i) => i.is_primary)?.url ??
       raw.images?.[0]?.url ??
       "",
@@ -104,15 +107,8 @@ const normalize = (raw) => {
       raw.images?.[0]?.alt ??
       "",
 
-    price:
-      price.amount_cents ?? 0,
-
-    currency:
-      price.currency ?? "ARS",
-
-    includesTaxes:
-      price.tax_included ?? false,
-
+    // Dimensiones aplanadas desde specs (compatibilidad con vistas que las leen
+    // sueltas). El precio/imagenes/specs crudos van más abajo para el card/form.
     alto: dimensions.alto,
     ancho: dimensions.ancho,
     profundidad: dimensions.profundidad,
@@ -138,8 +134,19 @@ const normalize = (raw) => {
       orderConstraints.maxQuantityPerOrder ??
       0,
 
+    // El listado de productos del backend no trae ubicación; se consulta
+    // aparte con getLocations(id). Queda null salvo que el caller la inyecte.
     location:
       normalizeLocation(raw.location),
+
+    // Shape crudo (snake_case) que el formulario de edición consume para
+    // reconstruir su estado inicial (price.amount_cents, images[].is_primary,
+    // stock.min, order_constraints.max_quantity_per_order, specs).
+    images: raw.images ?? [],
+    specs: raw.specs ?? [],
+    price: raw.price ?? null,
+    stock,
+    order_constraints: orderConstraints,
   };
 };
 
@@ -149,122 +156,61 @@ const normalize = (raw) => {
 |--------------------------------------------------------------------------
 */
 
-const buildSpecs = (input) => [
-  {
-    label: "Alto",
-    value: input.alto ?? "",
-  },
-  {
-    label: "Ancho",
-    value: input.ancho ?? "",
-  },
-  {
-    label: "Profundidad",
-    value: input.profundidad ?? "",
-  },
-  {
-    label: "Peso",
-    value: input.peso ?? "",
-  },
-];
+// El formulario entrega `images` como [{ url, alt, isPrimary | is_primary }],
+// `price` como string en unidades (no centavos), `specs` como [{label,value}].
+// Aquí se traduce todo al contrato del backend (snake_case + centavos).
+
+const toImagesPayload = (images = []) =>
+  images
+    .filter((img) => img && img.url)
+    .map((img) => ({
+      url: img.url,
+      alt: img.alt ?? "",
+      is_primary: img.isPrimary ?? img.is_primary ?? false,
+    }));
+
+const toPricePayload = (input) => ({
+  amount_cents: Math.round(Number(input.price ?? 0) * 100),
+  currency: (input.currency ?? "ARS").toUpperCase() || "ARS",
+  tax_included: input.includesTaxes ?? false,
+});
+
+const toSpecsPayload = (specs = []) =>
+  specs
+    .filter((s) => s && (s.label?.trim?.() ?? s.label) && (s.value?.trim?.() ?? s.value))
+    .map((s) => ({ label: s.label.trim(), value: s.value.trim() }));
 
 const toCreatePayload = (input) => ({
   sku: input.sku,
-
   name: input.name,
-
-  description:
-    input.description ?? "",
-
+  description: input.description ?? "",
   category: input.category,
-
-  image_url:
-    input.imageUrl ?? "",
-
-  order_constraints: {
-    max_quantity_per_order:
-      input.maxQuantityPerOrder ?? 0,
-  },
-
-  /*
-   * Estos campos no figuran todavía
-   * en el ejemplo del endpoint,
-   * pero los dejamos preparados.
-   */
-
-  price: {
-    amount_cents:
-      input.price ?? 0,
-
-    currency:
-      input.currency ?? "ARS",
-
-    tax_included:
-      input.includesTaxes ?? false,
-  },
-
-  specs: buildSpecs(input),
+  images: toImagesPayload(input.images),
+  price: toPricePayload(input),
+  specs: toSpecsPayload(input.specs),
+  max_quantity_per_order: Number(input.maxQuantityPerOrder) || 0,
+  minimum_stock: Number(input.minimumStock) || 0,
 });
 
 const toUpdatePayload = (input) => {
   const payload = {};
 
-  if (input.name !== undefined)
-    payload.name = input.name;
-
-  if (input.description !== undefined)
-    payload.description =
-      input.description;
-
-  if (input.category !== undefined)
-    payload.category =
-      input.category;
-
-  if (input.imageUrl !== undefined)
-    payload.image_url =
-      input.imageUrl;
-
-  if (
-    input.maxQuantityPerOrder !==
-    undefined
-  ) {
-    payload.order_constraints = {
-      max_quantity_per_order:
-        input.maxQuantityPerOrder,
-    };
-  }
-
-  const hasSpecs =
-    input.alto !== undefined ||
-    input.ancho !== undefined ||
-    input.profundidad !== undefined ||
-    input.peso !== undefined;
-
-  if (hasSpecs) {
-    payload.specs =
-      buildSpecs(input);
-  }
+  if (input.name !== undefined) payload.name = input.name;
+  if (input.description !== undefined) payload.description = input.description;
+  if (input.category !== undefined) payload.category = input.category;
+  if (input.images !== undefined) payload.images = toImagesPayload(input.images);
+  if (input.specs !== undefined) payload.specs = toSpecsPayload(input.specs);
+  if (input.maxQuantityPerOrder !== undefined)
+    payload.max_quantity_per_order = Number(input.maxQuantityPerOrder) || 0;
+  if (input.minimumStock !== undefined)
+    payload.minimum_stock = Number(input.minimumStock) || 0;
+  if (input.active !== undefined) payload.is_active = input.active;
 
   const hasPrice =
     input.price !== undefined ||
     input.currency !== undefined ||
-    input.includesTaxes !==
-      undefined;
-
-  if (hasPrice) {
-    payload.price = {
-      amount_cents:
-        input.price ?? 0,
-
-      currency:
-        input.currency ??
-        "ARS",
-
-      tax_included:
-        input.includesTaxes ??
-        false,
-    };
-  }
+    input.includesTaxes !== undefined;
+  if (hasPrice) payload.price = toPricePayload(input);
 
   return payload;
 };
@@ -335,19 +281,14 @@ export const productService = {
     );
   },
 
+  // El backend NO expone /products/categories. Delegamos en categoryService,
+  // que mantiene la lista canónica de categorías en el front.
   async getCategories() {
     if (USE_MOCK) {
       return productMockService.getCategories();
     }
-
-    const { data } =
-      await apiClient.get(
-        "/products/categories"
-      );
-
-    return (
-      data?.categories ?? []
-    );
+    const { categoryService } = await import("./categoryService");
+    return categoryService.list();
   },
 
   async create(input) {
@@ -389,28 +330,20 @@ export const productService = {
     );
   },
 
-  async assignLocation(
-    id,
-    location
-  ) {
+  // Ubicaciones del producto: el backend NO tiene PATCH /products/:id/location.
+  // La asignación producto→posición se hace vía warehouseConfigService
+  // (PATCH /warehouse/positions/:id). Esto es solo lectura: devuelve dónde está
+  // almacenado el producto (GET /products/:id/location → { locations: [...] }).
+  async getLocations(id) {
     if (USE_MOCK) {
-      return productMockService.assignLocation(
-        id,
-        location
-      );
+      const single = await productMockService
+        .get(id)
+        .then((p) => p?.location)
+        .catch(() => null);
+      return single ? [normalizeLocation(single)] : [];
     }
-
-    const { data } =
-      await apiClient.patch(
-        `/products/${id}/location`,
-        {
-          location,
-        }
-      );
-
-    return normalize(
-      data?.product ?? data
-    );
+    const { data } = await apiClient.get(`/products/${id}/location`);
+    return (data?.locations || []).map(normalizeLocation);
   },
 
   async remove(id) {

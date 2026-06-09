@@ -12,8 +12,6 @@ import LinesEditModal from "../../components/warehouse/LinesEditModal/LinesEditM
 import PositionsEditModal from "../../components/warehouse/PositionsEditModal/PositionsEditModal";
 import LocationDataEditModal from "../../components/warehouse/LocationDataEditModal/LocationDataEditModal";
 import { warehouseConfigService } from "../../services/warehouseConfigService";
-import { stockPositionService } from "../../services/stockPositionService";
-import { productService } from "../../services/productService";
 import "./WarehouseConfigPage.css";
 
 const EMPTY_SELECTION = { idZone: "", idLine: "", idPosition: "" };
@@ -103,10 +101,14 @@ export default function WarehouseConfigPage() {
     positionName: selectedPosition?.positionName,
   });
 
+  // Un click solo selecciona la posición (carga su info en el panel lateral).
   const handleSelectFromMap = ({ idZone, idLine, idPosition }) => {
     setSelected({ idZone, idLine, idPosition });
-    // Click en una ubicación del mapa abre directamente el modal de modificar
-    // posición ya cargado con esa posición.
+  };
+
+  // Doble click abre el modal de modificar posición ya cargado con esa posición.
+  const handleActivateFromMap = ({ idZone, idLine, idPosition }) => {
+    setSelected({ idZone, idLine, idPosition });
     setOpenModal("positions");
   };
 
@@ -124,22 +126,13 @@ export default function WarehouseConfigPage() {
     setConfig(next);
   };
 
-  // Vacía una posición: borra las entradas de stockPositions, desasigna el
-  // producto y descuenta del availableStock del producto. Mantiene la
-  // simetría con el flujo de asignación de StockAssignmentPage.
+  // Vacía una posición: el backend pone product_id=null y current_stock=0, y el
+  // stock disponible del producto baja solo (se computa de las posiciones).
   const handleClearProduct = async () => {
     if (!selected.idPosition || !assignedProduct) return;
     setClearing(true);
     try {
-      const removedUnits = await stockPositionService.removeByPosition(selected.idPosition);
       await warehouseConfigService.clearProductFromPosition(selected.idPosition);
-      if (removedUnits > 0 && assignedProduct.id) {
-        const product = await productService.get(assignedProduct.id);
-        const current = product?.availableStock ?? 0;
-        await productService.update(assignedProduct.id, {
-          availableStock: Math.max(0, current - removedUnits),
-        });
-      }
       const [nextConfig, nextDetail] = await Promise.all([
         warehouseConfigService.get(),
         warehouseConfigService.getPosition(selected.idPosition),
@@ -194,6 +187,7 @@ export default function WarehouseConfigPage() {
                 zone={zone}
                 selected={selected}
                 onSelect={handleSelectFromMap}
+                onActivate={handleActivateFromMap}
               />
             ))}
           </div>

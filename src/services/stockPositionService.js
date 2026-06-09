@@ -3,84 +3,47 @@
 | STOCK POSITION SERVICE
 |--------------------------------------------------------------------------
 |
-| Fachada sobre la entidad StockPosicion (Hito 2 §9). Hoy el backend NO
-| tiene este endpoint — el service vive en modo mock únicamente. Cuando el
-| backend lo agregue, se conecta cambiando el cuerpo de cada método al
-| equivalente REST:
+| El backend (wh-backend) NO tiene una entidad StockPosicion ni endpoints
+| /stock-positions. El modelo real es: cada Position guarda a lo sumo un
+| product_id + current_stock. La "asignación de stock" es, por lo tanto, un
+| PATCH /warehouse/positions/:id con { product_id, current_stock, is_active }.
 |
-|   GET    /stock-positions?productId=...&positionId=...
-|   POST   /stock-positions                              // { product_id, id_position, storage_unit, quantity }
-|   POST   /stock-positions/bulk                         // { entries: [...] }
-|   DELETE /stock-positions/:id
+| Este service mantiene la API que consume StockAssignmentPage (createMany /
+| removeByPosition) pero la implementa contra Positions. El campo storageUnit
+| no se persiste (no existe en el backend): solo se usa en el front para filtrar
+| posiciones compatibles por tamaño.
 |
-| El shape canónico (camelCase) ya está pensado para el día que el
-| backend lo exponga, así no hay que tocar la UI.
+| En modo mock sigue delegando en stockPositionMockService.
 |
 */
 
 import { apiClient } from "../lib/apiClient";
 import { stockPositionMockService } from "./mocks/stockPositionMockService";
 
-const USE_MOCK =
-  import.meta.env.VITE_USE_MOCK === "true" || !import.meta.env.VITE_API_BASE_URL;
-
-// El backend NO tiene este endpoint todavía. Cuando lo agregue, basta con
-// poner BACKEND_ENABLED en true y la UI sigue funcionando igual.
-const BACKEND_ENABLED = false;
-
-const normalize = (raw) => ({
-  id: raw.id,
-  productId: raw.productId ?? raw.product_id,
-  idPosition: raw.idPosition ?? raw.id_position,
-  storageUnit: raw.storageUnit ?? raw.storage_unit,
-  quantity: raw.quantity ?? 0,
-  createdAt: raw.createdAt ?? raw.created_at,
-});
-
-const toPayload = (entry) => ({
-  product_id: entry.productId,
-  id_position: entry.idPosition,
-  storage_unit: entry.storageUnit,
-  quantity: entry.quantity,
-});
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 
 export const stockPositionService = {
-  async list(filters = {}) {
-    if (USE_MOCK || !BACKEND_ENABLED) return stockPositionMockService.list(filters);
-    const params = {};
-    if (filters.productId) params.product_id = filters.productId;
-    if (filters.idPosition) params.id_position = filters.idPosition;
-    const { data } = await apiClient.get("/stock-positions", { params });
-    return (data?.stockPositions || data?.stock_positions || []).map(normalize);
-  },
-
-  async create(entry) {
-    if (USE_MOCK || !BACKEND_ENABLED) return stockPositionMockService.create(entry);
-    const { data } = await apiClient.post("/stock-positions", toPayload(entry));
-    return normalize(data?.stockPosition ?? data);
-  },
-
+  // Asigna un producto y una cantidad a varias posiciones de una sola vez.
+  // entries: [{ productId, idPosition, storageUnit, quantity }]. storageUnit no
+  // viaja al backend (no existe ese campo); se ignora.
   async createMany(entries) {
-    if (USE_MOCK || !BACKEND_ENABLED) return stockPositionMockService.createMany(entries);
-    const { data } = await apiClient.post("/stock-positions/bulk", {
-      entries: entries.map(toPayload),
-    });
-    return (data?.stockPositions || []).map(normalize);
+    if (USE_MOCK) return stockPositionMockService.createMany(entries);
+    return Promise.all(
+      entries.map((e) =>
+        apiClient.patch(`/warehouse/positions/${e.idPosition}`, {
+          product_id: e.productId,
+          current_stock: e.quantity,
+          is_active: true,
+        })
+      )
+    );
   },
 
-  async remove(id) {
-    if (USE_MOCK || !BACKEND_ENABLED) return stockPositionMockService.remove(id);
-    await apiClient.delete(`/stock-positions/${id}`);
-  },
-
-  // Vacía una posición completa. Devuelve el total de unidades removidas
-  // para que el caller pueda descontar del availableStock del producto.
+  // Libera una posición completa (product_id=null, current_stock=0 en backend).
+  // Devuelve 0 porque el descuento de stock del producto lo computa el backend.
   async removeByPosition(idPosition) {
-    if (USE_MOCK || !BACKEND_ENABLED) return stockPositionMockService.removeByPosition(idPosition);
-    // Sin endpoint dedicado en backend: listamos, borramos uno a uno y
-    // devolvemos el total.
-    const list = await this.list({ idPosition });
-    await Promise.all(list.map((sp) => this.remove(sp.id)));
-    return list.reduce((sum, sp) => sum + (Number(sp.quantity) || 0), 0);
+    if (USE_MOCK) return stockPositionMockService.removeByPosition(idPosition);
+    await apiClient.patch(`/warehouse/positions/${idPosition}`, { unassign_product: true });
+    return 0;
   },
 };

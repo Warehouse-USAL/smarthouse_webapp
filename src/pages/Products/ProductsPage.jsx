@@ -78,7 +78,15 @@ export default function ProductsPage() {
             status === "inactive" ? false :
               undefined,
       });
-      setProducts(list);
+      // GET /products no trae ubicación; se consulta aparte por producto para
+      // poder filtrar por zona en cliente. Un producto puede estar en varias.
+      const withLocations = await Promise.all(
+        list.map(async (p) => {
+          const locations = await productService.getLocations(p.id).catch(() => []);
+          return { ...p, locations, location: locations[0] ?? null };
+        })
+      );
+      setProducts(withLocations);
     } catch (err) {
       setError(
         err.response?.data?.error?.message ||
@@ -98,11 +106,12 @@ export default function ProductsPage() {
   }, [fetchProducts]);
 
   // El filtro de zona se aplica en cliente porque el contrato no expone
-  // un query param de zona en GET /products. La clave correcta es zone_code.
+  // un query param de zona en GET /products. Se compara contra zone_code de
+  // cualquiera de las ubicaciones del producto.
   const filtered = useMemo(() => {
     if (!zone) return products;
-    return products.filter(
-      (p) => p.location?.zoneCode === zone
+    return products.filter((p) =>
+      (p.locations ?? []).some((loc) => loc.zoneCode === zone)
     );
   }, [products, zone]);
 
@@ -134,9 +143,6 @@ export default function ProductsPage() {
     setSubmitting(true);
     try {
       await productService.create(values);
-      // Refrescar categorías por si se agregó una nueva
-      const updatedCategories = await productService.getCategories();
-      setCategories(updatedCategories);
       setCreateOpen(false);
       await fetchProducts();
     } catch (err) {

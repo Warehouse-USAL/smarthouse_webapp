@@ -45,8 +45,13 @@
 import { apiClient } from "../lib/apiClient";
 import { warehouseConfigMockService } from "./mocks/warehouseConfigMockService";
 
-const USE_MOCK =
-  import.meta.env.VITE_USE_MOCK === "true" || !import.meta.env.VITE_API_BASE_URL;
+// Backend same-origin vía proxy de Vite: el único interruptor es el flag.
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
+
+// El enum del backend es PEQUENO/MEDIANO/GRANDE (masculino, sin Ñ); el front
+// usa PEQUEÑA/MEDIANA/GRANDE. Se traduce en ambos sentidos en el borde.
+const SIZE_BE_TO_FE = { PEQUENO: "PEQUEÑA", MEDIANO: "MEDIANA", GRANDE: "GRANDE" };
+const SIZE_FE_TO_BE = { PEQUEÑA: "PEQUENO", MEDIANA: "MEDIANO", GRANDE: "GRANDE" };
 
 const padNumber = (value, width = 2) => {
   const str = String(value ?? "");
@@ -87,26 +92,42 @@ const normalizeZone = (raw) => {
 
 const normalizeLine = (raw) => ({
   idLine: raw.id_line ?? raw.idLine,
+  idZone: raw.id_zone ?? raw.idZone,
   numberLine: raw.number_line ?? raw.numberLine,
+  isActive: raw.is_active ?? raw.isActive ?? false,
   maxAllowedPositions: raw.max_allowed_positions ?? raw.maxAllowedPositions ?? 0,
   positions: [],
 });
 
-const normalizePosition = (raw) => ({
-  idPosition: raw.id_position ?? raw.idPosition,
-  positionName: raw.position_name ?? raw.positionName,
-  sizeStockToSave: raw.size_stock_to_save ?? raw.sizeStockToSave ?? "MEDIANA",
-  // Unidades físicas del producto en esta posición (no confundir con
-  // product.availableStock, que es el total del producto en todo el warehouse).
-  currentStock: raw.current_stock ?? raw.currentStock ?? 0,
-  assignedProduct: raw.assigned_product
-    ? {
-        id: raw.assigned_product.id,
-        sku: raw.assigned_product.sku,
-        name: raw.assigned_product.name,
-      }
-    : null,
-});
+const normalizePosition = (raw) => {
+  const beSize = raw.size_stock_to_save ?? raw.sizeStockToSave ?? "MEDIANO";
+  const productId = raw.product_id ?? raw.productId ?? null;
+  // El detalle (GET /positions/:id) trae assigned_product con sku/name; el
+  // listado (GET /lines/:id/positions) solo trae product_id. Para que la UI
+  // pueda detectar ocupación en ambos casos, derivamos assignedProduct de
+  // assigned_product si está, o de product_id (parcial: solo id) si no.
+  const assigned = raw.assigned_product ?? raw.assignedProduct ?? null;
+  const assignedProduct = assigned
+    ? { id: assigned.id, sku: assigned.sku, name: assigned.name }
+    : productId
+      ? { id: productId, sku: null, name: null }
+      : null;
+  return {
+    idPosition: raw.id_position ?? raw.idPosition,
+    idLine: raw.id_line ?? raw.idLine,
+    idZone: raw.id_zone ?? raw.idZone,
+    positionName: raw.position_name ?? raw.positionName,
+    isActive: raw.is_active ?? raw.isActive ?? false,
+    // Tamaño traducido al dominio del front (con Ñ).
+    sizeStockToSave: SIZE_BE_TO_FE[beSize] ?? beSize,
+    maximumCapacity: raw.maximum_capacity ?? raw.maximumCapacity ?? 0,
+    // Unidades físicas del producto en esta posición (no confundir con
+    // product.availableStock, que es el total del producto en todo el warehouse).
+    currentStock: raw.current_stock ?? raw.currentStock ?? 0,
+    productId,
+    assignedProduct,
+  };
+};
 
 /* ---------- Payload builders camelCase → snake_case ---------- */
 
@@ -127,7 +148,10 @@ const toLinePayload = (patch) => {
 const toPositionPayload = (patch) => {
   const out = {};
   if (patch.positionName !== undefined) out.position_name = patch.positionName;
-  if (patch.sizeStockToSave !== undefined) out.size_stock_to_save = patch.sizeStockToSave;
+  if (patch.sizeStockToSave !== undefined)
+    out.size_stock_to_save = SIZE_FE_TO_BE[patch.sizeStockToSave] ?? patch.sizeStockToSave;
+  if (patch.isActive !== undefined) out.is_active = patch.isActive;
+  if (patch.currentStock !== undefined) out.current_stock = patch.currentStock;
   return out;
 };
 
@@ -237,11 +261,11 @@ export const warehouseConfigService = {
     return normalizePosition(data);
   },
 
-  // Asigna o limpia el producto en una posición. En backend NO hay endpoint
-  // dedicado: la fuente de verdad es StockPosicion (cuando se exponga). En
-  // modo mock mantenemos un assignedProduct sintético en la posición para
-  // que el panel del warehouse muestre la ocupación sin tener que reconstruir
-  // el join cada vez.
+  // Asigna un producto a una posición. La fuente de verdad en el backend es la
+  // propia Position (product_id + current_stock). Se activa la posición al
+  // ocuparla. El backend rechaza con 409 si ya tiene OTRO producto: en ese caso
+  // hay que limpiar primero (la UI filtra posiciones ocupadas, así que no
+  // debería pasar en el flujo normal).
   async assignProductToPosition(idPosition, productSummary, currentStock) {
     if (USE_MOCK) {
       return warehouseConfigMockService.setAssignedProduct(
@@ -250,13 +274,19 @@ export const warehouseConfigService = {
         currentStock
       );
     }
-    // Backend pendiente: no-op silencioso. Cuando exista StockPosicion el
-    // panel del warehouse leerá la asignación derivada de allí.
+    await apiClient.patch(`/warehouse/positions/${idPosition}`, {
+      product_id: productSummary?.id,
+      current_stock: currentStock ?? 0,
+      is_active: true,
+    });
     return null;
   },
 
+  // Libera la posición: el backend pone product_id=null y current_stock=0. El
+  // available del producto baja solo (se computa de las posiciones).
   async clearProductFromPosition(idPosition) {
     if (USE_MOCK) return warehouseConfigMockService.setAssignedProduct(idPosition, null);
+    await apiClient.patch(`/warehouse/positions/${idPosition}`, { unassign_product: true });
     return null;
   },
 

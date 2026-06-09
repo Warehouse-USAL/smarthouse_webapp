@@ -113,6 +113,16 @@
   color: var(--color-text-primary);
 }
 
+.stock-assignment__plan-unit small {
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.stock-assignment__plan-cap--over {
+  color: var(--color-danger, #d92d20);
+  font-weight: 700;
+}
+
 .stock-assignment__summary {
   margin-top: var(--space-3);
   padding: var(--space-3) var(--space-4);
