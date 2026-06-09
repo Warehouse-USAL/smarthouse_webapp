@@ -14,7 +14,6 @@ import ProductCard from "../../components/products/ProductCard/ProductCard";
 import CreateProductForm from "../../components/products/CreateProductForm/CreateProductForm";
 import { productService } from "../../services/productService";
 import { warehouseConfigService } from "../../services/warehouseConfigService";
-import { categoryService } from "../../services/categoryService";
 import "./ProductsPage.css";
 
 const PAGE_SIZE_OPTIONS = [
@@ -32,11 +31,13 @@ const STATUSES = [
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
   const [zones, setZones] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [zone, setZone] = useState("");
   const [status, setStatus] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
   const [createOpen, setCreateOpen] = useState(false);
@@ -44,9 +45,27 @@ export default function ProductsPage() {
   const [deleting, setDeleting] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
-  const [categories, setCategories] = useState(categoryService.list());
-  const [categoryFilter, setCategoryFilter] = useState("");
 
+
+  // Carga de categorías — async para que sea intercambiable con el backend real
+  useEffect(() => {
+    let cancelled = false;
+    productService.getCategories().then((list) => {
+      if (!cancelled) setCategories(list);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Carga de zonas para el filtro
+  useEffect(() => {
+    let cancelled = false;
+    warehouseConfigService.get().then((data) => {
+      if (!cancelled) setZones(data.zones || []);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Carga de productos — se re-ejecuta cuando cambian los filtros de API
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -54,75 +73,60 @@ export default function ProductsPage() {
       const list = await productService.list({
         search: search || undefined,
         category: categoryFilter || undefined,
-        isActive: status === "active" ? true : status === "inactive" ? false : undefined,
+        isActive:
+          status === "active" ? true :
+            status === "inactive" ? false :
+              undefined,
       });
       setProducts(list);
     } catch (err) {
-      setError(err.response?.data?.error?.message || "No pudimos cargar los productos.");
+      setError(
+        err.response?.data?.error?.message ||
+        "No pudimos cargar los productos."
+      );
     } finally {
       setLoading(false);
     }
   }, [search, categoryFilter, status]);
 
-  // Una sola carga del warehouse para alimentar el filtro de zonas
-  // (el filtro usa zoneCode, no idZone, porque el shape del producto en
-  // backend solo tiene `zone` como string libre).
   useEffect(() => {
     let cancelled = false;
-    warehouseConfigService.get().then((next) => {
-      if (!cancelled) setZones(next.zones || []);
+    fetchProducts().catch(() => {
+      if (!cancelled) { /* error ya manejado en fetchProducts */ }
     });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    return () => { cancelled = true; };
+  }, [fetchProducts]);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const list = await productService.list({
-          search: search || undefined,
-          category: categoryFilter || undefined,
-          isActive: status === "active" ? true : status === "inactive" ? false : undefined,
-        });
-        if (!cancelled) setProducts(list);
-      } catch (err) {
-        if (!cancelled) {
-          setError(err.response?.data?.error?.message || "No pudimos cargar los productos.");
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [search, categoryFilter, status]);
-
-  const zoneOptions = useMemo(
-    () => [
-      { value: "", label: "Todas las zonas" },
-      ...zones.map((z) => ({ value: z.zoneCode, label: z.name })),
-    ],
-    [zones]
-  );
-
+  // El filtro de zona se aplica en cliente porque el contrato no expone
+  // un query param de zona en GET /products. La clave correcta es zone_code.
   const filtered = useMemo(() => {
-    return products.filter((p) => {
-      if (zone && p.location?.zone !== zone) return false;
-      return true;
-    });
+    if (!zone) return products;
+    return products.filter(
+      (p) => p.location?.zoneCode === zone
+    );
   }, [products, zone]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const pageStart = (page - 1) * pageSize;
   const pageItems = filtered.slice(pageStart, pageStart + pageSize);
 
+  // zone_code es la clave del contrato; no hay campo "name" en Zone
+  const zoneOptions = useMemo(
+    () => [
+      { value: "", label: "Todas las zonas" },
+      ...zones.map((z) => ({
+        value: z.zoneCode,
+        label: `Zona ${z.zoneCode}`,
+      })),
+    ],
+    [zones]
+  );
+
   const categoryOptions = useMemo(
-    () => [{ value: "", label: "Todas las categorías" }, ...categories.map((c) => ({ value: c, label: c }))],
+    () => [
+      { value: "", label: "Todas las categorías" },
+      ...categories.map((c) => ({ value: c, label: c })),
+    ],
     [categories]
   );
 
@@ -130,13 +134,16 @@ export default function ProductsPage() {
     setSubmitting(true);
     try {
       await productService.create(values);
-      if (!categories.includes(values.category)) {
-        setCategories(categoryService.add(values.category));
-      }
+      // Refrescar categorías por si se agregó una nueva
+      const updatedCategories = await productService.getCategories();
+      setCategories(updatedCategories);
       setCreateOpen(false);
       await fetchProducts();
     } catch (err) {
-      alert(err.response?.data?.error?.message || "No pudimos crear el producto.");
+      alert(
+        err.response?.data?.error?.message ||
+        "No pudimos crear el producto."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -147,13 +154,13 @@ export default function ProductsPage() {
     setSubmitting(true);
     try {
       await productService.update(editing.id, values);
-      if (!categories.includes(values.category)) {
-        setCategories(categoryService.add(values.category));
-      }
       setEditing(null);
       await fetchProducts();
     } catch (err) {
-      alert(err.response?.data?.error?.message || "No pudimos actualizar el producto.");
+      alert(
+        err.response?.data?.error?.message ||
+        "No pudimos actualizar el producto."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -167,7 +174,10 @@ export default function ProductsPage() {
       setDeleting(null);
       await fetchProducts();
     } catch (err) {
-      alert(err.response?.data?.error?.message || "No pudimos eliminar el producto.");
+      alert(
+        err.response?.data?.error?.message ||
+        "No pudimos eliminar el producto."
+      );
     } finally {
       setDeleteSubmitting(false);
     }
@@ -180,11 +190,19 @@ export default function ProductsPage() {
         subtitle="Gestioná el catálogo. La asignación de stock a posiciones se hace desde la pantalla Asignación de stock."
         action={
           <div className="products-page__header-actions">
-            <Link to="/asignacion-stock" className="products-page__link-action">
-              <Icon name="pin" size={16} />
-              <span>Asignar stock</span>
-            </Link>
-            <Button iconLeft={<Icon name="plus" size={16} />} onClick={() => setCreateOpen(true)}>
+            <Link to="/asignacion-stock">
+  <Button
+    variant="secondary"
+    size="sm"
+    iconLeft={<Icon name="pin" size={14} />}
+  >
+    Asignar stock
+  </Button>
+</Link>
+            <Button
+              iconLeft={<Icon name="plus" size={16} />}
+              onClick={() => setCreateOpen(true)}
+            >
               Dar de alta producto
             </Button>
           </div>
@@ -193,7 +211,7 @@ export default function ProductsPage() {
 
       <div className="products-page__search">
         <Input
-          placeholder="Buscar por SKU"
+          placeholder="Buscar por nombre o SKU"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           iconLeft={<Icon name="search" size={16} />}
@@ -237,7 +255,11 @@ export default function ProductsPage() {
             icon="info"
             title="Algo salió mal"
             description={error}
-            action={<Button variant="secondary" onClick={fetchProducts}>Reintentar</Button>}
+            action={
+              <Button variant="secondary" onClick={fetchProducts}>
+                Reintentar
+              </Button>
+            }
           />
         </Card>
       ) : filtered.length === 0 ? (
@@ -247,7 +269,10 @@ export default function ProductsPage() {
             title="No hay productos"
             description="No encontramos productos con los filtros seleccionados."
             action={
-              <Button iconLeft={<Icon name="plus" size={16} />} onClick={() => setCreateOpen(true)}>
+              <Button
+                iconLeft={<Icon name="plus" size={16} />}
+                onClick={() => setCreateOpen(true)}
+              >
                 Dar de alta producto
               </Button>
             }
@@ -269,7 +294,9 @@ export default function ProductsPage() {
       {!loading && !error && filtered.length > 0 && (
         <footer className="products-page__footer">
           <span className="products-page__count">
-            Mostrando {pageStart + 1} a {Math.min(pageStart + pageSize, filtered.length)} de {filtered.length} productos
+            Mostrando {pageStart + 1} a{" "}
+            {Math.min(pageStart + pageSize, filtered.length)} de{" "}
+            {filtered.length} productos
           </span>
           <Pagination current={page} total={totalPages} onChange={setPage} />
           <Select
@@ -338,8 +365,9 @@ export default function ProductsPage() {
       >
         {deleting && (
           <p className="products-page__delete-text">
-            ¿Seguro que querés eliminar <strong>{deleting.name}</strong> (SKU: {deleting.sku})?
-            Esta acción no se puede deshacer.
+            ¿Seguro que querés eliminar{" "}
+            <strong>{deleting.name}</strong> (SKU: {deleting.sku})? Esta
+            acción no se puede deshacer.
           </p>
         )}
       </Modal>
