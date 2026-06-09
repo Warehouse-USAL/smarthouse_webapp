@@ -3,6 +3,8 @@ import PageHeader from "../../components/ui/PageHeader/PageHeader";
 import Card, { CardHeader } from "../../components/ui/Card/Card";
 import Select from "../../components/ui/Select/Select";
 import Icon from "../../components/ui/Icon/Icon";
+import Button from "../../components/ui/Button/Button";
+import Modal from "../../components/ui/Modal/Modal";
 import ZoneGrid from "../../components/warehouse/ZoneGrid/ZoneGrid";
 import InfoList from "../../components/warehouse/InfoList/InfoList";
 import ZonesEditModal from "../../components/warehouse/ZonesEditModal/ZonesEditModal";
@@ -10,6 +12,8 @@ import LinesEditModal from "../../components/warehouse/LinesEditModal/LinesEditM
 import PositionsEditModal from "../../components/warehouse/PositionsEditModal/PositionsEditModal";
 import LocationDataEditModal from "../../components/warehouse/LocationDataEditModal/LocationDataEditModal";
 import { warehouseConfigService } from "../../services/warehouseConfigService";
+import { stockPositionService } from "../../services/stockPositionService";
+import { productService } from "../../services/productService";
 import "./WarehouseConfigPage.css";
 
 const EMPTY_SELECTION = { idZone: "", idLine: "", idPosition: "" };
@@ -22,6 +26,8 @@ export default function WarehouseConfigPage() {
   const [selected, setSelected] = useState(EMPTY_SELECTION);
   const [positionDetail, setPositionDetail] = useState(null);
   const [openModal, setOpenModal] = useState(null);
+  const [clearOpen, setClearOpen] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -115,6 +121,36 @@ export default function WarehouseConfigPage() {
     setConfig(next);
   };
 
+  // Vacía una posición: borra las entradas de stockPositions, desasigna el
+  // producto y descuenta del availableStock del producto. Mantiene la
+  // simetría con el flujo de asignación de StockAssignmentPage.
+  const handleClearProduct = async () => {
+    if (!selected.idPosition || !assignedProduct) return;
+    setClearing(true);
+    try {
+      const removedUnits = await stockPositionService.removeByPosition(selected.idPosition);
+      await warehouseConfigService.clearProductFromPosition(selected.idPosition);
+      if (removedUnits > 0 && assignedProduct.id) {
+        const product = await productService.get(assignedProduct.id);
+        const current = product?.availableStock ?? 0;
+        await productService.update(assignedProduct.id, {
+          availableStock: Math.max(0, current - removedUnits),
+        });
+      }
+      const [nextConfig, nextDetail] = await Promise.all([
+        warehouseConfigService.get(),
+        warehouseConfigService.getPosition(selected.idPosition),
+      ]);
+      setConfig(nextConfig);
+      setPositionDetail(nextDetail);
+      setClearOpen(false);
+    } catch (err) {
+      alert(err.response?.data?.error?.message || "No pudimos quitar el producto.");
+    } finally {
+      setClearing(false);
+    }
+  };
+
   // Para los campos que pueden venir del detalle más fresco, preferimos el
   // detalle; si no, caemos al árbol.
   const positionView = positionDetail ?? selectedPosition;
@@ -128,6 +164,10 @@ export default function WarehouseConfigPage() {
   const productInfo = [
     { label: "Nombre", value: assignedProduct?.name },
     { label: "SKU", value: assignedProduct?.sku },
+    {
+      label: "Unidades en posición",
+      value: assignedProduct ? `${positionView?.currentStock ?? 0}` : null,
+    },
   ];
 
   return (
@@ -204,6 +244,17 @@ export default function WarehouseConfigPage() {
           <Card>
             <CardHeader icon={<Icon name="box" size={16} />} title="Producto asignado" />
             <InfoList items={productInfo} />
+            {assignedProduct && (
+              <div className="warehouse-page__assigned-actions">
+                <Button
+                  variant="danger"
+                  iconLeft={<Icon name="trash" size={14} />}
+                  onClick={() => setClearOpen(true)}
+                >
+                  Quitar producto
+                </Button>
+              </div>
+            )}
           </Card>
         </aside>
       </div>
@@ -246,6 +297,32 @@ export default function WarehouseConfigPage() {
         open={openModal === "data"}
         onClose={() => setOpenModal(null)}
       />
+
+      <Modal
+        open={clearOpen}
+        onClose={() => !clearing && setClearOpen(false)}
+        title="Quitar producto de la posición"
+        size="sm"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setClearOpen(false)} disabled={clearing}>
+              Cancelar
+            </Button>
+            <Button variant="danger" onClick={handleClearProduct} disabled={clearing}>
+              {clearing ? "Quitando…" : "Quitar"}
+            </Button>
+          </>
+        }
+      >
+        {assignedProduct && (
+          <p className="warehouse-page__clear-text">
+            Se van a liberar <strong>{positionView?.currentStock ?? 0}</strong> unidades de{" "}
+            <strong>{assignedProduct.name}</strong> (SKU: {assignedProduct.sku}) en{" "}
+            <strong>{locationCode}</strong>. El stock disponible del producto se va a descontar
+            en la misma cantidad.
+          </p>
+        )}
+      </Modal>
     </div>
   );
 }

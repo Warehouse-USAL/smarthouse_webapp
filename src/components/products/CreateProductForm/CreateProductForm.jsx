@@ -1,6 +1,5 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import Input from "../../ui/Input/Input";
-import Select from "../../ui/Select/Select";
 import Button from "../../ui/Button/Button";
 import "./CreateProductForm.css";
 
@@ -62,7 +61,7 @@ const validate = (values) => {
   else if (!/^[A-Z0-9-]+$/i.test(values.sku.trim()))
     errors.sku = "Solo letras, números y guiones";
 
-  if (!values.category)
+  if (!values.category.trim())
     errors.category = "Categoría requerida";
 
   if (values.price === "" || Number(values.price) < 0)
@@ -143,6 +142,7 @@ export default function CreateProductForm({
     const idx = initial.images.findIndex((img) => img.is_primary);
     return idx === -1 ? 0 : idx;
   });
+  const categoryListId = useId();
 
   const handleChange = (field) => (e) =>
     setValues((v) => ({ ...v, [field]: e.target.value }));
@@ -201,6 +201,16 @@ export default function CreateProductForm({
     const errs = validate(values);
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
+    onSubmit({
+      ...values,
+      sku: values.sku.trim().toUpperCase(),
+      category: values.category.trim(),
+      minimumStock: Number(values.minimumStock),
+      maxQuantityPerOrder: Number(values.maxQuantityPerOrder) || 0,
+      unitsPerPallet: Number(values.unitsPerPallet) || 0,
+      unitsPerHalfPallet: Number(values.unitsPerHalfPallet) || 0,
+      unitsPerBox: Number(values.unitsPerBox) || 0,
+    });
     onSubmit(toApiPayload(values, coverImageIndex));
   };
 

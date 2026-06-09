@@ -15,6 +15,21 @@
 import { localStore } from "../../lib/localStore";
 
 const KEY = "warehouse_config";
+const STOCK_POSITIONS_KEY = "mock_stock_positions";
+
+// Suma de unidades almacenadas en una posición (fuente de verdad:
+// stockPositionMockService). Se calcula al vuelo para no duplicar estado.
+const stockForPosition = (idPosition) => {
+  if (!idPosition) return 0;
+  const all = localStore.get(STOCK_POSITIONS_KEY, []);
+  if (!Array.isArray(all)) return 0;
+  return all
+    .filter((sp) => sp.idPosition === idPosition)
+    .reduce((sum, sp) => sum + (Number(sp.quantity) || 0), 0);
+};
+
+const withDerivedStock = (position) =>
+  position ? { ...position, currentStock: stockForPosition(position.idPosition) } : position;
 
 const uid = (prefix) =>
   `${prefix}-${Date.now().toString(36)}-${Math.random()
@@ -66,6 +81,7 @@ const buildPosition = ({
   sizeStockToSave,
 
   assignedProduct: null,
+
 });
 
 /* -------------------------------------------------------------------------- */
@@ -419,7 +435,17 @@ export const warehouseConfigMockService =
     async get() {
       await delay();
 
-      return readConfig();
+      const config = readConfig();
+    return {
+      ...config,
+      zones: config.zones.map((z) => ({
+        ...z,
+        lines: z.lines.map((l) => ({
+          ...l,
+          positions: l.positions.map(withDerivedStock),
+        })),
+      })),
+    };
     },
 
     /* ------------------------- */
