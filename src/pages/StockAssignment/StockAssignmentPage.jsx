@@ -5,7 +5,6 @@ import Select from "../../components/ui/Select/Select";
 import Input from "../../components/ui/Input/Input";
 import Button from "../../components/ui/Button/Button";
 import Icon from "../../components/ui/Icon/Icon";
-import Badge from "../../components/ui/Badge/Badge";
 import Spinner from "../../components/ui/Spinner/Spinner";
 import EmptyState from "../../components/ui/EmptyState/EmptyState";
 import ZonePickerGrid from "../../components/warehouse/ZonePickerGrid/ZonePickerGrid";
@@ -21,28 +20,22 @@ import {
 } from "../../lib/storageCompatibility";
 import "./StockAssignmentPage.css";
 
-// Hito 2 §8 + §10 + §11 (revisado).
-// El operador elige producto + tipo de unidad + cantidad y luego, sobre el
-// MAPA del warehouse, elige manualmente las posiciones disponibles. Las
-// posiciones se llenan en orden de clic: cada una recibe `unitsPerSlot`
-// unidades y la última el resto, hasta cubrir la cantidad pedida.
-// Solo son elegibles las posiciones compatibles (mismo tamaño que la unidad)
-// y libres (sin producto asignado).
+// Hito 2 §8 (revisado). Ya no existen capacidades por unidad en el producto
+// (unitsPerPallet/HalfPallet/Box) ni asignación automática.
+//
+// Flujo:
+//   1. El operador elige producto + tipo de unidad (Pallet/Medio/Caja) + cantidad.
+//      El tipo de unidad determina el tamaño de posición compatible.
+//   2. Sobre el MAPA del warehouse selecciona las posiciones — solo las
+//      compatibles (mismo tamaño) y libres son elegibles.
+//   3. Por cada posición elegida ingresa libremente cuántas unidades del
+//      producto guardar ahí (sin tope de capacidad, por ahora).
+//   4. Confirma cuando lo asignado iguala la cantidad total.
 
 const STORAGE_UNIT_OPTIONS = STORAGE_UNITS.map((u) => ({
   value: u,
   label: STORAGE_UNIT_LABEL[u],
 }));
-
-const unitsPerSlotFor = (product, storageUnit) => {
-  if (!product || !storageUnit) return 0;
-  switch (storageUnit) {
-    case "PALLET": return product.unitsPerPallet || 0;
-    case "MEDIO_PALLET": return product.unitsPerHalfPallet || 0;
-    case "CAJA": return product.unitsPerBox || 0;
-    default: return 0;
-  }
-};
 
 export default function StockAssignmentPage() {
   const [products, setProducts] = useState([]);
@@ -56,7 +49,7 @@ export default function StockAssignmentPage() {
   const [quantity, setQuantity] = useState("");
 
   // Posiciones elegidas en el mapa, en orden de clic. Cada item guarda el
-  // detalle necesario para mostrar el resumen y persistir el StockPosicion.
+  // detalle de la posición + las unidades que el operador decidió poner ahí.
   const [selected, setSelected] = useState([]);
 
   useEffect(() => {
@@ -92,13 +85,6 @@ export default function StockAssignmentPage() {
     [products, productId]
   );
 
-  // Solo unidades que tengan capacidad declarada en el producto.
-  const availableStorageUnits = useMemo(() => {
-    if (!selectedProduct) return [];
-    return STORAGE_UNIT_OPTIONS.filter((opt) => unitsPerSlotFor(selectedProduct, opt.value) > 0);
-  }, [selectedProduct]);
-
-  const unitsPerSlot = unitsPerSlotFor(selectedProduct, storageUnit);
   const requiredSize = storageUnit ? UNIT_TO_SIZE[storageUnit] : null;
   const totalQuantity = Number(quantity) || 0;
 
@@ -112,25 +98,17 @@ export default function StockAssignmentPage() {
     [selected]
   );
 
-  // Reparte la cantidad total sobre las posiciones elegidas en orden de clic:
-  // cada una recibe unitsPerSlot, la última el resto. Devuelve el plan con la
-  // cantidad asignada a cada posición y cuántas unidades quedan sin ubicar.
+  // Reparte la cantidad total en partes iguales entre las posiciones elegidas;
+  // el resto se suma a la última. Devuelve [{ ...pos, quantity }].
   const plan = useMemo(() => {
-    if (!unitsPerSlot || totalQuantity <= 0) {
-      return { slots: [], assigned: 0, remainder: totalQuantity };
-    }
-    let pending = totalQuantity;
-    const slots = selected.map((pos) => {
-      const put = Math.min(unitsPerSlot, pending);
-      pending -= put;
-      return { ...pos, quantity: put };
-    });
-    const assigned = totalQuantity - pending;
-    return { slots, assigned, remainder: pending };
-  }, [selected, unitsPerSlot, totalQuantity]);
-
-  // Cuántas posiciones hacen falta para cubrir toda la cantidad.
-  const slotsNeeded = unitsPerSlot > 0 ? Math.ceil(totalQuantity / unitsPerSlot) : 0;
+    if (selected.length === 0 || totalQuantity <= 0) return [];
+    const base = Math.floor(totalQuantity / selected.length);
+    const rest = totalQuantity - base * selected.length;
+    return selected.map((pos, idx) => ({
+      ...pos,
+      quantity: base + (idx === selected.length - 1 ? rest : 0),
+    }));
+  }, [selected, totalQuantity]);
 
   const resetSelection = () => {
     setSelected([]);
@@ -155,26 +133,26 @@ export default function StockAssignmentPage() {
     resetSelection();
   };
 
+  // Toggle de una posición desde el mapa.
   const handleTogglePosition = (pos) => {
     setFeedback(null);
     setSelected((prev) => {
       const exists = prev.some((s) => s.idPosition === pos.idPosition);
-      if (exists) {
-        return prev.filter((s) => s.idPosition !== pos.idPosition);
-      }
-      // No dejar elegir más posiciones de las necesarias.
-      if (prev.length >= slotsNeeded) return prev;
+      if (exists) return prev.filter((s) => s.idPosition !== pos.idPosition);
       return [...prev, pos];
     });
   };
 
+  const canConfirm =
+    selectedProduct && storageUnit && totalQuantity > 0 && selected.length > 0;
+
   const handleConfirm = async () => {
-    if (plan.slots.length === 0 || plan.remainder > 0) return;
+    if (!canConfirm) return;
     setSubmitting(true);
     setFeedback(null);
     try {
       // 1. Persistir StockPosicion para cada posición elegida.
-      const entries = plan.slots.map((slot) => ({
+      const entries = plan.map((slot) => ({
         productId: selectedProduct.id,
         idPosition: slot.idPosition,
         storageUnit,
@@ -185,7 +163,7 @@ export default function StockAssignmentPage() {
       // 2. Marcar las posiciones como ocupadas en el warehouse (mock).
       //    En producción esto lo deriva el backend desde StockPosicion.
       await Promise.all(
-        plan.slots.map((slot) =>
+        plan.map((slot) =>
           warehouseConfigService.assignProductToPosition(
             slot.idPosition,
             {
@@ -199,7 +177,7 @@ export default function StockAssignmentPage() {
       );
 
       // 3. Sumar el stock asignado al availableStock del producto.
-      const totalAssigned = plan.slots.reduce((sum, s) => sum + s.quantity, 0);
+      const totalAssigned = plan.reduce((sum, s) => sum + s.quantity, 0);
       await productService.update(selectedProduct.id, {
         availableStock: (selectedProduct.availableStock || 0) + totalAssigned,
       });
@@ -214,7 +192,7 @@ export default function StockAssignmentPage() {
 
       setFeedback({
         type: "success",
-        message: `Asignadas ${totalAssigned} unidades en ${plan.slots.length} posiciones.`,
+        message: `Asignadas ${totalAssigned} unidades en ${plan.length} posiciones.`,
       });
       setQuantity("");
       setSelected([]);
@@ -245,7 +223,7 @@ export default function StockAssignmentPage() {
     <div className="stock-assignment">
       <PageHeader
         title="Asignación de stock"
-        subtitle="Elegí producto, tipo de unidad y cantidad. Después seleccioná en el mapa las posiciones disponibles donde guardar el stock."
+        subtitle="Elegí producto, tipo de unidad y cantidad. Después seleccioná en el mapa las posiciones disponibles e ingresá cuántas unidades poner en cada una."
       />
 
       <Card padding="lg">
@@ -262,15 +240,11 @@ export default function StockAssignmentPage() {
             label="Tipo de unidad de almacenamiento"
             value={storageUnit}
             onChange={handleStorageUnitChange}
-            options={availableStorageUnits}
+            options={STORAGE_UNIT_OPTIONS}
             placeholder={
-              !selectedProduct
-                ? "Seleccioná un producto primero"
-                : availableStorageUnits.length === 0
-                  ? "El producto no tiene capacidades definidas"
-                  : "Seleccioná unidad"
+              !selectedProduct ? "Seleccioná un producto primero" : "Seleccioná unidad"
             }
-            disabled={!selectedProduct || availableStorageUnits.length === 0}
+            disabled={!selectedProduct}
           />
           <Input
             name="quantity"
@@ -287,18 +261,12 @@ export default function StockAssignmentPage() {
         {selectedProduct && storageUnit && (
           <div className="stock-assignment__meta">
             <span>
-              Unidades por <strong>{STORAGE_UNIT_LABEL[storageUnit]}</strong>:{" "}
-              <strong>{unitsPerSlot}</strong>
+              Unidad seleccionada: <strong>{STORAGE_UNIT_LABEL[storageUnit]}</strong>
             </span>
             <span>
               Requiere posiciones de tamaño{" "}
               <strong>{POSITION_SIZE_LABEL[requiredSize]}</strong>
             </span>
-            {totalQuantity > 0 && (
-              <span>
-                Posiciones necesarias: <strong>{slotsNeeded}</strong>
-              </span>
-            )}
           </div>
         )}
       </Card>
@@ -326,7 +294,7 @@ export default function StockAssignmentPage() {
           <>
             <p className="stock-assignment__map-hint">
               Seleccioná posiciones <strong>{POSITION_SIZE_LABEL[requiredSize]}</strong> libres
-              (resaltadas). Se llenan en orden de selección hasta cubrir las{" "}
+              (resaltadas). Para cada una vas a indicar cuántas unidades guardar, hasta cubrir las{" "}
               <strong>{totalQuantity}</strong> unidades.
             </p>
             <div className="stock-assignment__map">
@@ -348,13 +316,25 @@ export default function StockAssignmentPage() {
                 ))
               )}
             </div>
+            {tree.zones.length > 0 && (
+              <div className="stock-assignment__legend">
+                {tree.zones.map((zone) => (
+                  <span className="stock-assignment__legend-item" key={zone.idZone}>
+                    <span
+                      className={`stock-assignment__legend-dot stock-assignment__legend-dot--${(zone.color || zone.zoneCode || "").toLowerCase()}`}
+                    />
+                    {zone.name}
+                  </span>
+                ))}
+              </div>
+            )}
           </>
         )}
 
-        {formReady && plan.slots.length > 0 && (
+        {formReady && plan.length > 0 && (
           <>
             <ul className="stock-assignment__plan">
-              {plan.slots.map((slot, idx) => (
+              {plan.map((slot, idx) => (
                 <li key={slot.idPosition} className="stock-assignment__plan-item">
                   <div className="stock-assignment__plan-pos">
                     <span className="stock-assignment__plan-index">{idx + 1}</span>
@@ -364,25 +344,16 @@ export default function StockAssignmentPage() {
                       {slot.positionName}
                     </span>
                   </div>
-                  <div className="stock-assignment__plan-meta">
-                    <Badge variant="success">Posición libre</Badge>
-                    <span className="stock-assignment__plan-qty">{slot.quantity} u</span>
-                  </div>
+                  <span className="stock-assignment__plan-unit">{slot.quantity} u</span>
                 </li>
               ))}
             </ul>
 
             <div className="stock-assignment__summary">
               <span>
-                Asignado: <strong>{plan.assigned}</strong> de <strong>{totalQuantity}</strong>{" "}
-                unidades en <strong>{plan.slots.length}</strong> posiciones
+                <strong>{totalQuantity}</strong> unidades repartidas en{" "}
+                <strong>{plan.length}</strong> posiciones.
               </span>
-              {plan.remainder > 0 && (
-                <span className="stock-assignment__remainder">
-                  Faltan <strong>{plan.remainder}</strong> u — seleccioná{" "}
-                  {slotsNeeded - plan.slots.length} posición(es) más.
-                </span>
-              )}
             </div>
           </>
         )}
@@ -394,11 +365,7 @@ export default function StockAssignmentPage() {
         )}
 
         <div className="stock-assignment__actions">
-          <Button
-            type="button"
-            onClick={handleConfirm}
-            disabled={!formReady || plan.slots.length === 0 || plan.remainder > 0 || submitting}
-          >
+          <Button type="button" onClick={handleConfirm} disabled={!canConfirm || submitting}>
             {submitting ? "Asignando…" : "Confirmar asignación"}
           </Button>
         </div>
