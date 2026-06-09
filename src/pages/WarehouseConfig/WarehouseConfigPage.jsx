@@ -105,6 +105,9 @@ export default function WarehouseConfigPage() {
 
   const handleSelectFromMap = ({ idZone, idLine, idPosition }) => {
     setSelected({ idZone, idLine, idPosition });
+    // Click en una ubicación del mapa abre directamente el modal de modificar
+    // posición ya cargado con esa posición.
+    setOpenModal("positions");
   };
 
   const handleSelectChange = (field) => (e) => {
@@ -292,6 +295,7 @@ export default function WarehouseConfigPage() {
         open={openModal === "positions"}
         onClose={() => setOpenModal(null)}
         onSaved={handleModalSaved}
+        initialSelection={selected.idPosition ? selected : null}
       />
       <LocationDataEditModal
         open={openModal === "data"}

@@ -11,13 +11,13 @@ const SIZE_OPTIONS = [
   { value: "GRANDE", label: "Grande" },
 ];
 
-function PositionsEditBody({ onClose, onSaved }) {
+function PositionsEditBody({ onClose, onSaved, initialSelection }) {
   const [config, setConfig] = useState({ zones: [] });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [idZone, setIdZone] = useState("");
-  const [idLine, setIdLine] = useState("");
-  const [idPosition, setIdPosition] = useState("");
+  const [idZone, setIdZone] = useState(initialSelection?.idZone || "");
+  const [idLine, setIdLine] = useState(initialSelection?.idLine || "");
+  const [idPosition, setIdPosition] = useState(initialSelection?.idPosition || "");
   // Override local del tamaño. Se resetea al cambiar la posición.
   const [sizeOverride, setSizeOverride] = useState(null);
 
@@ -28,7 +28,11 @@ function PositionsEditBody({ onClose, onSaved }) {
       .then((next) => {
         if (cancelled) return;
         setConfig(next);
-        setIdZone(next.zones[0]?.idZone || "");
+        // Si vinimos desde un click en el mapa, respetamos esa selección;
+        // si no, arrancamos en la primera zona.
+        if (!initialSelection?.idZone) {
+          setIdZone(next.zones[0]?.idZone || "");
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -36,7 +40,7 @@ function PositionsEditBody({ onClose, onSaved }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialSelection]);
 
   const selectedZone = useMemo(
     () => warehouseConfigService.findZone(config, idZone),
@@ -167,10 +171,20 @@ function PositionsEditBody({ onClose, onSaved }) {
   );
 }
 
-export default function PositionsEditModal({ open, onClose, onSaved }) {
+export default function PositionsEditModal({ open, onClose, onSaved, initialSelection }) {
+  // Remontamos el body cuando cambia la posición de origen para reinicializar
+  // los selects desde la selección del mapa.
+  const bodyKey = initialSelection?.idPosition || "default";
   return (
     <Modal open={open} onClose={onClose} title="Modificar posiciones" size="lg">
-      {open && <PositionsEditBody onClose={onClose} onSaved={onSaved} />}
+      {open && (
+        <PositionsEditBody
+          key={bodyKey}
+          onClose={onClose}
+          onSaved={onSaved}
+          initialSelection={initialSelection}
+        />
+      )}
     </Modal>
   );
 }
