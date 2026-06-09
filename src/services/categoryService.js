@@ -1,27 +1,39 @@
-import { localStore } from "../lib/localStore";
+import { apiClient } from "../lib/apiClient";
 
-const KEY = "product_categories";
+const USE_MOCK =
+  import.meta.env.VITE_USE_MOCK === "true" ||
+  !import.meta.env.VITE_API_BASE_URL;
 
-const DEFAULT_CATEGORIES = [
-  "Periféricos",
-  "Monitores",
-  "Cámaras",
-  "Sensores",
-  "Almacenamiento",
-  "Redes",
-  "Accesorios",
+const MOCK_CATEGORIES = [
+  "ALIMENTOS",
+  "BEBIDAS",
+  "LIMPIEZA",
+  "HIGIENE_PERSONAL",
+  "ELECTRONICA",
+  "ELECTRODOMESTICOS",
+  "INDUMENTARIA",
+  "CALZADO",
+  "FERRETERIA",
+  "MUEBLES",
+  "JUGUETES",
+  "LIBRERIA",
+  "FARMACIA",
+  "MASCOTAS",
+  "AUTOMOTOR",
+  "DEPORTES",
+  "OTROS",
 ];
 
 export const categoryService = {
-  list() {
-    return localStore.get(KEY, DEFAULT_CATEGORIES);
-  },
+  async list() {
+    if (USE_MOCK) {
+      return MOCK_CATEGORIES;
+    }
 
-  add(name) {
-    const list = this.list();
-    if (!name || list.includes(name)) return list;
-    const next = [...list, name];
-    localStore.set(KEY, next);
-    return next;
+    const { data } = await apiClient.get(
+      "/products/categories"
+    );
+
+    return data?.categories || [];
   },
 };
