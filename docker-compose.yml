@@ -1,0 +1,16 @@
+services:
+  webapp-dev:
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0"
+    environment:
+      # Point the Vite dev proxy at a reachable backend. Defaults to the host's
+      # backend on :8080; override with VITE_API_TARGET if yours differs.
+      VITE_API_TARGET: ${VITE_API_TARGET:-http://host.docker.internal:8080}
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
