@@ -89,6 +89,10 @@ export default function ProductsPage() {
 
   useEffect(() => {
     let cancelled = false;
+    // fetchProducts sets loading/error synchronously to drive the fetch UI;
+    // that's intentional here (data load on mount + filter change), not the
+    // render-derived cascade this rule guards against.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchProducts().catch(() => {
       if (!cancelled) { /* error ya manejado en fetchProducts */ }
     });

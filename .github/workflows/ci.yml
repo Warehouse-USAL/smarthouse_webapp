@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - master
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  skip-drafts:
+    name: Skip draft PRs
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Not a draft
+        run: echo "PR is ready for review — proceeding with CI"
+
+  validate-branch:
+    name: Validate branch model
+    needs: skip-drafts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce GitFlow flow (only master is gated)
+        run: |
+          HEAD="${{ github.head_ref }}"
+          BASE="${{ github.base_ref }}"
+          echo "Flow: $HEAD -> $BASE"
+          # master (production) is updated ONLY through the release process:
+          #   beta/*  (release candidate) or hotfix/* (production urgency).
+          if [ "$BASE" = "master" ]; then
+            case "$HEAD" in
+              beta/*|hotfix/*) echo "OK: release path into master." ;;
+              *) echo "ERROR: only beta/* or hotfix/* may target master. Everyday work goes to develop."; exit 1 ;;
+            esac
+          else
+            # develop (and any other base) is intentionally low-friction:
+            # any branch name may be PR'd in. No naming convention enforced.
+            echo "OK: '$HEAD' -> '$BASE' — no naming restriction outside master."
+          fi
+
+  lint:
+    name: ESLint
+    needs: skip-drafts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+
+  build:
+    name: Build
+    needs: [validate-branch, lint]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build
+        run: npm run build
