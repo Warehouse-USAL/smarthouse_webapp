@@ -1,0 +1,13 @@
+services:
+  webapp:
+    image: ghcr.io/warehouse-usal/smarthouse_webapp:latest
+    restart: always
+    networks:
+      - wh-proxy
+    # No host port and no backend proxy: the Caddy reverse proxy owns :80,
+    # routes /app/* here (stripping the prefix), and routes the app's bare
+    # API calls (/auth, /products, ...) straight to the backend at root.
+
+networks:
+  wh-proxy:
+    external: true

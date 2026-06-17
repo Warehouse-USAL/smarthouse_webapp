@@ -14,7 +14,7 @@ import StockAssignmentPage from "../pages/StockAssignment/StockAssignmentPage";
 
 export default function AppRoutes() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Routes>
         {/* redirect base */}
         <Route path="/" element={<Navigate to="/login" replace />} />
