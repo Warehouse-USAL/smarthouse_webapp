@@ -173,3 +173,16 @@ npm run dev      # entorno desarrollo
 npm run build    # build producción
 npm run preview  # preview local
 ```
+
+---
+
+# Despliegue
+
+La app se despliega automáticamente en el servidor Warehouse-USAL vía
+`wh-autodeploys` (runner self-hosted + Caddy). Se sirve bajo el prefijo
+**`/app`** detrás del proxy; el backend queda en la raíz, por lo que las
+llamadas a `/auth`, `/products`, etc. lo alcanzan sin configurar `BACKEND_URL`.
+
+- Trabajo diario → PRs a `develop` (cualquier rama).
+- Release → `beta/<versión>` o `hotfix/<versión>` a `master`, que publica la
+  imagen a GHCR y dispara el deploy.
