@@ -43,15 +43,18 @@
 */
 
 import { apiClient } from "../lib/apiClient";
+import { SIZE_TO_UNIT, UNIT_TO_SIZE } from "../lib/storageCompatibility";
 import { warehouseConfigMockService } from "./mocks/warehouseConfigMockService";
 
 // Backend same-origin vía proxy de Vite: el único interruptor es el flag.
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 
-// El enum del backend es PEQUENO/MEDIANO/GRANDE (masculino, sin Ñ); el front
-// usa PEQUEÑA/MEDIANA/GRANDE. Se traduce en ambos sentidos en el borde.
-const SIZE_BE_TO_FE = { PEQUENO: "PEQUEÑA", MEDIANO: "MEDIANA", GRANDE: "GRANDE" };
-const SIZE_FE_TO_BE = { PEQUEÑA: "PEQUENO", MEDIANA: "MEDIANO", GRANDE: "GRANDE" };
+// El enum StockSize del backend es CAJA/MEDIO_PALLET/PALLET; el front usa los
+// tamaños PEQUEÑA/MEDIANA/GRANDE. La correspondencia 1:1 vive en
+// storageCompatibility (única fuente de verdad): se traduce en ambos sentidos
+// en el borde. (CAJA↔PEQUEÑA, MEDIO_PALLET↔MEDIANA, PALLET↔GRANDE.)
+const SIZE_BE_TO_FE = UNIT_TO_SIZE;
+const SIZE_FE_TO_BE = SIZE_TO_UNIT;
 
 // Defaults al materializar estructura. El backend NO auto-genera hijos: zonas,
 // líneas y posiciones se crean explícitamente y nacen inactivas (is_active=false).
@@ -111,7 +114,7 @@ const normalizeLine = (raw) => ({
 });
 
 const normalizePosition = (raw) => {
-  const beSize = raw.size_stock_to_save ?? raw.sizeStockToSave ?? "MEDIANO";
+  const beSize = raw.size_stock_to_save ?? raw.sizeStockToSave ?? "MEDIO_PALLET";
   const productId = raw.product_id ?? raw.productId ?? null;
   // El detalle (GET /positions/:id) trae assigned_product con sku/name; el
   // listado (GET /lines/:id/positions) solo trae product_id. Para que la UI
@@ -280,6 +283,17 @@ export const warehouseConfigService = {
   async get() {
     if (USE_MOCK) return warehouseConfigMockService.get();
     return fetchTree();
+  },
+
+  // Códigos de zonas soft-deleted (is_active=false): el árbol que ve la UI no
+  // las muestra, pero el índice único de zone_code en el backend sigue ocupado.
+  // La UI usa esto para no reasignar un código borrado y chocar con un 409.
+  async getReservedZoneCodes() {
+    if (USE_MOCK) return warehouseConfigMockService.getReservedZoneCodes();
+    const raw = await fetchRawZones();
+    return raw
+      .filter((zone) => !zone.isActive)
+      .map((zone) => (zone.zoneCode || "").toUpperCase());
   },
 
   /* ---------- Zonas ---------- */

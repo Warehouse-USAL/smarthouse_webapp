@@ -17,6 +17,7 @@ import {
   UNIT_TO_SIZE,
   SIZE_TO_UNIT,
   POSITION_SIZE_LABEL,
+  unitsPerPosition,
 } from "../../lib/storageCompatibility";
 import "./StockAssignmentPage.css";
 
@@ -28,8 +29,11 @@ import "./StockAssignmentPage.css";
 //      El tipo de unidad determina el tamaño de posición compatible.
 //   2. Sobre el MAPA del warehouse selecciona las posiciones — solo las
 //      compatibles (mismo tamaño) y libres son elegibles.
-//   3. Por cada posición elegida ingresa libremente cuántas unidades del
-//      producto guardar ahí (sin tope de capacidad, por ahora).
+//   3. La cantidad total se reparte entre las posiciones elegidas, respetando
+//      el tope real de cada una: min(maximumCapacity, unidades que entran por
+//      volumen). El tope por volumen lo computa el backend como
+//      floor(volumenTamaño / volumenProducto) y lo replicamos en el front
+//      (unitsPerPosition) para validar y repartir antes de enviar.
 //   4. Confirma cuando lo asignado iguala la cantidad total.
 
 const STORAGE_UNIT_OPTIONS = STORAGE_UNITS.map((u) => ({
@@ -98,24 +102,44 @@ export default function StockAssignmentPage() {
     [selected]
   );
 
-  // Reparte la cantidad total en partes iguales entre las posiciones elegidas;
-  // el resto se suma a la última. Devuelve [{ ...pos, quantity }].
+  // Unidades del producto que entran por volumen en UNA posición del tamaño
+  // elegido (floor(volumenTamaño / volumenProducto)). Infinity si el producto
+  // no tiene volumen cargado: en ese caso el backend no aplica tope de volumen.
+  const volumeCapacity = useMemo(
+    () => unitsPerPosition(selectedProduct?.volume, storageUnit),
+    [selectedProduct, storageUnit]
+  );
+
+  // Cuántas posiciones de esta capacidad harían falta para cubrir la cantidad.
+  const positionsNeeded =
+    volumeCapacity > 0 && totalQuantity > 0
+      ? Math.ceil(totalQuantity / volumeCapacity)
+      : 0;
+
+  // Reparte la cantidad total lo más parejo posible entre las posiciones
+  // elegidas: base = floor(total/N) a todas y +1 a las primeras `rest`. Así el
+  // máximo por posición es ceil(total/N), que es el mínimo alcanzable — sólo
+  // supera la capacidad si total > N * capacidad (genuinamente no entra).
   const plan = useMemo(() => {
     if (selected.length === 0 || totalQuantity <= 0) return [];
     const base = Math.floor(totalQuantity / selected.length);
     const rest = totalQuantity - base * selected.length;
     return selected.map((pos, idx) => ({
       ...pos,
-      quantity: base + (idx === selected.length - 1 ? rest : 0),
+      quantity: base + (idx < rest ? 1 : 0),
+      // Tope real: el menor entre maximumCapacity (unidades) y lo que entra por
+      // volumen. Ambos los valida el backend; el binding suele ser el volumen.
+      // El volumen es uniforme (mismo tamaño); maximumCapacity puede variar.
+      capacity: Math.min(pos.maximumCapacity || Infinity, volumeCapacity),
     }));
-  }, [selected, totalQuantity]);
+  }, [selected, totalQuantity, volumeCapacity]);
 
-  // Primera posición cuyo reparto supera su capacidad máxima. El backend
+  // Primera posición cuyo reparto supera su capacidad real. El backend
   // rechazaría con 400 STOCK_EXCEEDS_CAPACITY; lo bloqueamos antes.
   const overCapacitySlot = useMemo(
     () =>
       plan.find(
-        (slot) => slot.maximumCapacity > 0 && slot.quantity > slot.maximumCapacity
+        (slot) => Number.isFinite(slot.capacity) && slot.quantity > slot.capacity
       ) || null,
     [plan]
   );
@@ -161,7 +185,7 @@ export default function StockAssignmentPage() {
     if (overCapacitySlot) {
       setFeedback({
         type: "error",
-        message: `La posición ${overCapacitySlot.positionName} no admite ${overCapacitySlot.quantity} unidades (capacidad ${overCapacitySlot.maximumCapacity}).`,
+        message: `La posición ${overCapacitySlot.positionName} no admite ${overCapacitySlot.quantity} unidades (capacidad ${overCapacitySlot.capacity}). Elegí al menos ${positionsNeeded} posiciones o reducí la cantidad.`,
       });
       return;
     }
@@ -266,6 +290,17 @@ export default function StockAssignmentPage() {
               Requiere posiciones de tamaño{" "}
               <strong>{POSITION_SIZE_LABEL[requiredSize]}</strong>
             </span>
+            {Number.isFinite(volumeCapacity) && (
+              <span>
+                Entran <strong>{volumeCapacity}</strong> u por posición (por volumen)
+                {totalQuantity > 0 && (
+                  <>
+                    {" · "}necesitás al menos <strong>{positionsNeeded}</strong>{" "}
+                    {positionsNeeded === 1 ? "posición" : "posiciones"}
+                  </>
+                )}
+              </span>
+            )}
           </div>
         )}
       </Card>
@@ -334,7 +369,7 @@ export default function StockAssignmentPage() {
           <>
             <ul className="stock-assignment__plan">
               {plan.map((slot, idx) => {
-                const over = slot.maximumCapacity > 0 && slot.quantity > slot.maximumCapacity;
+                const over = Number.isFinite(slot.capacity) && slot.quantity > slot.capacity;
                 return (
                   <li key={slot.idPosition} className="stock-assignment__plan-item">
                     <div className="stock-assignment__plan-pos">
@@ -347,11 +382,11 @@ export default function StockAssignmentPage() {
                     </div>
                     <span className="stock-assignment__plan-unit">
                       {slot.quantity} u
-                      {slot.maximumCapacity > 0 && (
+                      {Number.isFinite(slot.capacity) && (
                         <small
                           className={over ? "stock-assignment__plan-cap--over" : undefined}
                         >
-                          {" "}/ {slot.maximumCapacity}
+                          {" "}/ {slot.capacity}
                         </small>
                       )}
                     </span>
@@ -371,7 +406,8 @@ export default function StockAssignmentPage() {
               <div className="stock-assignment__feedback stock-assignment__feedback--error">
                 <Icon name="info" size={14} /> La posición {overCapacitySlot.positionName}{" "}
                 supera su capacidad ({overCapacitySlot.quantity} &gt;{" "}
-                {overCapacitySlot.maximumCapacity}). Elegí más posiciones o reducí la cantidad.
+                {overCapacitySlot.capacity}). Elegí al menos {positionsNeeded} posiciones o
+                reducí la cantidad.
               </div>
             )}
           </>

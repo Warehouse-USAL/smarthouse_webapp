@@ -6,11 +6,12 @@ import "./CreateProductForm.css";
 
 const MAX_IMAGES = 5;
 
-const DEFAULT_SPECS = [
-  { label: "Alto", value: "" },
-  { label: "Ancho", value: "" },
-  { label: "Profundidad", value: "" },
-  { label: "Peso", value: "" },
+// Dimensiones obligatorias del backend (@NotNull @Min(0)). length = largo.
+const DIMENSIONS = [
+  { key: "height", label: "Alto (cm)" },
+  { key: "width", label: "Ancho (cm)" },
+  { key: "length", label: "Largo (cm)" },
+  { key: "weight", label: "Peso" },
 ];
 
 const EMPTY = {
@@ -24,7 +25,11 @@ const EMPTY = {
   includesTaxes: false,
   minimumStock: "",
   maxQuantityPerOrder: "",
-  specs: DEFAULT_SPECS,
+  height: "",
+  width: "",
+  length: "",
+  weight: "",
+  specs: [],
   active: true,
 };
 
@@ -47,7 +52,11 @@ const buildInitial = (initial) => {
     minimumStock: initial.stock?.min?.toString() ?? "",
     maxQuantityPerOrder:
       initial.order_constraints?.max_quantity_per_order?.toString() ?? "",
-    specs: initial.specs?.length ? initial.specs : DEFAULT_SPECS,
+    height: initial.height != null ? initial.height.toString() : "",
+    width: initial.width != null ? initial.width.toString() : "",
+    length: initial.length != null ? initial.length.toString() : "",
+    weight: initial.weight != null ? initial.weight.toString() : "",
+    specs: initial.specs ?? [],
   };
 };
 
@@ -71,6 +80,14 @@ const validate = (values) => {
   if (values.minimumStock === "" || Number(values.minimumStock) < 0)
     errors.minimumStock = "Debe ser ≥ 0";
 
+  // El backend exige height/width/length/weight no nulos y ≥ 0.
+  DIMENSIONS.forEach(({ key, label }) => {
+    const raw = values[key];
+    if (raw === "" || raw == null) errors[key] = `${label} requerido`;
+    else if (Number.isNaN(Number(raw)) || Number(raw) < 0)
+      errors[key] = "Debe ser ≥ 0";
+  });
+
   return errors;
 };
 
@@ -87,6 +104,10 @@ const buildSubmitValues = (values, coverImageIndex) => ({
   price: values.price,
   minimumStock: Number(values.minimumStock) || 0,
   maxQuantityPerOrder: Number(values.maxQuantityPerOrder) || 0,
+  height: Number(values.height) || 0,
+  width: Number(values.width) || 0,
+  length: Number(values.length) || 0,
+  weight: Number(values.weight) || 0,
   images: values.images.map((img, idx) => ({
     url: img.url,
     alt: img.alt || values.name.trim() || `Imagen ${idx + 1}`,
@@ -311,6 +332,23 @@ export default function CreateProductForm({
 
       {/* ── 3. Dimensiones y specs ── */}
       <FormSection title="Dimensiones y especificaciones">
+        <div className="cpf-grid cpf-grid--2 cpf-dimensions">
+          {DIMENSIONS.map(({ key, label }) => (
+            <Input
+              key={key}
+              name={key}
+              label={label}
+              type="number"
+              min={0}
+              step={0.01}
+              value={values[key]}
+              onChange={handleChange(key)}
+              error={errors[key]}
+              required
+            />
+          ))}
+        </div>
+
         <div className="cpf-specs">
           {values.specs.map((spec, index) => (
             <div key={index} className="cpf-specs__row">
