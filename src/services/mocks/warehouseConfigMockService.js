@@ -448,6 +448,14 @@ export const warehouseConfigMockService =
     };
     },
 
+    // El mock hace hard-delete de zonas, así que no quedan códigos
+    // reservados por registros soft-deleted. Devolvemos lista vacía para
+    // mantener la misma interfaz que el servicio real.
+    async getReservedZoneCodes() {
+      await delay();
+      return [];
+    },
+
     /* ------------------------- */
     /* ZONAS */
     /* ------------------------- */

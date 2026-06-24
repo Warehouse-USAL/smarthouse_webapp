@@ -1,0 +1,97 @@
+.user-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.user-form__alert {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-danger-soft);
+  border: 1px solid var(--color-danger-border);
+  color: var(--color-danger);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.user-form__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+/* Toggle activo/inactivo */
+.user-form__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.user-form__toggle-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.user-form__toggle-title {
+  font-weight: var(--weight-medium);
+  font-size: 14px;
+  color: var(--color-text-primary);
+}
+
+.user-form__toggle-sub {
+  font-size: 12px;
+  color: var(--color-text-secondary-alt);
+}
+
+.user-form__toggle-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.user-form__toggle-track {
+  position: relative;
+  flex: 0 0 auto;
+  width: 42px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  background: var(--color-border);
+  transition: background var(--transition-duration-button);
+}
+
+.user-form__toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background: var(--color-white);
+  box-shadow: var(--shadow-soft);
+  transition: transform var(--transition-duration-button);
+}
+
+.user-form__toggle-input:checked + .user-form__toggle-track {
+  background: var(--color-success);
+}
+
+.user-form__toggle-input:checked + .user-form__toggle-track .user-form__toggle-thumb {
+  transform: translateX(18px);
+}
+
+.user-form__toggle-input:focus-visible + .user-form__toggle-track {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}

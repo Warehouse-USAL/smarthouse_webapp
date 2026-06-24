@@ -11,6 +11,7 @@ import Spinner from "../../components/ui/Spinner/Spinner";
 import EmptyState from "../../components/ui/EmptyState/EmptyState";
 import ProgressBar from "../../components/ui/ProgressBar/ProgressBar";
 import { vehicleService } from "../../services/vehicleService";
+import { can } from "../../lib/permissions";
 import "./VehiclesPage.css";
 
 const STATUS_OPTIONS = [
@@ -45,6 +46,10 @@ export default function VehiclesPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // Registrar vehículo es solo de SUPERADMIN/ADMIN_SYSTEM; ADMIN_WAREHOUSE
+  // entra a la pantalla (lectura) pero no puede dar de alta.
+  const canCreate = can("vehicle.create");
 
   const fetchVehicles = useCallback(async () => {
     setLoading(true);
@@ -110,9 +115,11 @@ export default function VehiclesPage() {
         title="Vehículos"
         subtitle="Visualizá el estado y la ubicación actual de los vehículos del warehouse."
         action={
-          <Button iconLeft={<Icon name="plus" size={16} />} onClick={() => setCreateOpen(true)}>
-            Dar de alta vehículo
-          </Button>
+          canCreate ? (
+            <Button iconLeft={<Icon name="plus" size={16} />} onClick={() => setCreateOpen(true)}>
+              Dar de alta vehículo
+            </Button>
+          ) : null
         }
       />
 
@@ -150,9 +157,11 @@ export default function VehiclesPage() {
             title="No hay vehículos"
             description="Cuando registres vehículos, los verás listados acá."
             action={
-              <Button iconLeft={<Icon name="plus" size={16} />} onClick={() => setCreateOpen(true)}>
-                Dar de alta vehículo
-              </Button>
+              canCreate ? (
+                <Button iconLeft={<Icon name="plus" size={16} />} onClick={() => setCreateOpen(true)}>
+                  Dar de alta vehículo
+                </Button>
+              ) : null
             }
           />
         ) : (

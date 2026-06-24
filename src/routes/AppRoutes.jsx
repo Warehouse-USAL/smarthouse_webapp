@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import AppLayout from "../components/layout/AppLayout/AppLayout";
 import ProtectedRoute from "./ProtectedRoute";
+import RequireCapability from "./RequireCapability";
 import LoginPage from "../pages/auth/LoginPage/LoginPage";
 import ForgotPasswordPage from "../pages/auth/ForgotPasswordPage/ForgotPasswordPage";
 import AccountBlockedPage from "../pages/auth/AccountBlockedPage/AccountBlockedPage";
@@ -11,6 +12,7 @@ import ProductsPage from "../pages/Products/ProductsPage";
 import WarehouseConfigPage from "../pages/WarehouseConfig/WarehouseConfigPage";
 import VehiclesPage from "../pages/Vehicles/VehiclesPage";
 import StockAssignmentPage from "../pages/StockAssignment/StockAssignmentPage";
+import UsersPage from "../pages/Users/UsersPage";
 
 export default function AppRoutes() {
   return (
@@ -28,11 +30,23 @@ export default function AppRoutes() {
         {/* RUTAS PROTEGIDAS (requieren sesión) */}
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
+            {/* Abiertas a cualquier usuario autenticado */}
             <Route path="/inicio" element={<HomePage />} />
             <Route path="/productos" element={<ProductsPage />} />
-            <Route path="/configuracion" element={<WarehouseConfigPage />} />
-            <Route path="/asignacion-stock" element={<StockAssignmentPage />} />
-            <Route path="/vehiculos" element={<VehiclesPage />} />
+
+            {/* Gateadas por rol (espejo de los @PreAuthorize del backend) */}
+            <Route element={<RequireCapability capability="warehouse.read" />}>
+              <Route path="/configuracion" element={<WarehouseConfigPage />} />
+            </Route>
+            <Route element={<RequireCapability capability="stock.assign" />}>
+              <Route path="/asignacion-stock" element={<StockAssignmentPage />} />
+            </Route>
+            <Route element={<RequireCapability capability="vehicle.read" />}>
+              <Route path="/vehiculos" element={<VehiclesPage />} />
+            </Route>
+            <Route element={<RequireCapability capability="user.read" />}>
+              <Route path="/usuarios" element={<UsersPage />} />
+            </Route>
           </Route>
         </Route>
 
