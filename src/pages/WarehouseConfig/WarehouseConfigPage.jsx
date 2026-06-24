@@ -10,7 +10,6 @@ import InfoList from "../../components/warehouse/InfoList/InfoList";
 import ZonesEditModal from "../../components/warehouse/ZonesEditModal/ZonesEditModal";
 import LinesEditModal from "../../components/warehouse/LinesEditModal/LinesEditModal";
 import PositionsEditModal from "../../components/warehouse/PositionsEditModal/PositionsEditModal";
-import LocationDataEditModal from "../../components/warehouse/LocationDataEditModal/LocationDataEditModal";
 import { warehouseConfigService } from "../../services/warehouseConfigService";
 import "./WarehouseConfigPage.css";
 
@@ -269,10 +268,6 @@ export default function WarehouseConfigPage() {
           <span className="warehouse-page__action-icon"><Icon name="target" size={20} /></span>
           <span>Modificar posiciones</span>
         </button>
-        <button type="button" className="warehouse-page__action" onClick={() => setOpenModal("data")}>
-          <span className="warehouse-page__action-icon"><Icon name="file" size={20} /></span>
-          <span>Ver datos de ubicación</span>
-        </button>
       </div>
 
       <ZonesEditModal
@@ -290,10 +285,6 @@ export default function WarehouseConfigPage() {
         onClose={() => setOpenModal(null)}
         onSaved={handleModalSaved}
         initialSelection={selected.idPosition ? selected : null}
-      />
-      <LocationDataEditModal
-        open={openModal === "data"}
-        onClose={() => setOpenModal(null)}
       />
 
       <Modal

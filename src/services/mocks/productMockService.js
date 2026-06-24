@@ -335,6 +335,11 @@ export const productMockService = {
 
       location: null,
 
+      height: input.height ?? null,
+      width: input.width ?? null,
+      length: input.length ?? null,
+      weight: input.weight ?? null,
+
       active: true,
 
       created_at: new Date().toISOString(),

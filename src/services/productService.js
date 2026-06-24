@@ -26,8 +26,10 @@
 |   - stock no se envía: el backend lo computa desde current_stock de las
 |     posiciones. Solo `minimum_stock` viaja en el alta/edición.
 |
-| Las dimensiones (alto/ancho/profundidad/peso) viajan dentro de `specs`.
-| Se eliminó unitsPerPallet/HalfPallet/Box (ya no hay asignación automática).
+| Las dimensiones viajan como campos sueltos obligatorios: height/width/length
+| (cm) y weight, todos @NotNull @Min(0) en el backend. NO van dentro de `specs`
+| (specs queda para atributos libres). El backend además devuelve `volume`
+| calculado. Se eliminó unitsPerPallet/HalfPallet/Box (ya no hay asignación auto).
 |
 */
 
@@ -65,21 +67,6 @@ const normalizeLocation = (raw) => {
   };
 };
 
-const normalizeSpecs = (specs = []) => {
-  const findValue = (label) =>
-    specs.find(
-      (s) =>
-        s.label?.toLowerCase() === label.toLowerCase()
-    )?.value ?? "";
-
-  return {
-    alto: findValue("Alto"),
-    ancho: findValue("Ancho"),
-    profundidad: findValue("Profundidad"),
-    peso: findValue("Peso"),
-  };
-};
-
 const normalize = (raw) => {
   if (!raw) return null;
 
@@ -88,8 +75,6 @@ const normalize = (raw) => {
     raw.order_constraints ||
     raw.orderConstraints ||
     {};
-
-  const dimensions = normalizeSpecs(raw.specs);
 
   return {
     id: raw.id,
@@ -112,12 +97,18 @@ const normalize = (raw) => {
       raw.images?.[0]?.alt ??
       "",
 
-    // Dimensiones aplanadas desde specs (compatibilidad con vistas que las leen
-    // sueltas). El precio/imagenes/specs crudos van más abajo para el card/form.
-    alto: dimensions.alto,
-    ancho: dimensions.ancho,
-    profundidad: dimensions.profundidad,
-    peso: dimensions.peso,
+    // Dimensiones: el backend las devuelve como campos sueltos (cm / peso) más
+    // un `volume` calculado. Se exponen en camelCase para el form de edición y
+    // bajo los alias alto/ancho/profundidad/peso para vistas que aún los leen.
+    height: raw.height ?? null,
+    width: raw.width ?? null,
+    length: raw.length ?? null,
+    weight: raw.weight ?? null,
+    volume: raw.volume ?? null,
+    alto: raw.height ?? null,
+    ancho: raw.width ?? null,
+    profundidad: raw.length ?? null,
+    peso: raw.weight ?? null,
 
     active: raw.active,
 
@@ -185,6 +176,9 @@ const toSpecsPayload = (specs = []) =>
     .filter((s) => s && (s.label?.trim?.() ?? s.label) && (s.value?.trim?.() ?? s.value))
     .map((s) => ({ label: s.label.trim(), value: s.value.trim() }));
 
+// Las dimensiones son @NotNull @Min(0) en el backend: height/width/length
+// (alto/ancho/largo, en cm) y weight. Viajan como campos sueltos (no en specs). Si falta
+// cualquiera, el backend responde 400 "height: must not be null", etc.
 const toCreatePayload = (input) => ({
   sku: input.sku,
   name: input.name,
@@ -195,6 +189,10 @@ const toCreatePayload = (input) => ({
   specs: toSpecsPayload(input.specs),
   max_quantity_per_order: Number(input.maxQuantityPerOrder) || 0,
   minimum_stock: Number(input.minimumStock) || 0,
+  height: Number(input.height) || 0,
+  width: Number(input.width) || 0,
+  length: Number(input.length) || 0,
+  weight: Number(input.weight) || 0,
 });
 
 const toUpdatePayload = (input) => {
@@ -210,6 +208,10 @@ const toUpdatePayload = (input) => {
   if (input.minimumStock !== undefined)
     payload.minimum_stock = Number(input.minimumStock) || 0;
   if (input.active !== undefined) payload.is_active = input.active;
+  if (input.height !== undefined) payload.height = Number(input.height) || 0;
+  if (input.width !== undefined) payload.width = Number(input.width) || 0;
+  if (input.length !== undefined) payload.length = Number(input.length) || 0;
+  if (input.weight !== undefined) payload.weight = Number(input.weight) || 0;
 
   const hasPrice =
     input.price !== undefined ||

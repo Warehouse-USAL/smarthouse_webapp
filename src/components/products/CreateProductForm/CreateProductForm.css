@@ -107,6 +107,11 @@
   cursor: pointer;
 }
 
+/* ── Dimensiones (campos obligatorios del backend) ── */
+.cpf-dimensions {
+  margin-bottom: var(--space-4);
+}
+
 /* ── Specs ── */
 .cpf-specs {
   display: flex;

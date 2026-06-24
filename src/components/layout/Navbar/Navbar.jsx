@@ -1,21 +1,29 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import Logo from "../../ui/Logo/Logo";
-import { logout } from "../../../services/authService";
+import { logout, getUser } from "../../../services/authService";
+import { can } from "../../../lib/permissions";
 import "./Navbar.css";
 
+// `capability` opcional: si está, el ítem solo se muestra cuando el rol la tiene.
 const NAV_ITEMS = [
   { to: "/inicio", label: "Inicio" },
-  { to: "/configuracion", label: "Configuración del warehouse" },
+  { to: "/configuracion", label: "Configuración del warehouse", capability: "warehouse.read" },
   { to: "/productos", label: "Productos" },
-  { to: "/asignacion-stock", label: "Asignación de stock" },
-  { to: "/vehiculos", label: "Vehículos" },
+  { to: "/asignacion-stock", label: "Asignación de stock", capability: "stock.assign" },
+  { to: "/vehiculos", label: "Vehículos", capability: "vehicle.read" },
+  { to: "/usuarios", label: "Usuarios", capability: "user.read" },
 ];
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
   const navigate = useNavigate();
+
+  const user = getUser();
+  const navItems = NAV_ITEMS.filter(
+    (item) => !item.capability || can(item.capability)
+  );
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -38,7 +46,7 @@ export default function Navbar() {
       <div className="navbar__inner">
         <Logo />
         <nav className="navbar__nav" aria-label="Principal">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -59,7 +67,7 @@ export default function Navbar() {
             aria-expanded={open}
           >
             <div className="navbar__avatar" aria-hidden="true" />
-            <span className="navbar__user-name">User 1</span>
+            <span className="navbar__user-name">{user?.name ?? "Usuario"}</span>
             <svg
               width="14"
               height="14"

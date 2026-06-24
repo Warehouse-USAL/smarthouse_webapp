@@ -39,3 +39,24 @@ export const POSITION_SIZE_LABEL = {
 
 export const isCompatible = (positionSize, storageUnit) =>
   SIZE_TO_UNIT[positionSize] === storageUnit;
+
+// Volumen útil de cada unidad de almacenamiento, en cm³. Espejo EXACTO del enum
+// StockSize del backend (CAJA/MEDIO_PALLET/PALLET → volumeCm3). El backend
+// rechaza una asignación cuando product.volume * stock supera este volumen
+// (PositionService: StockExceedsCapacityException). Mantener sincronizado.
+export const STORAGE_VOLUME_CM3 = {
+  CAJA: 48000,
+  MEDIO_PALLET: 900000,
+  PALLET: 1800000,
+};
+
+// Cuántas unidades de un producto entran en UNA posición de la unidad dada,
+// según el volumen. Misma fórmula que el backend: floor(volumenTamaño /
+// volumenProducto). Si el producto no tiene volumen (0/null), el backend no
+// aplica el tope de volumen → devolvemos Infinity (sin límite por volumen).
+export const unitsPerPosition = (productVolume, storageUnit) => {
+  const size = STORAGE_VOLUME_CM3[storageUnit];
+  const volume = Number(productVolume) || 0;
+  if (!size || volume <= 0) return Infinity;
+  return Math.floor(size / volume);
+};

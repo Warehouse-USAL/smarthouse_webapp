@@ -14,6 +14,7 @@ import ProductCard from "../../components/products/ProductCard/ProductCard";
 import CreateProductForm from "../../components/products/CreateProductForm/CreateProductForm";
 import { productService } from "../../services/productService";
 import { warehouseConfigService } from "../../services/warehouseConfigService";
+import { can } from "../../lib/permissions";
 import "./ProductsPage.css";
 
 const PAGE_SIZE_OPTIONS = [
@@ -38,6 +39,13 @@ export default function ProductsPage() {
   const [deleting, setDeleting] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+
+  // Permisos del rol actual (espejo del backend): crear/editar incluye a
+  // ADMIN_SALES, borrar no; asignar stock es solo de warehouse.
+  const canCreate = can("product.create");
+  const canEdit = can("product.edit");
+  const canDelete = can("product.delete");
+  const canAssignStock = can("stock.assign");
 
 
   // Carga de categorías — async para que sea intercambiable con el backend real
@@ -188,21 +196,25 @@ export default function ProductsPage() {
         subtitle="Gestioná el catálogo. La asignación de stock a posiciones se hace desde la pantalla Asignación de stock."
         action={
           <div className="products-page__header-actions">
-            <Link to="/asignacion-stock">
-  <Button
-    variant="secondary"
-    size="sm"
-    iconLeft={<Icon name="pin" size={14} />}
-  >
-    Asignar stock
-  </Button>
-</Link>
-            <Button
-              iconLeft={<Icon name="plus" size={16} />}
-              onClick={() => setCreateOpen(true)}
-            >
-              Dar de alta producto
-            </Button>
+            {canAssignStock && (
+              <Link to="/asignacion-stock">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  iconLeft={<Icon name="pin" size={14} />}
+                >
+                  Asignar stock
+                </Button>
+              </Link>
+            )}
+            {canCreate && (
+              <Button
+                iconLeft={<Icon name="plus" size={16} />}
+                onClick={() => setCreateOpen(true)}
+              >
+                Dar de alta producto
+              </Button>
+            )}
           </div>
         }
       />
@@ -259,12 +271,14 @@ export default function ProductsPage() {
             title="No hay productos"
             description="No encontramos productos con los filtros seleccionados."
             action={
-              <Button
-                iconLeft={<Icon name="plus" size={16} />}
-                onClick={() => setCreateOpen(true)}
-              >
-                Dar de alta producto
-              </Button>
+              canCreate ? (
+                <Button
+                  iconLeft={<Icon name="plus" size={16} />}
+                  onClick={() => setCreateOpen(true)}
+                >
+                  Dar de alta producto
+                </Button>
+              ) : null
             }
           />
         </Card>
@@ -274,8 +288,8 @@ export default function ProductsPage() {
             <ProductCard
               key={product.id || product.sku}
               product={product}
-              onEdit={setEditing}
-              onDelete={setDeleting}
+              onEdit={canEdit ? setEditing : undefined}
+              onDelete={canDelete ? setDeleting : undefined}
             />
           ))}
         </div>

@@ -3,6 +3,7 @@ import Modal from "../../ui/Modal/Modal";
 import Button from "../../ui/Button/Button";
 import Select from "../../ui/Select/Select";
 import { warehouseConfigService } from "../../../services/warehouseConfigService";
+import { SIZE_TO_UNIT, STORAGE_UNIT_LABEL } from "../../../lib/storageCompatibility";
 import "./PositionsEditModal.css";
 
 const SIZE_OPTIONS = [
@@ -11,16 +12,25 @@ const SIZE_OPTIONS = [
   { value: "GRANDE", label: "Grande" },
 ];
 
+const draftFromPosition = (p) => ({
+  idPosition: p.idPosition,
+  positionName: p.positionName,
+  sizeStockToSave: p.sizeStockToSave,
+  isActive: p.isActive ?? true,
+  occupied: !!p.assignedProduct,
+  // Valores originales para detectar cambios.
+  _size: p.sizeStockToSave,
+  _active: p.isActive ?? true,
+});
+
+// Editor de tamaños/estado por línea: se eligen zona y línea, y se editan TODAS
+// sus posiciones de una sola vez. Reemplaza el viejo flujo de-a-una con dropdowns
+// en cascada.
 function PositionsEditBody({ onClose, onSaved, initialSelection }) {
   const [config, setConfig] = useState({ zones: [] });
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [idZone, setIdZone] = useState(initialSelection?.idZone || "");
   const [idLine, setIdLine] = useState(initialSelection?.idLine || "");
-  const [idPosition, setIdPosition] = useState(initialSelection?.idPosition || "");
-  // Overrides locales. Se resetean al cambiar la posición.
-  const [sizeOverride, setSizeOverride] = useState(null);
-  const [activeOverride, setActiveOverride] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -29,8 +39,6 @@ function PositionsEditBody({ onClose, onSaved, initialSelection }) {
       .then((next) => {
         if (cancelled) return;
         setConfig(next);
-        // Si vinimos desde un click en el mapa, respetamos esa selección;
-        // si no, arrancamos en la primera zona.
         if (!initialSelection?.idZone) {
           setIdZone(next.zones[0]?.idZone || "");
         }
@@ -51,10 +59,6 @@ function PositionsEditBody({ onClose, onSaved, initialSelection }) {
     () => warehouseConfigService.findLine(selectedZone, idLine),
     [selectedZone, idLine]
   );
-  const selectedPosition = useMemo(
-    () => warehouseConfigService.findPosition(selectedLine, idPosition),
-    [selectedLine, idPosition]
-  );
 
   const zoneOptions = useMemo(
     () => config.zones.map((z) => ({ value: z.idZone, label: z.name })),
@@ -68,53 +72,10 @@ function PositionsEditBody({ onClose, onSaved, initialSelection }) {
       })),
     [selectedZone]
   );
-  const positionOptions = useMemo(
-    () =>
-      (selectedLine?.positions || []).map((p) => ({
-        value: p.idPosition,
-        label: p.positionName,
-      })),
-    [selectedLine]
-  );
-
-  const size = sizeOverride ?? selectedPosition?.sizeStockToSave ?? "MEDIANA";
-  const active = activeOverride ?? selectedPosition?.isActive ?? false;
 
   const handleZoneChange = (e) => {
     setIdZone(e.target.value);
     setIdLine("");
-    setIdPosition("");
-    setSizeOverride(null);
-    setActiveOverride(null);
-  };
-
-  const handleLineChange = (e) => {
-    setIdLine(e.target.value);
-    setIdPosition("");
-    setSizeOverride(null);
-    setActiveOverride(null);
-  };
-
-  const handlePositionChange = (e) => {
-    setIdPosition(e.target.value);
-    setSizeOverride(null);
-    setActiveOverride(null);
-  };
-
-  const handleSave = async () => {
-    if (!idZone || !idLine || !idPosition) return;
-    setSaving(true);
-    try {
-      const next = await warehouseConfigService.updatePosition(idZone, idLine, idPosition, {
-        sizeStockToSave: size,
-        isActive: active,
-      });
-      setConfig(next);
-      onSaved?.(next);
-      onClose?.();
-    } finally {
-      setSaving(false);
-    }
   };
 
   if (loading) {
@@ -124,10 +85,11 @@ function PositionsEditBody({ onClose, onSaved, initialSelection }) {
   return (
     <>
       <p className="positions-edit__subtitle">
-        Seleccioná una zona, una línea y una posición para definir su tamaño.
+        Elegí una línea y ajustá el tamaño y el estado de cada posición. El tamaño
+        define qué unidad de almacenamiento acepta. Los cambios se aplican al guardar.
       </p>
 
-      <div className="positions-edit__form positions-edit__form--full">
+      <div className="positions-edit__pickers">
         <Select
           label="Zona"
           value={idZone}
@@ -138,58 +100,191 @@ function PositionsEditBody({ onClose, onSaved, initialSelection }) {
         <Select
           label="Línea"
           value={idLine}
-          onChange={handleLineChange}
+          onChange={(e) => setIdLine(e.target.value)}
           options={lineOptions}
           placeholder="Seleccioná línea"
           disabled={!idZone}
         />
-        <Select
-          label="Posición"
-          value={idPosition}
-          onChange={handlePositionChange}
-          options={positionOptions}
-          placeholder="Seleccioná posición"
-          disabled={!idLine}
-        />
-        <Select
-          label="Tamaño"
-          value={size}
-          onChange={(e) => setSizeOverride(e.target.value)}
-          options={SIZE_OPTIONS}
-          disabled={!idPosition}
-        />
-        <Select
-          label="Estado"
-          value={active ? "true" : "false"}
-          onChange={(e) => setActiveOverride(e.target.value === "true")}
-          options={[
-            { value: "true", label: "Activa" },
-            { value: "false", label: "Inactiva" },
-          ]}
-          disabled={!idPosition}
-        />
       </div>
 
-      <div className="positions-edit__hint">
-        El tamaño se define por posición: <strong>Pequeña</strong> acepta Cajas,{" "}
-        <strong>Mediana</strong> Medio Pallets y <strong>Grande</strong> Pallets.
+      {!idLine ? (
+        <div className="positions-edit__placeholder">
+          Seleccioná una línea para ver sus posiciones.
+        </div>
+      ) : (
+        // key por línea: reinicia los borradores al cambiar de línea sin usar
+        // un efecto que sincronice estado.
+        <LinePositionsTable
+          key={idLine}
+          idZone={idZone}
+          idLine={idLine}
+          positions={selectedLine?.positions || []}
+          onSaved={onSaved}
+          onClose={onClose}
+        />
+      )}
+
+      {!idLine && (
+        <div className="positions-edit__actions">
+          <span className="positions-edit__changed-count">Sin cambios</span>
+          <div className="positions-edit__actions-buttons">
+            <Button variant="secondary" type="button" onClick={onClose}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function LinePositionsTable({ idZone, idLine, positions, onSaved, onClose }) {
+  const [drafts, setDrafts] = useState(() => positions.map(draftFromPosition));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  const changed = drafts.filter(
+    (d) => d.sizeStockToSave !== d._size || d.isActive !== d._active
+  );
+
+  const updateDraft = (idPosition, patch) => {
+    setDrafts((list) => list.map((d) => (d.idPosition === idPosition ? { ...d, ...patch } : d)));
+  };
+
+  const applySizeToAll = (size) => {
+    setDrafts((list) => list.map((d) => ({ ...d, sizeStockToSave: size })));
+  };
+
+  const handleSave = async () => {
+    if (changed.length === 0) {
+      onClose?.();
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      for (const d of changed) {
+        await warehouseConfigService.updatePosition(idZone, idLine, d.idPosition, {
+          sizeStockToSave: d.sizeStockToSave,
+          isActive: d.isActive,
+        });
+      }
+      const fresh = await warehouseConfigService.get();
+      onSaved?.(fresh);
+      onClose?.();
+    } catch (err) {
+      setError(err?.response?.data?.error?.message || "No pudimos guardar algunos cambios.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (drafts.length === 0) {
+    return (
+      <>
+        <div className="positions-edit__placeholder">
+          Esta línea no tiene posiciones. Agregalas desde “Líneas”.
+        </div>
+        <div className="positions-edit__actions">
+          <span className="positions-edit__changed-count">Sin cambios</span>
+          <div className="positions-edit__actions-buttons">
+            <Button variant="secondary" type="button" onClick={onClose}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className="positions-edit__bulk">
+        <span className="positions-edit__bulk-label">Aplicar a todas:</span>
+        {SIZE_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            className="positions-edit__bulk-btn"
+            onClick={() => applySizeToAll(opt.value)}
+          >
+            {opt.label}
+          </button>
+        ))}
       </div>
+
+      <div className="positions-edit__table" role="table">
+        <div className="positions-edit__head" role="row">
+          <span role="columnheader">Posición</span>
+          <span role="columnheader">Tamaño</span>
+          <span role="columnheader">Acepta</span>
+          <span role="columnheader">Estado</span>
+        </div>
+        <div className="positions-edit__rows">
+          {drafts.map((d) => {
+            const rowChanged = d.sizeStockToSave !== d._size || d.isActive !== d._active;
+            return (
+              <div
+                className={`positions-edit__row ${rowChanged ? "positions-edit__row--changed" : ""}`}
+                role="row"
+                key={d.idPosition}
+              >
+                <span className="positions-edit__name" role="cell">
+                  {d.positionName}
+                  {d.occupied && (
+                    <span className="positions-edit__badge" title="Posición ocupada">
+                      Ocupada
+                    </span>
+                  )}
+                </span>
+                <span role="cell">
+                  <Select
+                    value={d.sizeStockToSave}
+                    onChange={(e) => updateDraft(d.idPosition, { sizeStockToSave: e.target.value })}
+                    options={SIZE_OPTIONS}
+                  />
+                </span>
+                <span className="positions-edit__unit" role="cell">
+                  {STORAGE_UNIT_LABEL[SIZE_TO_UNIT[d.sizeStockToSave]]}
+                </span>
+                <span role="cell">
+                  <Select
+                    value={d.isActive ? "true" : "false"}
+                    onChange={(e) => updateDraft(d.idPosition, { isActive: e.target.value === "true" })}
+                    options={[
+                      { value: "true", label: "Activa" },
+                      { value: "false", label: "Inactiva" },
+                    ]}
+                  />
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {error && <p className="positions-edit__error">{error}</p>}
 
       <div className="positions-edit__actions">
-        <Button variant="secondary" type="button" onClick={onClose} disabled={saving}>
-          Cancelar
-        </Button>
-        <Button type="button" onClick={handleSave} disabled={!idPosition || saving}>
-          {saving ? "Guardando…" : "Guardar cambios"}
-        </Button>
+        <span className="positions-edit__changed-count">
+          {changed.length > 0
+            ? `${changed.length} ${changed.length === 1 ? "cambio sin guardar" : "cambios sin guardar"}`
+            : "Sin cambios"}
+        </span>
+        <div className="positions-edit__actions-buttons">
+          <Button variant="secondary" type="button" onClick={onClose} disabled={saving}>
+            Cancelar
+          </Button>
+          <Button type="button" onClick={handleSave} disabled={saving || changed.length === 0}>
+            {saving ? "Guardando…" : "Guardar cambios"}
+          </Button>
+        </div>
       </div>
     </>
   );
 }
 
 export default function PositionsEditModal({ open, onClose, onSaved, initialSelection }) {
-  // Remontamos el body cuando cambia la posición de origen para reinicializar
-  // los selects desde la selección del mapa.
   const bodyKey = initialSelection?.idPosition || "default";
   return (
     <Modal open={open} onClose={onClose} title="Modificar posiciones" size="lg">
