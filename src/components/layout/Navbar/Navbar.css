@@ -21,7 +21,8 @@
   display: flex;
   flex: 1;
   justify-content: center;
-  gap: var(--space-8);
+  /* gap: var(--space-8); */
+  gap:10px;
 }
 
 .navbar__link {
@@ -31,6 +32,10 @@
   color: var(--color-text-secondary);
   padding: 8px 4px;
   transition: color 120ms ease;
+  
+  text-align: center;
+  align-items: center;
+  display: flex;
 }
 
 .navbar__link:hover {

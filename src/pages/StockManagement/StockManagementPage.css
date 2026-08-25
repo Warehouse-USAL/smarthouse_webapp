@@ -1,0 +1,111 @@
+.stock-management {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* ── Action cards grid ─────────────────────────────────────── */
+
+.stock-management__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.stock-management__card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  border: 1px solid transparent;
+  text-decoration: none;
+  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+}
+
+.stock-management__card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card);
+}
+
+/* ── Variants ──────────────────────────────────────────────── */
+
+.stock-management__card--yellow {
+  background-color: var(--color-yellow-soft);
+}
+
+.stock-management__card--yellow:hover {
+  border-color: var(--color-yellow-primary);
+}
+
+.stock-management__card--yellow .stock-management__card-icon {
+  background-color: var(--color-yellow-primary);
+  color: var(--color-white);
+}
+
+.stock-management__card--blue {
+  background-color: var(--color-info-blue-soft);
+}
+
+.stock-management__card--blue:hover {
+  border-color: var(--color-info-blue);
+}
+
+.stock-management__card--blue .stock-management__card-icon {
+  background-color: var(--color-info-blue);
+  color: var(--color-white);
+}
+
+/* ── Icon circle ───────────────────────────────────────────── */
+
+.stock-management__card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Text ──────────────────────────────────────────────────── */
+
+.stock-management__card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.stock-management__card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.stock-management__card-desc {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+/* ── Chevron ───────────────────────────────────────────────── */
+
+.stock-management__card-chevron {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  transition: transform 120ms ease;
+}
+
+.stock-management__card:hover .stock-management__card-chevron {
+  transform: translateX(3px);
+  color: var(--color-text-secondary);
+}
+
+/* ── Responsive ────────────────────────────────────────────── */
+
+@media (max-width: 720px) {
+  .stock-management__actions {
+    grid-template-columns: 1fr;
+  }
+}
