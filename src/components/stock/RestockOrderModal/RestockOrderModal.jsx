@@ -11,6 +11,11 @@ const PRIORITY_OPTIONS = [
   { value: "baja", label: "Baja" },
 ];
 
+const QUANTITY_OPTIONS = Array.from({ length: 100 }, (_, i) => ({
+  value: i + 1,
+  label: String(i + 1),
+}));
+
 export default function RestockOrderModal({ open, onClose }) {
   return (
     <Modal
@@ -43,28 +48,22 @@ export default function RestockOrderModal({ open, onClose }) {
           label="Producto"
           iconLeft={<Icon name="search" size={18} />}
           placeholder="Buscar producto o SKU"
+          required
         />
 
         <div className="restock-modal__row">
-          <div className="restock-modal__stepper">
-            <label>
-              Cantidad solicitada <span className="restock-modal__required">*</span>
-            </label>
-            <div className="restock-modal__stepper-input">
-              <button type="button" className="restock-modal__stepper-btn" disabled>
-                −
-              </button>
-              <input type="number" min={1} step={1} placeholder="Ej. 50" />
-              <button type="button" className="restock-modal__stepper-btn" disabled>
-                +
-              </button>
-            </div>
-          </div>
+          <Select
+            label="Cantidad solicitada"
+            options={QUANTITY_OPTIONS}
+            placeholder="Seleccioná cantidad"
+            required
+          />
 
           <Select
             label="Prioridad"
             options={PRIORITY_OPTIONS}
             placeholder="Seleccioná prioridad"
+            required
           />
         </div>
       </div>

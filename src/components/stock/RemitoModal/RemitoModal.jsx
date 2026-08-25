@@ -5,7 +5,7 @@ import Button from "../../ui/Button/Button";
 import Badge from "../../ui/Badge/Badge";
 import ProgressBar from "../../ui/ProgressBar/ProgressBar";
 import Icon from "../../ui/Icon/Icon";
-import "./ReceivingSlipModal.css";
+import "./RemitoModal.css";
 
 const DELIVERY_UNIT_OPTIONS = [
   { value: "pallet", label: "Pallet" },
@@ -38,7 +38,7 @@ const PROGRESS_VARIANT = {
   empty: "danger",
 };
 
-export default function ReceivingSlipModal({ open, onClose }) {
+export default function RemitoModal({ open, onClose }) {
   return (
     <Modal
       open={open}
@@ -54,15 +54,15 @@ export default function ReceivingSlipModal({ open, onClose }) {
         </>
       }
     >
-      <p className="receiving-modal__subtitle">
+      <p className="remito-modal__subtitle">
         Completá la información para registrar la recepción de mercadería.
       </p>
 
-      <div className="receiving-modal__form">
+      <div className="remito-modal__form">
         {/* ── Sección 1: Orden ─────────────────────────────── */}
-        <section className="receiving-modal__section">
-          <h4 className="receiving-modal__section-title">
-            <span className="receiving-modal__section-num">1</span>
+        <section className="remito-modal__section">
+          <h4 className="remito-modal__section-title">
+            <span className="remito-modal__section-num">1</span>
             Seleccioná la orden de restock
           </h4>
           <Select
@@ -71,34 +71,34 @@ export default function ReceivingSlipModal({ open, onClose }) {
             ]}
             value="RST-00018"
           />
-          <div className="receiving-modal__info">
+          <div className="remito-modal__info">
             <Badge variant="warning" dot>Pendiente</Badge>
             <span>Cantidad solicitada: <strong>50 unidades</strong></span>
           </div>
         </section>
 
         {/* ── Sección 2: Producto ──────────────────────────── */}
-        <section className="receiving-modal__section">
-          <h4 className="receiving-modal__section-title">
-            <span className="receiving-modal__section-num">2</span>
+        <section className="remito-modal__section">
+          <h4 className="remito-modal__section-title">
+            <span className="remito-modal__section-num">2</span>
             Producto
           </h4>
-          <div className="receiving-modal__product-card">
-            <div className="receiving-modal__product-thumb">
+          <div className="remito-modal__product-card">
+            <div className="remito-modal__product-thumb">
               <Icon name="box" size={24} />
             </div>
-            <div className="receiving-modal__product-info">
-              <span className="receiving-modal__product-name">Mouse inalámbrico Logitech M185</span>
-              <span className="receiving-modal__product-sku">SKU: MOU-001</span>
+            <div className="remito-modal__product-info">
+              <span className="remito-modal__product-name">Mouse inalámbrico Logitech M185</span>
+              <span className="remito-modal__product-sku">SKU: MOU-001</span>
             </div>
           </div>
         </section>
 
         {/* ── Sección 3 + 4: Cantidad y Unidad ────────────── */}
-        <div className="receiving-modal__row">
-          <section className="receiving-modal__section">
-            <h4 className="receiving-modal__section-title">
-              <span className="receiving-modal__section-num">3</span>
+        <div className="remito-modal__row">
+          <section className="remito-modal__section">
+            <h4 className="remito-modal__section-title">
+              <span className="remito-modal__section-num">3</span>
               Cantidad recibida
             </h4>
             <Input
@@ -110,27 +110,27 @@ export default function ReceivingSlipModal({ open, onClose }) {
             />
           </section>
 
-          <section className="receiving-modal__section">
-            <h4 className="receiving-modal__section-title">
-              <span className="receiving-modal__section-num">4</span>
+          <section className="remito-modal__section">
+            <h4 className="remito-modal__section-title">
+              <span className="remito-modal__section-num">4</span>
               Unidad de entrega
             </h4>
             <Select
               options={DELIVERY_UNIT_OPTIONS}
               placeholder="Seleccioná una unidad"
-              hint="Ej. Pallet, Medio pallet, Caja"
             />
+            <span className="remito-modal__field-hint">Ej. Pallet, Medio Pallet, Caja</span>
           </section>
         </div>
 
         {/* ── Sección 5: Ubicación actual ──────────────────── */}
-        <section className="receiving-modal__section">
-          <h4 className="receiving-modal__section-title">
-            <span className="receiving-modal__section-num">5</span>
+        <section className="remito-modal__section">
+          <h4 className="remito-modal__section-title">
+            <span className="remito-modal__section-num">5</span>
             Ubicación actual del material
           </h4>
-          <div className="receiving-modal__table-wrap">
-            <table className="receiving-modal__table">
+          <div className="remito-modal__table-wrap">
+            <table className="remito-modal__table">
               <thead>
                 <tr>
                   <th>Ubicación</th>
@@ -142,22 +142,22 @@ export default function ReceivingSlipModal({ open, onClose }) {
               <tbody>
                 {CURRENT_LOCATIONS.map((row) => (
                   <tr key={row.location}>
-                    <td className="receiving-modal__table-loc">{row.location}</td>
+                    <td className="remito-modal__table-loc">{row.location}</td>
                     <td>
                       <Badge variant={STATUS_VARIANT[row.status]} dot>
                         {row.statusLabel}
                       </Badge>
                     </td>
                     <td>
-                      <div className="receiving-modal__table-qty">
+                      <div className="remito-modal__table-qty">
+                        <span className="remito-modal__qty-text">{row.qty}/{row.capacity} unidades</span>
                         <ProgressBar
                           value={Math.round((row.qty / row.capacity) * 100)}
                           variant={PROGRESS_VARIANT[row.status]}
                         />
-                        <span>{row.qty}</span>
                       </div>
                     </td>
-                    <td className="receiving-modal__table-cap">{row.capacity}</td>
+                    <td className="remito-modal__table-cap">{row.capacity} unidades</td>
                   </tr>
                 ))}
               </tbody>
@@ -166,20 +166,20 @@ export default function ReceivingSlipModal({ open, onClose }) {
         </section>
 
         {/* ── Sección 6: Ubicaciones disponibles ───────────── */}
-        <section className="receiving-modal__section">
-          <h4 className="receiving-modal__section-title">
-            <span className="receiving-modal__section-num">6</span>
+        <section className="remito-modal__section">
+          <h4 className="remito-modal__section-title">
+            <span className="remito-modal__section-num">6</span>
             Ubicaciones disponibles para asignar el material recibido
           </h4>
-          <div className="receiving-modal__locations-grid">
+          <div className="remito-modal__locations-grid">
             {AVAILABLE_LOCATIONS.map((loc) => (
-              <label className="receiving-modal__location-card" key={loc.location}>
-                <input type="checkbox" className="receiving-modal__location-check" />
-                <span className="receiving-modal__location-name">{loc.location}</span>
-                <span className="receiving-modal__location-spaces">{loc.spaces} espacios</span>
+              <label className="remito-modal__location-card" key={loc.location}>
+                <input type="checkbox" className="remito-modal__location-check" />
+                <span className="remito-modal__location-name">{loc.location}</span>
+                <span className="remito-modal__location-spaces">{loc.spaces} espacios</span>
               </label>
             ))}
-            <button type="button" className="receiving-modal__location-more" disabled>
+            <button type="button" className="remito-modal__location-more" disabled>
               <Icon name="plus" size={18} />
               <span>Ver más ubicaciones</span>
             </button>

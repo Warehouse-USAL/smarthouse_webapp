@@ -2,7 +2,7 @@ import { useState } from "react";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
 import Icon from "../../components/ui/Icon/Icon";
 import RestockOrderModal from "../../components/stock/RestockOrderModal/RestockOrderModal";
-import ReceivingSlipModal from "../../components/stock/ReceivingSlipModal/ReceivingSlipModal";
+import RemitoModal from "../../components/stock/RemitoModal/RemitoModal";
 import "./StockManagementPage.css";
 
 const ACTION_CARDS = [
@@ -11,7 +11,8 @@ const ACTION_CARDS = [
     icon: "box",
     title: "Agregar órdenes de restock",
     description:
-      "Creá órdenes para reponer productos que necesitan ser reabastecidos.",
+      "Creá órdenes para solicitar mercaderia a tus proovedores.",
+    note: "La orden quedará pendiente hasta que se registre el remito de entrega.",
     variant: "yellow",
   },
   {
@@ -19,7 +20,8 @@ const ACTION_CARDS = [
     icon: "truck",
     title: "Agregar remitos de recepción",
     description:
-      "Registrá la recepción de mercadería y asignala a posiciones del warehouse.",
+      "Registrá los remitos de entrega recibidos de tus proovedores.",
+    note: "Al confirmar la recepción, el stock se actualizará automáticamente.",
     variant: "blue",
   },
 ];
@@ -53,7 +55,11 @@ export default function StockManagementPage() {
             </div>
             <div className="stock-management__card-body">
               <h3 className="stock-management__card-title">{card.title}</h3>
-              <p className="stock-management__card-desc">{card.description}</p>
+              <p className="stock-management__card-desc">
+                {card.description}
+                <br />
+                {card.note}
+              </p>
             </div>
             <Icon
               name="chevronRight"
@@ -65,7 +71,7 @@ export default function StockManagementPage() {
       </div>
 
       <RestockOrderModal open={restockOpen} onClose={() => setRestockOpen(false)} />
-      <ReceivingSlipModal open={receivingOpen} onClose={() => setReceivingOpen(false)} />
+      <RemitoModal open={receivingOpen} onClose={() => setReceivingOpen(false)} />
     </div>
   );
 }

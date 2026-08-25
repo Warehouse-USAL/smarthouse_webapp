@@ -1,16 +1,16 @@
-.receiving-modal__subtitle {
+.remito-modal__subtitle {
   margin: 0 0 var(--space-5);
   font-size: 14px;
   color: var(--color-text-secondary);
 }
 
-.receiving-modal__form {
+.remito-modal__form {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
 }
 
-.receiving-modal__row {
+.remito-modal__row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-4);
@@ -18,13 +18,13 @@
 
 /* ── Sections ─────────────────────────────────────────────── */
 
-.receiving-modal__section {
+.remito-modal__section {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
 }
 
-.receiving-modal__section-title {
+.remito-modal__section-title {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -34,23 +34,22 @@
   color: var(--color-text-primary);
 }
 
-.receiving-modal__section-num {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background-color: var(--color-text-primary);
-  color: var(--color-white);
-  font-size: 12px;
+.remito-modal__section-num {
+  font-size: 14px;
   font-weight: 600;
+  color: var(--color-text-primary);
   flex-shrink: 0;
+}
+
+.remito-modal__field-hint {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: -4px;
 }
 
 /* ── Info bar ─────────────────────────────────────────────── */
 
-.receiving-modal__info {
+.remito-modal__info {
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -63,7 +62,7 @@
 
 /* ── Product card ─────────────────────────────────────────── */
 
-.receiving-modal__product-card {
+.remito-modal__product-card {
   display: flex;
   align-items: center;
   gap: var(--space-4);
@@ -73,7 +72,7 @@
   background-color: var(--color-white);
 }
 
-.receiving-modal__product-thumb {
+.remito-modal__product-thumb {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -85,38 +84,38 @@
   flex-shrink: 0;
 }
 
-.receiving-modal__product-info {
+.remito-modal__product-info {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.receiving-modal__product-name {
+.remito-modal__product-name {
   font-size: 14px;
   font-weight: 600;
   color: var(--color-text-primary);
 }
 
-.receiving-modal__product-sku {
+.remito-modal__product-sku {
   font-size: 13px;
   color: var(--color-text-secondary);
 }
 
 /* ── Table ────────────────────────────────────────────────── */
 
-.receiving-modal__table-wrap {
+.remito-modal__table-wrap {
   border: 1px solid var(--color-border-soft);
   border-radius: var(--radius-md);
   overflow: hidden;
 }
 
-.receiving-modal__table {
+.remito-modal__table {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
 }
 
-.receiving-modal__table th {
+.remito-modal__table th {
   text-align: left;
   padding: var(--space-3) var(--space-4);
   background-color: var(--color-surface-muted);
@@ -125,52 +124,52 @@
   border-bottom: 1px solid var(--color-border-soft);
 }
 
-.receiving-modal__table td {
+.remito-modal__table td {
   padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--color-border-soft);
   color: var(--color-text-primary);
 }
 
-.receiving-modal__table tbody tr:last-child td {
+.remito-modal__table tbody tr:last-child td {
   border-bottom: none;
 }
 
-.receiving-modal__table-loc {
+.remito-modal__table-loc {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
-.receiving-modal__table-qty {
+.remito-modal__table-qty {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  min-width: 140px;
 }
 
-.receiving-modal__table-qty .progress {
-  flex: 1;
-}
-
-.receiving-modal__table-qty span {
+.remito-modal__qty-text {
   font-variant-numeric: tabular-nums;
-  min-width: 20px;
-  text-align: right;
+  white-space: nowrap;
+  font-size: 13px;
 }
 
-.receiving-modal__table-cap {
+.remito-modal__table-qty .progress {
+  width: 80px;
+  flex-shrink: 0;
+}
+
+.remito-modal__table-cap {
   color: var(--color-text-secondary);
   font-variant-numeric: tabular-nums;
 }
 
 /* ── Available locations grid ──────────────────────────────── */
 
-.receiving-modal__locations-grid {
+.remito-modal__locations-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--space-3);
 }
 
-.receiving-modal__location-card {
+.remito-modal__location-card {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -184,11 +183,11 @@
   position: relative;
 }
 
-.receiving-modal__location-card:hover {
+.remito-modal__location-card:hover {
   border-color: var(--color-primary);
 }
 
-.receiving-modal__location-check {
+.remito-modal__location-check {
   position: absolute;
   top: var(--space-3);
   right: var(--space-3);
@@ -198,19 +197,19 @@
   cursor: pointer;
 }
 
-.receiving-modal__location-name {
+.remito-modal__location-name {
   font-size: 16px;
   font-weight: 600;
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
 }
 
-.receiving-modal__location-spaces {
+.remito-modal__location-spaces {
   font-size: 13px;
   color: var(--color-text-secondary);
 }
 
-.receiving-modal__location-more {
+.remito-modal__location-more {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -227,12 +226,12 @@
   transition: border-color 120ms ease, color 120ms ease;
 }
 
-.receiving-modal__location-more:hover:not(:disabled) {
+.remito-modal__location-more:hover:not(:disabled) {
   border-color: var(--color-text-secondary);
   color: var(--color-text-secondary);
 }
 
-.receiving-modal__location-more:disabled {
+.remito-modal__location-more:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -240,11 +239,11 @@
 /* ── Responsive ───────────────────────────────────────────── */
 
 @media (max-width: 640px) {
-  .receiving-modal__row {
+  .remito-modal__row {
     grid-template-columns: 1fr;
   }
 
-  .receiving-modal__locations-grid {
+  .remito-modal__locations-grid {
     grid-template-columns: 1fr 1fr;
   }
 }

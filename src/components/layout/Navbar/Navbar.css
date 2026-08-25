@@ -9,9 +9,7 @@
 
 .navbar__inner {
   height: 100%;
-  max-width: var(--container-width);
-  margin: 0 auto;
-  padding: 0 var(--space-8);
+  padding: 0 3rem;
   display: flex;
   align-items: center;
   gap: var(--space-8);
@@ -21,8 +19,7 @@
   display: flex;
   flex: 1;
   justify-content: center;
-  /* gap: var(--space-8); */
-  gap:10px;
+  gap: var(--space-8);
 }
 
 .navbar__link {

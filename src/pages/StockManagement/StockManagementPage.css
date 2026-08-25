@@ -10,6 +10,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-4);
+  height: 10rem;
 }
 
 .stock-management__card {
@@ -64,7 +65,7 @@
   justify-content: center;
   width: 48px;
   height: 48px;
-  border-radius: 50%;
+  border-radius: var(--radius-cards);
   flex-shrink: 0;
 }
 
@@ -73,6 +74,7 @@
 .stock-management__card-body {
   flex: 1;
   min-width: 0;
+  margin-left: 10px;
 }
 
 .stock-management__card-title {
@@ -80,13 +82,17 @@
   font-weight: 600;
   color: var(--color-text-primary);
   margin: 0;
+  text-align: left;
 }
 
 .stock-management__card-desc {
-  margin: 4px 0 0;
+  margin: 8px 0 0;
   font-size: 14px;
   color: var(--color-text-secondary);
   line-height: 1.5;
+  text-align: left;
+  width: 407px;
+
 }
 
 /* ── Chevron ───────────────────────────────────────────────── */

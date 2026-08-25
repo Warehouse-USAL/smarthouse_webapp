@@ -4,7 +4,7 @@
   --color-primary-hover: #f5b800;
   --color-yellow-primary-alt: #FFC400;
 
-  --color-yellow-soft: #fcf4e0;
+  --color-yellow-soft: #fcf4e0af;
 
   --color-yellow-dark: #B77900;
   --color-yellow-dark-alt: #A86B00;
@@ -37,7 +37,7 @@
   --color-link-blue: #2563EB;
   --color-link: var(--color-link-blue);
 
-  --color-info-blue-soft: #DBEAFE;
+  --color-info-blue-soft: #dbeafea9;
   --color-info-blue: #2563EB;
   --color-info-bg: var(--color-info-blue-soft);
 
