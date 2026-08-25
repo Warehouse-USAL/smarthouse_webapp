@@ -12,6 +12,7 @@ import ProductsPage from "../pages/Products/ProductsPage";
 import WarehouseConfigPage from "../pages/WarehouseConfig/WarehouseConfigPage";
 import VehiclesPage from "../pages/Vehicles/VehiclesPage";
 import StockAssignmentPage from "../pages/StockAssignment/StockAssignmentPage";
+import StockManagementPage from "../pages/StockManagement/StockManagementPage";
 import UsersPage from "../pages/Users/UsersPage";
 
 export default function AppRoutes() {
@@ -40,6 +41,9 @@ export default function AppRoutes() {
             </Route>
             <Route element={<RequireCapability capability="stock.assign" />}>
               <Route path="/asignacion-stock" element={<StockAssignmentPage />} />
+            </Route>
+            <Route element={<RequireCapability capability="stock.assign" />}>
+              <Route path="/gestion-stock" element={<StockManagementPage />} />
             </Route>
             <Route element={<RequireCapability capability="vehicle.read" />}>
               <Route path="/vehiculos" element={<VehiclesPage />} />

@@ -1,0 +1,342 @@
+.stock-management {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* ── Action cards grid ─────────────────────────────────────── */
+
+.stock-management__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  height: 10rem;
+}
+
+.stock-management__card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  border: 1px solid transparent;
+  text-decoration: none;
+  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+}
+
+.stock-management__card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card);
+}
+
+/* ── Variants ──────────────────────────────────────────────── */
+
+.stock-management__card--yellow {
+  background-color: var(--color-yellow-soft);
+}
+
+.stock-management__card--yellow:hover {
+  border-color: var(--color-yellow-primary);
+}
+
+.stock-management__card--yellow .stock-management__card-icon {
+  background-color: var(--color-yellow-primary);
+  color: var(--color-white);
+}
+
+.stock-management__card--blue {
+  background-color: var(--color-info-blue-soft);
+}
+
+.stock-management__card--blue:hover {
+  border-color: var(--color-info-blue);
+}
+
+.stock-management__card--blue .stock-management__card-icon {
+  background-color: var(--color-info-blue);
+  color: var(--color-white);
+}
+
+/* ── Icon circle ───────────────────────────────────────────── */
+
+.stock-management__card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-cards);
+  flex-shrink: 0;
+}
+
+/* ── Text ──────────────────────────────────────────────────── */
+
+.stock-management__card-body {
+  flex: 1;
+  min-width: 0;
+  margin-left: 10px;
+}
+
+.stock-management__card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+  text-align: left;
+}
+
+.stock-management__card-desc {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  text-align: left;
+  max-width: 407px;
+}
+
+/* ── Chevron ───────────────────────────────────────────────── */
+
+.stock-management__card-chevron {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  transition: transform 120ms ease;
+}
+
+.stock-management__card:hover .stock-management__card-chevron {
+  transform: translateX(3px);
+  color: var(--color-text-secondary);
+}
+
+/* ── Responsive ────────────────────────────────────────────── */
+
+@media (max-width: 720px) {
+  .stock-management__actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* El subtítulo respeta la medida de lectura del diseño (dos líneas) */
+.stock-management .page-header__text p {
+  max-width: 600px;
+}
+
+/* ── Filtros ───────────────────────────────────────────────── */
+
+.stock-management__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-4);
+}
+
+.stock-management__filter {
+  flex: 1 1 200px;
+}
+
+/* Etiquetas más discretas que en los formularios: acá solo rotulan filtros */
+.stock-management__filters .select-group label,
+.stock-management__filters .date-range__label {
+  font-size: 13px;
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary-alt);
+}
+
+/* ── Pestañas por estado ───────────────────────────────────── */
+
+.stock-management__table-card {
+  overflow: hidden;
+}
+
+.stock-management__tabs {
+  display: flex;
+  gap: var(--space-6);
+  padding: 0 var(--space-5);
+  border-bottom: 1px solid var(--color-border-soft);
+}
+
+.stock-management__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4) 0;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: none;
+  font-size: 14px;
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary-alt);
+  cursor: pointer;
+  transition: color var(--transition-duration-button),
+    border-color var(--transition-duration-button);
+}
+
+.stock-management__tab:hover {
+  color: var(--color-text-primary);
+}
+
+.stock-management__tab--active,
+.stock-management__tab--active:hover {
+  color: var(--color-yellow-dark);
+  font-weight: var(--weight-semibold);
+  border-bottom-color: var(--color-yellow-primary);
+}
+
+.stock-management__tab-count {
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-muted);
+}
+
+.stock-management__tab--active .stock-management__tab-count {
+  color: var(--color-yellow-primary);
+}
+
+/* ── Tabla de órdenes ──────────────────────────────────────── */
+
+.stock-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.stock-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.stock-table thead th {
+  text-align: left;
+  padding: var(--space-4) var(--space-5);
+  font-size: 13px;
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-secondary-alt);
+  border-bottom: 1px solid var(--color-border-soft);
+  white-space: nowrap;
+}
+
+.stock-table tbody td {
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--color-border-soft);
+  vertical-align: middle;
+  color: var(--color-text-secondary);
+}
+
+.stock-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.stock-table tbody tr {
+  transition: background var(--transition-duration-input);
+}
+
+.stock-table tbody tr:hover {
+  background: var(--color-surface-muted);
+}
+
+.stock-table__order,
+.stock-table__sku {
+  font-weight: var(--weight-medium);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.stock-table__date {
+  white-space: nowrap;
+}
+
+.stock-table__product {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-text-primary);
+}
+
+.stock-table__thumb {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-muted);
+  color: var(--color-text-secondary-alt);
+}
+
+.stock-table__actions-col {
+  text-align: left;
+}
+
+.stock-table__detail {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 14px;
+  font-weight: var(--weight-medium);
+  color: var(--color-yellow-dark);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.stock-table__detail:hover {
+  color: var(--color-yellow-dark-alt);
+}
+
+/* ── Footer / paginación ───────────────────────────────────── */
+
+.stock-management__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.stock-management__count {
+  font-size: 13px;
+  color: var(--color-text-secondary-alt);
+}
+
+.stock-management__footer .select-group {
+  flex: 0 0 160px;
+}
+
+/* ── Modal de detalle ──────────────────────────────────────── */
+
+.stock-management__detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.stock-management__detail > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.stock-management__detail dt {
+  font-size: 13px;
+  color: var(--color-text-secondary-alt);
+}
+
+.stock-management__detail dd {
+  font-size: 14px;
+  font-weight: var(--weight-medium);
+  color: var(--color-text-primary);
+  text-align: right;
+}
+
+@media (max-width: 720px) {
+  .stock-management__filter {
+    flex: 1 1 100%;
+  }
+
+  .stock-management__footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

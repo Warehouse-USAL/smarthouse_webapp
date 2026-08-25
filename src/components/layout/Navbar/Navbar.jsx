@@ -8,9 +8,10 @@ import "./Navbar.css";
 // `capability` opcional: si está, el ítem solo se muestra cuando el rol la tiene.
 const NAV_ITEMS = [
   { to: "/inicio", label: "Inicio" },
-  { to: "/configuracion", label: "Configuración del warehouse", capability: "warehouse.read" },
   { to: "/productos", label: "Productos" },
   { to: "/asignacion-stock", label: "Asignación de stock", capability: "stock.assign" },
+  { to: "/gestion-stock", label: "Gestión de stock", capability: "stock.assign" },
+  { to: "/configuracion", label: "Configuración del warehouse", capability: "warehouse.read" },
   { to: "/vehiculos", label: "Vehículos", capability: "vehicle.read" },
   { to: "/usuarios", label: "Usuarios", capability: "user.read" },
 ];

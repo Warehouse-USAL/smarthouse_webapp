@@ -76,12 +76,14 @@ export default function Input({
           </div>
         )}
 
+        {/* Sin `value` el campo queda NO controlado y se puede escribir:
+            coercionarlo a "" lo volvía controlado sin onChange → solo lectura. */}
         <input
           id={fieldId}
 
           name={name}
 
-          value={value ?? ""}
+          value={value}
           onChange={onChange}
 
           type={

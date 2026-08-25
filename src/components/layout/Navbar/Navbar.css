@@ -9,9 +9,7 @@
 
 .navbar__inner {
   height: 100%;
-  max-width: var(--container-width);
-  margin: 0 auto;
-  padding: 0 var(--space-8);
+  padding: 0 3rem;
   display: flex;
   align-items: center;
   gap: var(--space-8);
@@ -31,6 +29,10 @@
   color: var(--color-text-secondary);
   padding: 8px 4px;
   transition: color 120ms ease;
+  
+  text-align: center;
+  align-items: center;
+  display: flex;
 }
 
 .navbar__link:hover {
