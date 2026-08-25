@@ -1,11 +1,13 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
 import Icon from "../../components/ui/Icon/Icon";
+import RestockOrderModal from "../../components/stock/RestockOrderModal/RestockOrderModal";
+import ReceivingSlipModal from "../../components/stock/ReceivingSlipModal/ReceivingSlipModal";
 import "./StockManagementPage.css";
 
 const ACTION_CARDS = [
   {
-    to: "/gestion-stock/ordenes",
+    key: "restock",
     icon: "box",
     title: "Agregar órdenes de restock",
     description:
@@ -13,7 +15,7 @@ const ACTION_CARDS = [
     variant: "yellow",
   },
   {
-    to: "/gestion-stock/remitos",
+    key: "receiving",
     icon: "truck",
     title: "Agregar remitos de recepción",
     description:
@@ -23,6 +25,14 @@ const ACTION_CARDS = [
 ];
 
 export default function StockManagementPage() {
+  const [restockOpen, setRestockOpen] = useState(false);
+  const [receivingOpen, setReceivingOpen] = useState(false);
+
+  const handleOpen = (key) => {
+    if (key === "restock") setRestockOpen(true);
+    if (key === "receiving") setReceivingOpen(true);
+  };
+
   return (
     <div className="stock-management">
       <PageHeader
@@ -32,10 +42,11 @@ export default function StockManagementPage() {
 
       <div className="stock-management__actions">
         {ACTION_CARDS.map((card) => (
-          <Link
-            to={card.to}
-            key={card.to}
+          <button
+            key={card.key}
+            type="button"
             className={`stock-management__card stock-management__card--${card.variant}`}
+            onClick={() => handleOpen(card.key)}
           >
             <div className="stock-management__card-icon">
               <Icon name={card.icon} size={22} color="currentColor" />
@@ -49,9 +60,12 @@ export default function StockManagementPage() {
               size={18}
               className="stock-management__card-chevron"
             />
-          </Link>
+          </button>
         ))}
       </div>
+
+      <RestockOrderModal open={restockOpen} onClose={() => setRestockOpen(false)} />
+      <ReceivingSlipModal open={receivingOpen} onClose={() => setReceivingOpen(false)} />
     </div>
   );
 }
