@@ -25,7 +25,7 @@ export default function Select({
         <select
           id={fieldId}
           name={name}
-          value={value ?? ""}
+          value={value}
           onChange={onChange}
           required={required}
           disabled={disabled}

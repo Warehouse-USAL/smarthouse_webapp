@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import Modal from "../../ui/Modal/Modal";
 import Input from "../../ui/Input/Input";
 import Select from "../../ui/Select/Select";
@@ -16,7 +17,21 @@ const QUANTITY_OPTIONS = Array.from({ length: 100 }, (_, i) => ({
   label: String(i + 1),
 }));
 
+const EMPTY = { product: "", quantity: "", priority: "" };
+
 export default function RestockOrderModal({ open, onClose }) {
+  const [values, setValues] = useState(EMPTY);
+
+  // Cada apertura arranca con el formulario limpio.
+  useEffect(() => {
+    if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setValues(EMPTY);
+    }
+  }, [open]);
+
+  const set = (key) => (e) => setValues((v) => ({ ...v, [key]: e.target.value }));
+
   return (
     <Modal
       open={open}
@@ -40,6 +55,7 @@ export default function RestockOrderModal({ open, onClose }) {
         <Input
           label="Número de orden"
           value="RST-00024"
+          readOnly
           disabled
           hint="Se generará automáticamente"
         />
@@ -48,6 +64,8 @@ export default function RestockOrderModal({ open, onClose }) {
           label="Producto"
           iconLeft={<Icon name="search" size={18} />}
           placeholder="Buscar producto o SKU"
+          value={values.product}
+          onChange={set("product")}
           required
         />
 
@@ -56,6 +74,8 @@ export default function RestockOrderModal({ open, onClose }) {
             label="Cantidad solicitada"
             options={QUANTITY_OPTIONS}
             placeholder="Seleccioná cantidad"
+            value={values.quantity}
+            onChange={set("quantity")}
             required
           />
 
@@ -63,6 +83,8 @@ export default function RestockOrderModal({ open, onClose }) {
             label="Prioridad"
             options={PRIORITY_OPTIONS}
             placeholder="Seleccioná prioridad"
+            value={values.priority}
+            onChange={set("priority")}
             required
           />
         </div>

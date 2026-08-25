@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import Modal from "../../ui/Modal/Modal";
 import Input from "../../ui/Input/Input";
 import Select from "../../ui/Select/Select";
@@ -38,7 +39,29 @@ const PROGRESS_VARIANT = {
   empty: "danger",
 };
 
+const EMPTY = { order: "RST-00018", quantity: "", unit: "", locations: [] };
+
 export default function RemitoModal({ open, onClose }) {
+  const [values, setValues] = useState(EMPTY);
+
+  // Cada apertura arranca con el formulario limpio.
+  useEffect(() => {
+    if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setValues(EMPTY);
+    }
+  }, [open]);
+
+  const set = (key) => (e) => setValues((v) => ({ ...v, [key]: e.target.value }));
+
+  const toggleLocation = (location) =>
+    setValues((v) => ({
+      ...v,
+      locations: v.locations.includes(location)
+        ? v.locations.filter((l) => l !== location)
+        : [...v.locations, location],
+    }));
+
   return (
     <Modal
       open={open}
@@ -69,7 +92,8 @@ export default function RemitoModal({ open, onClose }) {
             options={[
               { value: "RST-00018", label: "RST-00018 - 19/05/2024 - Logitech Argentina" },
             ]}
-            value="RST-00018"
+            value={values.order}
+            onChange={set("order")}
           />
           <div className="remito-modal__info">
             <Badge variant="warning" dot>Pendiente</Badge>
@@ -107,6 +131,8 @@ export default function RemitoModal({ open, onClose }) {
               step={1}
               placeholder="Ej. 50"
               hint="Unidades"
+              value={values.quantity}
+              onChange={set("quantity")}
             />
           </section>
 
@@ -118,6 +144,8 @@ export default function RemitoModal({ open, onClose }) {
             <Select
               options={DELIVERY_UNIT_OPTIONS}
               placeholder="Seleccioná una unidad"
+              value={values.unit}
+              onChange={set("unit")}
             />
             <span className="remito-modal__field-hint">Ej. Pallet, Medio Pallet, Caja</span>
           </section>
@@ -174,7 +202,12 @@ export default function RemitoModal({ open, onClose }) {
           <div className="remito-modal__locations-grid">
             {AVAILABLE_LOCATIONS.map((loc) => (
               <label className="remito-modal__location-card" key={loc.location}>
-                <input type="checkbox" className="remito-modal__location-check" />
+                <input
+                  type="checkbox"
+                  className="remito-modal__location-check"
+                  checked={values.locations.includes(loc.location)}
+                  onChange={() => toggleLocation(loc.location)}
+                />
                 <span className="remito-modal__location-name">{loc.location}</span>
                 <span className="remito-modal__location-spaces">{loc.spaces} espacios</span>
               </label>
