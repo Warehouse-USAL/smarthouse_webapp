@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import Logo from "../../ui/Logo/Logo";
+import Avatar from "../../ui/Avatar/Avatar";
 import { logout, getUser } from "../../../services/authService";
 import { can } from "../../../lib/permissions";
 import "./Navbar.css";
@@ -67,7 +68,7 @@ export default function Navbar() {
             aria-haspopup="menu"
             aria-expanded={open}
           >
-            <div className="navbar__avatar" aria-hidden="true" />
+            <Avatar name={user?.name} size={32} />
             <span className="navbar__user-name">{user?.name ?? "Usuario"}</span>
             <svg
               width="14"
