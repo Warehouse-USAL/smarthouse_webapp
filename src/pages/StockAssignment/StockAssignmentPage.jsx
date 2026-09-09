@@ -1,434 +1,166 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
-import Card, { CardHeader } from "../../components/ui/Card/Card";
-import Select from "../../components/ui/Select/Select";
+import Card from "../../components/ui/Card/Card";
 import Input from "../../components/ui/Input/Input";
-import Button from "../../components/ui/Button/Button";
+import Select from "../../components/ui/Select/Select";
+import Pagination from "../../components/ui/Pagination/Pagination";
 import Icon from "../../components/ui/Icon/Icon";
-import Spinner from "../../components/ui/Spinner/Spinner";
-import EmptyState from "../../components/ui/EmptyState/EmptyState";
-import ZonePickerGrid from "../../components/warehouse/ZonePickerGrid/ZonePickerGrid";
-import { productService } from "../../services/productService";
-import { warehouseConfigService } from "../../services/warehouseConfigService";
-import { stockPositionService } from "../../services/stockPositionService";
-import {
-  STORAGE_UNITS,
-  STORAGE_UNIT_LABEL,
-  UNIT_TO_SIZE,
-  SIZE_TO_UNIT,
-  POSITION_SIZE_LABEL,
-  unitsPerPosition,
-} from "../../lib/storageCompatibility";
+import RestockPendingCard from "../../components/stock/RestockPendingCard/RestockPendingCard";
+import LocationAssignmentModal from "../../components/stock/LocationAssignmentModal/LocationAssignmentModal";
 import "./StockAssignmentPage.css";
 
-// Hito 2 §8 (revisado). Ya no existen capacidades por unidad en el producto
-// (unitsPerPallet/HalfPallet/Box) ni asignación automática.
-//
-// Flujo:
-//   1. El operador elige producto + tipo de unidad (Pallet/Medio/Caja) + cantidad.
-//      El tipo de unidad determina el tamaño de posición compatible.
-//   2. Sobre el MAPA del warehouse selecciona las posiciones — solo las
-//      compatibles (mismo tamaño) y libres son elegibles.
-//   3. La cantidad total se reparte entre las posiciones elegidas, respetando
-//      el tope real de cada una: min(maximumCapacity, unidades que entran por
-//      volumen). El tope por volumen lo computa el backend como
-//      floor(volumenTamaño / volumenProducto) y lo replicamos en el front
-//      (unitsPerPosition) para validar y repartir antes de enviar.
-//   4. Confirma cuando lo asignado iguala la cantidad total.
+const PENDING_RESTOCK = [
+  { id: 1, name: "Mouse inalámbrico Logitech M185", sku: "MOU-001", orderId: "RST-00018", received: 20, receivedAt: "22/05/2024" },
+  { id: 2, name: "Teclado mecánico RGB", sku: "TEC-014", orderId: "RST-00017", received: 30, receivedAt: "21/05/2024" },
+  { id: 3, name: "Auriculares con micrófono", sku: "AUR-022", orderId: "RST-00016", received: 15, receivedAt: "20/05/2024" },
+  { id: 4, name: "Monitor 24 pulgadas", sku: "MON-032", orderId: "RST-00015", received: 8, receivedAt: "19/05/2024" },
+  { id: 5, name: "Webcam HD 1080p", sku: "WEB-008", orderId: "RST-00014", received: 25, receivedAt: "18/05/2024" },
+  { id: 6, name: "Cámara IP seguridad", sku: "CAM-021", orderId: "RST-00013", received: 12, receivedAt: "17/05/2024" },
+  { id: 7, name: "Disco SSD 1TB", sku: "SSD-064", orderId: "RST-00012", received: 40, receivedAt: "16/05/2024" },
+  { id: 8, name: "Router WiFi 6", sku: "ROU-009", orderId: "RST-00011", received: 18, receivedAt: "15/05/2024" },
+  { id: 9, name: "Lector de código barras", sku: "LEC-017", orderId: "RST-00010", received: 22, receivedAt: "14/05/2024" },
+  { id: 10, name: "Impresora térmica", sku: "IMP-011", orderId: "RST-00009", received: 10, receivedAt: "13/05/2024" },
+  { id: 11, name: "Notebook 14 pulgadas", sku: "NOT-045", orderId: "RST-00008", received: 5, receivedAt: "12/05/2024" },
+  { id: 12, name: "Tablet 10 pulgadas", sku: "TAB-030", orderId: "RST-00007", received: 14, receivedAt: "11/05/2024" },
+  { id: 13, name: "Parlante bluetooth", sku: "PAR-005", orderId: "RST-00006", received: 30, receivedAt: "10/05/2024" },
+  { id: 14, name: "Cable HDMI 2m", sku: "CAB-003", orderId: "RST-00005", received: 100, receivedAt: "09/05/2024" },
+  { id: 15, name: "Adaptador USB-C", sku: "ADA-007", orderId: "RST-00004", received: 50, receivedAt: "08/05/2024" },
+  { id: 16, name: "Hub USB 4 puertos", sku: "HUB-002", orderId: "RST-00003", received: 35, receivedAt: "07/05/2024" },
+  { id: 17, name: "Mousepad XL", sku: "MPA-011", orderId: "RST-00002", received: 45, receivedAt: "06/05/2024" },
+  { id: 18, name: "Soporte monitor VESA", sku: "SOP-009", orderId: "RST-00001", received: 20, receivedAt: "05/05/2024" },
+  { id: 19, name: "Foco smart LED", sku: "FOC-004", orderId: "RST-00019", received: 60, receivedAt: "23/05/2024" },
+  { id: 20, name: "Sensor de temperatura", sku: "SEN-006", orderId: "RST-00020", received: 25, receivedAt: "24/05/2024" },
+  { id: 21, name: "Cargador inalámbrico", sku: "CAR-008", orderId: "RST-00021", received: 40, receivedAt: "25/05/2024" },
+  { id: 22, name: "Webcam 4K", sku: "WEB-012", orderId: "RST-00022", received: 10, receivedAt: "26/05/2024" },
+  { id: 23, name: "Teclado inalámbrico", sku: "TEC-015", orderId: "RST-00023", received: 28, receivedAt: "27/05/2024" },
+  { id: 24, name: "Mouse gaming", sku: "MOU-002", orderId: "RST-00024", received: 16, receivedAt: "28/05/2024" },
+];
 
-const STORAGE_UNIT_OPTIONS = STORAGE_UNITS.map((u) => ({
-  value: u,
-  label: STORAGE_UNIT_LABEL[u],
-}));
+const CATEGORY_OPTIONS = [
+  { value: "", label: "Todas las categorías" },
+  { value: "perifericos", label: "Periféricos" },
+  { value: "redes", label: "Redes" },
+  { value: "monitores", label: "Monitores" },
+  { value: "almacenamiento", label: "Almacenamiento" },
+  { value: "impresion", label: "Impresión" },
+];
+
+const LOCATION_STATUS_OPTIONS = [
+  { value: "", label: "Todos" },
+  { value: "pending", label: "Sin ubicación asignada" },
+  { value: "assigned", label: "Con ubicación" },
+];
+
+const PAGE_SIZE_OPTIONS = [
+  { value: "6", label: "6 por página" },
+  { value: "12", label: "12 por página" },
+  { value: "24", label: "24 por página" },
+];
 
 export default function StockAssignmentPage() {
-  const [products, setProducts] = useState([]);
-  const [tree, setTree] = useState({ zones: [] });
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [feedback, setFeedback] = useState(null);
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("");
+  const [locationStatus, setLocationStatus] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(6);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
-  const [productId, setProductId] = useState("");
-  const [storageUnit, setStorageUnit] = useState("");
-  const [quantity, setQuantity] = useState("");
-
-  // Posiciones elegidas en el mapa, en orden de clic. Cada item guarda el
-  // detalle de la posición + las unidades que el operador decidió poner ahí.
-  const [selected, setSelected] = useState([]);
-
-  useEffect(() => {
-    let cancelled = false;
-    Promise.all([
-      productService.list({ isActive: true }),
-      warehouseConfigService.get(),
-    ])
-      .then(([prods, t]) => {
-        if (cancelled) return;
-        setProducts(prods);
-        setTree(t);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const productOptions = useMemo(
-    () =>
-      products.map((p) => ({
-        value: p.id,
-        label: `${p.sku} · ${p.name}`,
-      })),
-    [products]
-  );
-
-  const selectedProduct = useMemo(
-    () => products.find((p) => p.id === productId) || null,
-    [products, productId]
-  );
-
-  const requiredSize = storageUnit ? UNIT_TO_SIZE[storageUnit] : null;
-  const totalQuantity = Number(quantity) || 0;
-
-  // Una posición es elegible si su tamaño mapea al storageUnit elegido y está
-  // libre (sin producto asignado).
-  const isSelectable = (position) =>
-    SIZE_TO_UNIT[position.sizeStockToSave] === storageUnit && !position.assignedProduct;
-
-  const selectedIds = useMemo(
-    () => new Set(selected.map((s) => s.idPosition)),
-    [selected]
-  );
-
-  // Unidades del producto que entran por volumen en UNA posición del tamaño
-  // elegido (floor(volumenTamaño / volumenProducto)). Infinity si el producto
-  // no tiene volumen cargado: en ese caso el backend no aplica tope de volumen.
-  const volumeCapacity = useMemo(
-    () => unitsPerPosition(selectedProduct?.volume, storageUnit),
-    [selectedProduct, storageUnit]
-  );
-
-  // Cuántas posiciones de esta capacidad harían falta para cubrir la cantidad.
-  const positionsNeeded =
-    volumeCapacity > 0 && totalQuantity > 0
-      ? Math.ceil(totalQuantity / volumeCapacity)
-      : 0;
-
-  // Reparte la cantidad total lo más parejo posible entre las posiciones
-  // elegidas: base = floor(total/N) a todas y +1 a las primeras `rest`. Así el
-  // máximo por posición es ceil(total/N), que es el mínimo alcanzable — sólo
-  // supera la capacidad si total > N * capacidad (genuinamente no entra).
-  const plan = useMemo(() => {
-    if (selected.length === 0 || totalQuantity <= 0) return [];
-    const base = Math.floor(totalQuantity / selected.length);
-    const rest = totalQuantity - base * selected.length;
-    return selected.map((pos, idx) => ({
-      ...pos,
-      quantity: base + (idx < rest ? 1 : 0),
-      // Tope real: el menor entre maximumCapacity (unidades) y lo que entra por
-      // volumen. Ambos los valida el backend; el binding suele ser el volumen.
-      // El volumen es uniforme (mismo tamaño); maximumCapacity puede variar.
-      capacity: Math.min(pos.maximumCapacity || Infinity, volumeCapacity),
-    }));
-  }, [selected, totalQuantity, volumeCapacity]);
-
-  // Primera posición cuyo reparto supera su capacidad real. El backend
-  // rechazaría con 400 STOCK_EXCEEDS_CAPACITY; lo bloqueamos antes.
-  const overCapacitySlot = useMemo(
-    () =>
-      plan.find(
-        (slot) => Number.isFinite(slot.capacity) && slot.quantity > slot.capacity
-      ) || null,
-    [plan]
-  );
-
-  const resetSelection = () => {
-    setSelected([]);
-    setFeedback(null);
-  };
-
-  const handleProductChange = (e) => {
-    setProductId(e.target.value);
-    setStorageUnit("");
-    setQuantity("");
-    resetSelection();
-  };
-
-  const handleStorageUnitChange = (e) => {
-    setStorageUnit(e.target.value);
-    setQuantity("");
-    resetSelection();
-  };
-
-  const handleQuantityChange = (e) => {
-    setQuantity(e.target.value);
-    resetSelection();
-  };
-
-  // Toggle de una posición desde el mapa.
-  const handleTogglePosition = (pos) => {
-    setFeedback(null);
-    setSelected((prev) => {
-      const exists = prev.some((s) => s.idPosition === pos.idPosition);
-      if (exists) return prev.filter((s) => s.idPosition !== pos.idPosition);
-      return [...prev, pos];
+  const filtered = useMemo(() => {
+    return PENDING_RESTOCK.filter((item) => {
+      const q = search.trim().toLowerCase();
+      if (q && !item.name.toLowerCase().includes(q) && !item.sku.toLowerCase().includes(q)) {
+        return false;
+      }
+      if (locationStatus === "assigned") return false;
+      return true;
     });
+  }, [search, locationStatus]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const pageStart = (page - 1) * pageSize;
+  const pageItems = filtered.slice(pageStart, pageStart + pageSize);
+
+  const handleOpenAssign = (product) => {
+    setSelectedProduct(product);
+    setAssignOpen(true);
   };
 
-  const canConfirm =
-    selectedProduct && storageUnit && totalQuantity > 0 && selected.length > 0;
-
-  const handleConfirm = async () => {
-    if (!canConfirm) return;
-    if (overCapacitySlot) {
-      setFeedback({
-        type: "error",
-        message: `La posición ${overCapacitySlot.positionName} no admite ${overCapacitySlot.quantity} unidades (capacidad ${overCapacitySlot.capacity}). Elegí al menos ${positionsNeeded} posiciones o reducí la cantidad.`,
-      });
-      return;
-    }
-    setSubmitting(true);
-    setFeedback(null);
-    try {
-      // Asignar producto + cantidad a cada posición elegida. Esto hace un
-      // PATCH /warehouse/positions/:id por posición (product_id + current_stock).
-      // El stock disponible del producto lo computa el backend desde las
-      // posiciones; no hay que actualizarlo a mano.
-      const entries = plan.map((slot) => ({
-        productId: selectedProduct.id,
-        idPosition: slot.idPosition,
-        storageUnit,
-        quantity: slot.quantity,
-      }));
-      await stockPositionService.createMany(entries);
-
-      // Recargar datasets para reflejar el nuevo estado del mapa y los stocks.
-      const [nextProds, nextTree] = await Promise.all([
-        productService.list({ isActive: true }),
-        warehouseConfigService.get(),
-      ]);
-      setProducts(nextProds);
-      setTree(nextTree);
-
-      const totalAssigned = plan.reduce((sum, s) => sum + s.quantity, 0);
-      setFeedback({
-        type: "success",
-        message: `Asignadas ${totalAssigned} unidades en ${plan.length} posiciones.`,
-      });
-      setQuantity("");
-      setSelected([]);
-    } catch (err) {
-      setFeedback({
-        type: "error",
-        message: err.response?.data?.error?.message || "No pudimos asignar el stock.",
-      });
-    } finally {
-      setSubmitting(false);
-    }
+  const handleCloseAssign = () => {
+    setAssignOpen(false);
+    setSelectedProduct(null);
   };
-
-  if (loading) {
-    return (
-      <div className="stock-assignment">
-        <PageHeader title="Asignación de stock" />
-        <Card>
-          <Spinner label="Cargando…" />
-        </Card>
-      </div>
-    );
-  }
-
-  const formReady = selectedProduct && storageUnit && totalQuantity > 0;
 
   return (
     <div className="stock-assignment">
       <PageHeader
-        title="Asignación de stock"
-        subtitle="Elegí producto, tipo de unidad y cantidad. Después seleccioná en el mapa las posiciones disponibles e ingresá cuántas unidades poner en cada una."
+        title="Asignación de ubicación"
+        subtitle="Productos de restock pendientes de ubicación. Asigná una ubicación disponible para cada producto recibido."
       />
 
-      <Card padding="lg">
-        <CardHeader icon={<Icon name="box" size={16} />} title="Datos de la asignación" />
-        <div className="stock-assignment__form">
-          <Select
-            label="Producto"
-            value={productId}
-            onChange={handleProductChange}
-            options={productOptions}
-            placeholder="Seleccioná producto"
-          />
-          <Select
-            label="Tipo de unidad de almacenamiento"
-            value={storageUnit}
-            onChange={handleStorageUnitChange}
-            options={STORAGE_UNIT_OPTIONS}
-            placeholder={
-              !selectedProduct ? "Seleccioná un producto primero" : "Seleccioná unidad"
-            }
-            disabled={!selectedProduct}
-          />
-          <Input
-            name="quantity"
-            label="Cantidad de unidades"
-            type="number"
-            min={1}
-            step={1}
-            value={quantity}
-            onChange={handleQuantityChange}
-            disabled={!storageUnit}
-          />
-        </div>
-
-        {selectedProduct && storageUnit && (
-          <div className="stock-assignment__meta">
-            <span>
-              Unidad seleccionada: <strong>{STORAGE_UNIT_LABEL[storageUnit]}</strong>
-            </span>
-            <span>
-              Requiere posiciones de tamaño{" "}
-              <strong>{POSITION_SIZE_LABEL[requiredSize]}</strong>
-            </span>
-            {Number.isFinite(volumeCapacity) && (
-              <span>
-                Entran <strong>{volumeCapacity}</strong> u por posición (por volumen)
-                {totalQuantity > 0 && (
-                  <>
-                    {" · "}necesitás al menos <strong>{positionsNeeded}</strong>{" "}
-                    {positionsNeeded === 1 ? "posición" : "posiciones"}
-                  </>
-                )}
-              </span>
-            )}
-          </div>
-        )}
-      </Card>
-
-      <Card padding="lg">
-        <CardHeader
-          icon={<Icon name="map" size={16} />}
-          title="Mapa del warehouse"
-          action={
-            formReady && selected.length > 0 ? (
-              <Button variant="secondary" size="sm" onClick={resetSelection}>
-                Limpiar selección
-              </Button>
-            ) : null
-          }
+      <div className="stock-assignment__search">
+        <Input
+          placeholder="Buscar por nombre o SKU"
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          iconLeft={<Icon name="search" size={16} />}
         />
+      </div>
 
-        {!formReady ? (
-          <EmptyState
-            icon="info"
-            title="Completá los datos de la asignación"
-            description="Cuando elijas producto, unidad y cantidad, vas a poder seleccionar las posiciones en el mapa."
+      <Card padding="md" className="stock-assignment__filters">
+        <div className="stock-assignment__filter">
+          <Select
+            label="Categoría"
+            value={category}
+            onChange={(e) => { setCategory(e.target.value); setPage(1); }}
+            options={CATEGORY_OPTIONS}
           />
-        ) : (
-          <>
-            <p className="stock-assignment__map-hint">
-              Seleccioná posiciones <strong>{POSITION_SIZE_LABEL[requiredSize]}</strong> libres
-              (resaltadas). Para cada una vas a indicar cuántas unidades guardar, hasta cubrir las{" "}
-              <strong>{totalQuantity}</strong> unidades.
-            </p>
-            <div className="stock-assignment__map">
-              {tree.zones.length === 0 ? (
-                <EmptyState
-                  icon="info"
-                  title="No hay zonas configuradas"
-                  description="Configurá el warehouse con posiciones del tamaño correspondiente antes de asignar stock."
-                />
-              ) : (
-                tree.zones.map((zone) => (
-                  <ZonePickerGrid
-                    key={zone.idZone}
-                    zone={zone}
-                    selectedIds={selectedIds}
-                    isSelectable={isSelectable}
-                    onToggle={handleTogglePosition}
-                  />
-                ))
-              )}
-            </div>
-            {tree.zones.length > 0 && (
-              <div className="stock-assignment__legend">
-                {tree.zones.map((zone) => (
-                  <span className="stock-assignment__legend-item" key={zone.idZone}>
-                    <span
-                      className={`stock-assignment__legend-dot stock-assignment__legend-dot--${(zone.color || zone.zoneCode || "").toLowerCase()}`}
-                    />
-                    {zone.name}
-                  </span>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-
-        {formReady && plan.length > 0 && (
-          <>
-            <ul className="stock-assignment__plan">
-              {plan.map((slot, idx) => {
-                const over = Number.isFinite(slot.capacity) && slot.quantity > slot.capacity;
-                return (
-                  <li key={slot.idPosition} className="stock-assignment__plan-item">
-                    <div className="stock-assignment__plan-pos">
-                      <span className="stock-assignment__plan-index">{idx + 1}</span>
-                      <Icon name="pin" size={14} />
-                      <span>
-                        {slot.zoneName} · Línea {String(slot.lineNumber).padStart(2, "0")} ·{" "}
-                        {slot.positionName}
-                      </span>
-                    </div>
-                    <span className="stock-assignment__plan-unit">
-                      {slot.quantity} u
-                      {Number.isFinite(slot.capacity) && (
-                        <small
-                          className={over ? "stock-assignment__plan-cap--over" : undefined}
-                        >
-                          {" "}/ {slot.capacity}
-                        </small>
-                      )}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-
-            <div className="stock-assignment__summary">
-              <span>
-                <strong>{totalQuantity}</strong> unidades repartidas en{" "}
-                <strong>{plan.length}</strong> posiciones.
-              </span>
-            </div>
-
-            {overCapacitySlot && (
-              <div className="stock-assignment__feedback stock-assignment__feedback--error">
-                <Icon name="info" size={14} /> La posición {overCapacitySlot.positionName}{" "}
-                supera su capacidad ({overCapacitySlot.quantity} &gt;{" "}
-                {overCapacitySlot.capacity}). Elegí al menos {positionsNeeded} posiciones o
-                reducí la cantidad.
-              </div>
-            )}
-          </>
-        )}
-
-        {feedback && (
-          <div className={`stock-assignment__feedback stock-assignment__feedback--${feedback.type}`}>
-            <Icon name="info" size={14} /> {feedback.message}
-          </div>
-        )}
-
-        <div className="stock-assignment__actions">
-          <Button
-            type="button"
-            onClick={handleConfirm}
-            disabled={!canConfirm || submitting || !!overCapacitySlot}
-          >
-            {submitting ? "Asignando…" : "Confirmar asignación"}
-          </Button>
         </div>
+        <div className="stock-assignment__filter">
+          <Select
+            label="Estado de ubicación"
+            value={locationStatus}
+            onChange={(e) => { setLocationStatus(e.target.value); setPage(1); }}
+            options={LOCATION_STATUS_OPTIONS}
+          />
+        </div>
+        <button className="stock-assignment__more-filters" type="button">
+          <Icon name="list" size={16} />
+          Filtros
+        </button>
       </Card>
+
+      <div className="stock-assignment__grid">
+        {pageItems.map((product) => (
+          <RestockPendingCard
+            key={product.id}
+            product={product}
+            onAssign={handleOpenAssign}
+          />
+        ))}
+      </div>
+
+      {filtered.length > 0 && (
+        <footer className="stock-assignment__footer">
+          <span className="stock-assignment__count">
+            Mostrando {pageStart + 1} a{" "}
+            {Math.min(pageStart + pageSize, filtered.length)} de{" "}
+            {filtered.length} productos
+          </span>
+          <Pagination current={page} total={totalPages} onChange={setPage} />
+          <Select
+            value={String(pageSize)}
+            onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+            options={PAGE_SIZE_OPTIONS}
+          />
+        </footer>
+      )}
+
+      <LocationAssignmentModal
+        open={assignOpen}
+        onClose={handleCloseAssign}
+        product={selectedProduct}
+      />
     </div>
   );
 }

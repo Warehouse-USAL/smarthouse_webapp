@@ -1,0 +1,71 @@
+.restock-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  background-color: var(--color-white);
+  overflow: hidden;
+}
+
+.restock-card__badge {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border-soft);
+}
+
+.restock-card__body {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-4);
+}
+
+.restock-card__thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface-muted);
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.restock-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.restock-card__name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.restock-card__sku,
+.restock-card__order,
+.restock-card__received,
+.restock-card__date {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.restock-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--color-border-soft);
+  background-color: var(--color-surface-muted);
+}
+
+.restock-card__location-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}

@@ -1,0 +1,244 @@
+.location-modal__subtitle {
+  margin: 0 0 var(--space-5);
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.location-modal__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* ── Sections ─────────────────────────────────────────────── */
+
+.location-modal__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.location-modal__section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.location-modal__section-num {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  flex-shrink: 0;
+}
+
+.location-modal__section-hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+/* ── Disabled inputs ──────────────────────────────────────── */
+
+.location-modal__section input:disabled {
+  background-color: #f3f4f6;
+  color: var(--color-text-secondary);
+}
+
+/* ── Product card ─────────────────────────────────────────── */
+
+.location-modal__product-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  background-color: var(--color-white);
+}
+
+.location-modal__product-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface-muted);
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.location-modal__product-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.location-modal__product-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.location-modal__product-sku,
+.location-modal__product-order,
+.location-modal__product-received {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+/* ── Table ────────────────────────────────────────────────── */
+
+.location-modal__table-wrap {
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.location-modal__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.location-modal__table th {
+  text-align: left;
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-surface-muted);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  border-bottom: 1px solid var(--color-border-soft);
+}
+
+.location-modal__table td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border-soft);
+  color: var(--color-text-primary);
+}
+
+.location-modal__table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.location-modal__table-loc {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.location-modal__table-qty {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.location-modal__qty-text {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.location-modal__table-qty .progress {
+  width: 80px;
+  flex-shrink: 0;
+}
+
+.location-modal__table-cap {
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Available locations grid ──────────────────────────────── */
+
+.location-modal__locations-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+}
+
+.location-modal__location-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  background-color: var(--color-white);
+  cursor: pointer;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+  position: relative;
+}
+
+.location-modal__location-card:hover {
+  border-color: var(--color-primary);
+}
+
+.location-modal__location-check {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.location-modal__location-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.location-modal__location-spaces {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.location-modal__location-more {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  transition: border-color 120ms ease, color 120ms ease;
+}
+
+.location-modal__location-more:hover:not(:disabled) {
+  border-color: var(--color-text-secondary);
+  color: var(--color-text-secondary);
+}
+
+.location-modal__location-more:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Footer ───────────────────────────────────────────────── */
+
+.location-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .location-modal__locations-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
