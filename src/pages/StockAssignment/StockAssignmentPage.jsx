@@ -3,11 +3,21 @@ import PageHeader from "../../components/ui/PageHeader/PageHeader";
 import Card from "../../components/ui/Card/Card";
 import Input from "../../components/ui/Input/Input";
 import Select from "../../components/ui/Select/Select";
-import Pagination from "../../components/ui/Pagination/Pagination";
 import Icon from "../../components/ui/Icon/Icon";
-import RestockPendingCard from "../../components/stock/RestockPendingCard/RestockPendingCard";
+import PendingLocationCard from "../../components/stock/PendingLocationCard/PendingLocationCard";
+import ProductLocationModal from "../../components/stock/ProductLocationModal/ProductLocationModal";
 import LocationAssignmentModal from "../../components/stock/LocationAssignmentModal/LocationAssignmentModal";
 import "./StockAssignmentPage.css";
+
+const PRODUCTS_WITHOUT_LOCATION = [
+  { id: 1, name: "Micrófono condensador", sku: "MIC-003", category: "Periféricos", stockAvailable: 120 },
+  { id: 2, name: "Smart TV 43 pulgadas", sku: "TV-010", category: "Monitores", stockAvailable: 15 },
+  { id: 3, name: "Switch 24 puertos", sku: "SWI-006", category: "Redes", stockAvailable: 40 },
+  { id: 4, name: "Pendrive 64GB", sku: "PEN-014", category: "Almacenamiento", stockAvailable: 200 },
+  { id: 5, name: "Escáner A4", sku: "ESC-002", category: "Impresión", stockAvailable: 25 },
+  { id: 6, name: "Cámara web Full HD", sku: "WEB-005", category: "Periféricos", stockAvailable: 60 },
+  { id: 7, name: "UPS 1500VA", sku: "UPS-001", category: "Redes", stockAvailable: 12 },
+];
 
 const PENDING_RESTOCK = [
   { id: 1, name: "Mouse inalámbrico Logitech M185", sku: "MOU-001", orderId: "RST-00018", received: 20, receivedAt: "22/05/2024" },
@@ -45,64 +55,80 @@ const CATEGORY_OPTIONS = [
   { value: "impresion", label: "Impresión" },
 ];
 
-const LOCATION_STATUS_OPTIONS = [
-  { value: "", label: "Todos" },
-  { value: "pending", label: "Sin ubicación asignada" },
-  { value: "assigned", label: "Con ubicación" },
-];
+// const LOCATION_STATUS_OPTIONS = [
+//   { value: "", label: "Todos" },
+//   { value: "pending", label: "Sin ubicación asignada" },
+//   { value: "assigned", label: "Con ubicación" },
+// ];
 
-const PAGE_SIZE_OPTIONS = [
-  { value: "6", label: "6 por página" },
-  { value: "12", label: "12 por página" },
-  { value: "24", label: "24 por página" },
-];
+const CATEGORY_LABELS = {
+  perifericos: "Periféricos",
+  redes: "Redes",
+  monitores: "Monitores",
+  almacenamiento: "Almacenamiento",
+  impresion: "Impresión",
+};
+
+const matchesSearch = (item, q) =>
+  !q ||
+  item.name.toLowerCase().includes(q) ||
+  item.sku.toLowerCase().includes(q);
 
 export default function StockAssignmentPage() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
-  const [locationStatus, setLocationStatus] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(6);
-  const [assignOpen, setAssignOpen] = useState(false);
+  // const [locationStatus, setLocationStatus] = useState("");
+  const [productModalOpen, setProductModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [restockModalOpen, setRestockModalOpen] = useState(false);
+  const [selectedRestock, setSelectedRestock] = useState(null);
 
-  const filtered = useMemo(() => {
-    return PENDING_RESTOCK.filter((item) => {
-      const q = search.trim().toLowerCase();
-      if (q && !item.name.toLowerCase().includes(q) && !item.sku.toLowerCase().includes(q)) {
-        return false;
-      }
-      if (locationStatus === "assigned") return false;
+  const filteredProducts = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return PRODUCTS_WITHOUT_LOCATION.filter((item) => {
+      if (!matchesSearch(item, q)) return false;
+      if (category && CATEGORY_LABELS[category] !== item.category) return false;
       return true;
     });
-  }, [search, locationStatus]);
+  }, [search, category]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const pageStart = (page - 1) * pageSize;
-  const pageItems = filtered.slice(pageStart, pageStart + pageSize);
+  const filteredRestock = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return PENDING_RESTOCK.filter((item) => matchesSearch(item, q));
+  }, [search]);
 
-  const handleOpenAssign = (product) => {
+  const openProductModal = (product) => {
     setSelectedProduct(product);
-    setAssignOpen(true);
+    setProductModalOpen(true);
   };
 
-  const handleCloseAssign = () => {
-    setAssignOpen(false);
+  const closeProductModal = () => {
     setSelectedProduct(null);
+    setProductModalOpen(false);
+  };
+
+  const openRestockModal = (product) => {
+    setSelectedRestock(product);
+    setRestockModalOpen(true);
+  };
+
+  const closeRestockModal = () => {
+    setSelectedRestock(null);
+    setRestockModalOpen(false);
   };
 
   return (
     <div className="stock-assignment">
       <PageHeader
         title="Asignación de ubicación"
-        subtitle="Productos de restock pendientes de ubicación. Asigná una ubicación disponible para cada producto recibido."
+        subtitle="Productos nuevos y de restock pendientes de ubicación. Asigná una ubicación disponible para cada uno."
       />
 
       <div className="stock-assignment__search">
         <Input
           placeholder="Buscar por nombre o SKU"
           value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          onChange={(e) => setSearch(e.target.value)}
           iconLeft={<Icon name="search" size={16} />}
         />
       </div>
@@ -112,54 +138,78 @@ export default function StockAssignmentPage() {
           <Select
             label="Categoría"
             value={category}
-            onChange={(e) => { setCategory(e.target.value); setPage(1); }}
+            onChange={(e) => setCategory(e.target.value)}
             options={CATEGORY_OPTIONS}
           />
         </div>
+        {/* Filtro comentado por ahora: ambas secciones listan productos sin ubicación.
         <div className="stock-assignment__filter">
           <Select
             label="Estado de ubicación"
             value={locationStatus}
-            onChange={(e) => { setLocationStatus(e.target.value); setPage(1); }}
+            onChange={(e) => setLocationStatus(e.target.value)}
             options={LOCATION_STATUS_OPTIONS}
           />
-        </div>
+        </div> */}
         <button className="stock-assignment__more-filters" type="button">
           <Icon name="list" size={16} />
           Filtros
         </button>
       </Card>
 
-      <div className="stock-assignment__grid">
-        {pageItems.map((product) => (
-          <RestockPendingCard
-            key={product.id}
-            product={product}
-            onAssign={handleOpenAssign}
-          />
-        ))}
-      </div>
-
-      {filtered.length > 0 && (
-        <footer className="stock-assignment__footer">
-          <span className="stock-assignment__count">
-            Mostrando {pageStart + 1} a{" "}
-            {Math.min(pageStart + pageSize, filtered.length)} de{" "}
-            {filtered.length} productos
+      <section className="stock-assignment__section">
+        <h2 className="stock-assignment__section-title">
+          Productos sin ubicación asignada{" "}
+          <span className="stock-assignment__section-count">
+            ({filteredProducts.length})
           </span>
-          <Pagination current={page} total={totalPages} onChange={setPage} />
-          <Select
-            value={String(pageSize)}
-            onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
-            options={PAGE_SIZE_OPTIONS}
-          />
-        </footer>
-      )}
+        </h2>
+        <div className="stock-assignment__grid">
+          {filteredProducts.map((product) => (
+            <PendingLocationCard
+              key={product.id}
+              product={product}
+              meta={[`Categoría: ${product.category}`, `Stock: ${product.stockAvailable} unidades`]}
+              onAssign={openProductModal}
+            />
+          ))}
+        </div>
+      </section>
+
+      <section className="stock-assignment__section">
+        <h2 className="stock-assignment__section-title">
+          Productos de restock pendientes de ubicación{" "}
+          <span className="stock-assignment__section-count">
+            ({filteredRestock.length})
+          </span>
+        </h2>
+        <div className="stock-assignment__grid">
+          {filteredRestock.map((product) => (
+            <PendingLocationCard
+              key={product.id}
+              product={product}
+              badge={{ variant: "success", label: "Restock aceptado" }}
+              meta={[
+                `Orden: ${product.orderId}`,
+                `${product.received} unidades`,
+                `Recepción: ${product.receivedAt}`,
+              ]}
+              onAssign={openRestockModal}
+            />
+          ))}
+        </div>
+      </section>
+
+      <ProductLocationModal
+        open={productModalOpen}
+        onClose={closeProductModal}
+        product={selectedProduct}
+      />
 
       <LocationAssignmentModal
-        open={assignOpen}
-        onClose={handleCloseAssign}
-        product={selectedProduct}
+        open={restockModalOpen}
+        onClose={closeRestockModal}
+        product={selectedRestock}
       />
     </div>
   );

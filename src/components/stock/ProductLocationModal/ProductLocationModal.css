@@ -1,0 +1,191 @@
+.product-location-modal__subtitle {
+  margin: 0 0 var(--space-5);
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.product-location-modal__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* ── Sections ─────────────────────────────────────────────── */
+
+.product-location-modal__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.product-location-modal__section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.product-location-modal__section-num {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  flex-shrink: 0;
+}
+
+.product-location-modal__section-hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.product-location-modal__field-hint {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.product-location-modal__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-5);
+}
+
+.product-location-modal__row .product-location-modal__section-title {
+  font-size: 14px;
+}
+
+/* ── Product card ─────────────────────────────────────────── */
+
+.product-location-modal__product-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  background-color: var(--color-white);
+}
+
+.product-location-modal__product-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 96px;
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-muted);
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.product-location-modal__product-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.product-location-modal__product-tag {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+}
+
+.product-location-modal__product-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.product-location-modal__product-sku,
+.product-location-modal__product-meta {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+/* ── Info box ─────────────────────────────────────────────── */
+
+.product-location-modal__info-box {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background-color: var(--color-info-bg);
+  border: 1px solid var(--color-info-blue-soft);
+}
+
+.product-location-modal__info-box p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-primary);
+}
+
+.product-location-modal__info-box .ic {
+  flex-shrink: 0;
+}
+
+/* ── Locations grid ───────────────────────────────────────── */
+
+.product-location-modal__locations-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+}
+
+.product-location-modal__location-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  background-color: var(--color-white);
+  cursor: pointer;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.product-location-modal__location-card:hover {
+  border-color: var(--color-primary);
+}
+
+.product-location-modal__location-card--selected {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.product-location-modal__location-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.product-location-modal__location-spaces {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+/* ── Footer ───────────────────────────────────────────────── */
+
+.product-location-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .product-location-modal__row {
+    grid-template-columns: 1fr;
+  }
+  .product-location-modal__locations-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
