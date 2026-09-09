@@ -1,434 +1,200 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
-import Card, { CardHeader } from "../../components/ui/Card/Card";
-import Select from "../../components/ui/Select/Select";
 import Input from "../../components/ui/Input/Input";
-import Button from "../../components/ui/Button/Button";
 import Icon from "../../components/ui/Icon/Icon";
-import Spinner from "../../components/ui/Spinner/Spinner";
-import EmptyState from "../../components/ui/EmptyState/EmptyState";
-import ZonePickerGrid from "../../components/warehouse/ZonePickerGrid/ZonePickerGrid";
+import PendingLocationCard from "../../components/stock/PendingLocationCard/PendingLocationCard";
+import ProductLocationModal from "../../components/stock/ProductLocationModal/ProductLocationModal";
+import LocationAssignmentModal from "../../components/stock/LocationAssignmentModal/LocationAssignmentModal";
 import { productService } from "../../services/productService";
-import { warehouseConfigService } from "../../services/warehouseConfigService";
-import { stockPositionService } from "../../services/stockPositionService";
-import {
-  STORAGE_UNITS,
-  STORAGE_UNIT_LABEL,
-  UNIT_TO_SIZE,
-  SIZE_TO_UNIT,
-  POSITION_SIZE_LABEL,
-  unitsPerPosition,
-} from "../../lib/storageCompatibility";
 import "./StockAssignmentPage.css";
 
-// Hito 2 §8 (revisado). Ya no existen capacidades por unidad en el producto
-// (unitsPerPallet/HalfPallet/Box) ni asignación automática.
-//
-// Flujo:
-//   1. El operador elige producto + tipo de unidad (Pallet/Medio/Caja) + cantidad.
-//      El tipo de unidad determina el tamaño de posición compatible.
-//   2. Sobre el MAPA del warehouse selecciona las posiciones — solo las
-//      compatibles (mismo tamaño) y libres son elegibles.
-//   3. La cantidad total se reparte entre las posiciones elegidas, respetando
-//      el tope real de cada una: min(maximumCapacity, unidades que entran por
-//      volumen). El tope por volumen lo computa el backend como
-//      floor(volumenTamaño / volumenProducto) y lo replicamos en el front
-//      (unitsPerPosition) para validar y repartir antes de enviar.
-//   4. Confirma cuando lo asignado iguala la cantidad total.
+const PENDING_RESTOCK = [
+  { id: 1, name: "Mouse inalámbrico Logitech M185", sku: "MOU-001", orderId: "RST-00018", received: 20, receivedAt: "22/05/2024" },
+  { id: 2, name: "Teclado mecánico RGB", sku: "TEC-014", orderId: "RST-00017", received: 30, receivedAt: "21/05/2024" },
+  { id: 3, name: "Auriculares con micrófono", sku: "AUR-022", orderId: "RST-00016", received: 15, receivedAt: "20/05/2024" },
+  { id: 4, name: "Monitor 24 pulgadas", sku: "MON-032", orderId: "RST-00015", received: 8, receivedAt: "19/05/2024" },
+  { id: 5, name: "Webcam HD 1080p", sku: "WEB-008", orderId: "RST-00014", received: 25, receivedAt: "18/05/2024" },
+];
 
-const STORAGE_UNIT_OPTIONS = STORAGE_UNITS.map((u) => ({
-  value: u,
-  label: STORAGE_UNIT_LABEL[u],
-}));
+const matchesSearch = (item, q) =>
+  !q ||
+  item.name.toLowerCase().includes(q) ||
+  item.sku.toLowerCase().includes(q);
 
 export default function StockAssignmentPage() {
+  const [search, setSearch] = useState("");
+  const [productModalOpen, setProductModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [restockModalOpen, setRestockModalOpen] = useState(false);
+  const [selectedRestock, setSelectedRestock] = useState(null);
+
   const [products, setProducts] = useState([]);
-  const [tree, setTree] = useState({ zones: [] });
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [feedback, setFeedback] = useState(null);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [productsError, setProductsError] = useState(null);
 
-  const [productId, setProductId] = useState("");
-  const [storageUnit, setStorageUnit] = useState("");
-  const [quantity, setQuantity] = useState("");
-
-  // Posiciones elegidas en el mapa, en orden de clic. Cada item guarda el
-  // detalle de la posición + las unidades que el operador decidió poner ahí.
-  const [selected, setSelected] = useState([]);
-
-  useEffect(() => {
-    let cancelled = false;
-    Promise.all([
-      productService.list({ isActive: true }),
-      warehouseConfigService.get(),
-    ])
-      .then(([prods, t]) => {
-        if (cancelled) return;
-        setProducts(prods);
-        setTree(t);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+  // Productos del catálogo sin ninguna ubicación asignada (locations vacío).
+  // El listado del backend no trae ubicación, así que se consulta aparte.
+  const load = useCallback(async () => {
+    setLoadingProducts(true);
+    setProductsError(null);
+    try {
+      const list = await productService.list({ size: 200 });
+      const withLocations = await Promise.all(
+        list.map(async (product) => ({
+          product,
+          locations: await productService.getLocations(product.id),
+        }))
+      );
+      setProducts(
+        withLocations
+          .filter((entry) => entry.locations.length === 0)
+          .map((entry) => entry.product)
+      );
+    } catch (err) {
+      setProducts([]);
+      setProductsError(
+        err?.response?.data?.error?.message ||
+          "No pudimos cargar los productos."
+      );
+    } finally {
+      setLoadingProducts(false);
+    }
   }, []);
 
-  const productOptions = useMemo(
-    () =>
-      products.map((p) => ({
-        value: p.id,
-        label: `${p.sku} · ${p.name}`,
-      })),
-    [products]
-  );
+  useEffect(() => {
+    // load setea loading/error de forma síncrona para manejar la UI de carga;
+    // es intencional, no el cascade derivado de render que esta regla previene.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    load();
+  }, [load]);
 
-  const selectedProduct = useMemo(
-    () => products.find((p) => p.id === productId) || null,
-    [products, productId]
-  );
+  const filteredProducts = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return products.filter((item) => matchesSearch(item, q));
+  }, [products, search]);
 
-  const requiredSize = storageUnit ? UNIT_TO_SIZE[storageUnit] : null;
-  const totalQuantity = Number(quantity) || 0;
+  const filteredRestock = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return PENDING_RESTOCK.filter((item) => matchesSearch(item, q));
+  }, [search]);
 
-  // Una posición es elegible si su tamaño mapea al storageUnit elegido y está
-  // libre (sin producto asignado).
-  const isSelectable = (position) =>
-    SIZE_TO_UNIT[position.sizeStockToSave] === storageUnit && !position.assignedProduct;
-
-  const selectedIds = useMemo(
-    () => new Set(selected.map((s) => s.idPosition)),
-    [selected]
-  );
-
-  // Unidades del producto que entran por volumen en UNA posición del tamaño
-  // elegido (floor(volumenTamaño / volumenProducto)). Infinity si el producto
-  // no tiene volumen cargado: en ese caso el backend no aplica tope de volumen.
-  const volumeCapacity = useMemo(
-    () => unitsPerPosition(selectedProduct?.volume, storageUnit),
-    [selectedProduct, storageUnit]
-  );
-
-  // Cuántas posiciones de esta capacidad harían falta para cubrir la cantidad.
-  const positionsNeeded =
-    volumeCapacity > 0 && totalQuantity > 0
-      ? Math.ceil(totalQuantity / volumeCapacity)
-      : 0;
-
-  // Reparte la cantidad total lo más parejo posible entre las posiciones
-  // elegidas: base = floor(total/N) a todas y +1 a las primeras `rest`. Así el
-  // máximo por posición es ceil(total/N), que es el mínimo alcanzable — sólo
-  // supera la capacidad si total > N * capacidad (genuinamente no entra).
-  const plan = useMemo(() => {
-    if (selected.length === 0 || totalQuantity <= 0) return [];
-    const base = Math.floor(totalQuantity / selected.length);
-    const rest = totalQuantity - base * selected.length;
-    return selected.map((pos, idx) => ({
-      ...pos,
-      quantity: base + (idx < rest ? 1 : 0),
-      // Tope real: el menor entre maximumCapacity (unidades) y lo que entra por
-      // volumen. Ambos los valida el backend; el binding suele ser el volumen.
-      // El volumen es uniforme (mismo tamaño); maximumCapacity puede variar.
-      capacity: Math.min(pos.maximumCapacity || Infinity, volumeCapacity),
-    }));
-  }, [selected, totalQuantity, volumeCapacity]);
-
-  // Primera posición cuyo reparto supera su capacidad real. El backend
-  // rechazaría con 400 STOCK_EXCEEDS_CAPACITY; lo bloqueamos antes.
-  const overCapacitySlot = useMemo(
-    () =>
-      plan.find(
-        (slot) => Number.isFinite(slot.capacity) && slot.quantity > slot.capacity
-      ) || null,
-    [plan]
-  );
-
-  const resetSelection = () => {
-    setSelected([]);
-    setFeedback(null);
+  const openProductModal = (product) => {
+    setSelectedProduct(product);
+    setProductModalOpen(true);
   };
 
-  const handleProductChange = (e) => {
-    setProductId(e.target.value);
-    setStorageUnit("");
-    setQuantity("");
-    resetSelection();
+  const closeProductModal = () => {
+    setSelectedProduct(null);
+    setProductModalOpen(false);
   };
 
-  const handleStorageUnitChange = (e) => {
-    setStorageUnit(e.target.value);
-    setQuantity("");
-    resetSelection();
+  const openRestockModal = (product) => {
+    setSelectedRestock(product);
+    setRestockModalOpen(true);
   };
 
-  const handleQuantityChange = (e) => {
-    setQuantity(e.target.value);
-    resetSelection();
+  const closeRestockModal = () => {
+    setSelectedRestock(null);
+    setRestockModalOpen(false);
   };
 
-  // Toggle de una posición desde el mapa.
-  const handleTogglePosition = (pos) => {
-    setFeedback(null);
-    setSelected((prev) => {
-      const exists = prev.some((s) => s.idPosition === pos.idPosition);
-      if (exists) return prev.filter((s) => s.idPosition !== pos.idPosition);
-      return [...prev, pos];
-    });
-  };
-
-  const canConfirm =
-    selectedProduct && storageUnit && totalQuantity > 0 && selected.length > 0;
-
-  const handleConfirm = async () => {
-    if (!canConfirm) return;
-    if (overCapacitySlot) {
-      setFeedback({
-        type: "error",
-        message: `La posición ${overCapacitySlot.positionName} no admite ${overCapacitySlot.quantity} unidades (capacidad ${overCapacitySlot.capacity}). Elegí al menos ${positionsNeeded} posiciones o reducí la cantidad.`,
-      });
-      return;
+  const renderProducts = () => {
+    if (productsError) {
+      return (
+        <p className="stock-assignment__status stock-assignment__status--error">
+          {productsError}{" "}
+          <button type="button" className="stock-assignment__retry" onClick={load}>
+            Reintentar
+          </button>
+        </p>
+      );
     }
-    setSubmitting(true);
-    setFeedback(null);
-    try {
-      // Asignar producto + cantidad a cada posición elegida. Esto hace un
-      // PATCH /warehouse/positions/:id por posición (product_id + current_stock).
-      // El stock disponible del producto lo computa el backend desde las
-      // posiciones; no hay que actualizarlo a mano.
-      const entries = plan.map((slot) => ({
-        productId: selectedProduct.id,
-        idPosition: slot.idPosition,
-        storageUnit,
-        quantity: slot.quantity,
-      }));
-      await stockPositionService.createMany(entries);
-
-      // Recargar datasets para reflejar el nuevo estado del mapa y los stocks.
-      const [nextProds, nextTree] = await Promise.all([
-        productService.list({ isActive: true }),
-        warehouseConfigService.get(),
-      ]);
-      setProducts(nextProds);
-      setTree(nextTree);
-
-      const totalAssigned = plan.reduce((sum, s) => sum + s.quantity, 0);
-      setFeedback({
-        type: "success",
-        message: `Asignadas ${totalAssigned} unidades en ${plan.length} posiciones.`,
-      });
-      setQuantity("");
-      setSelected([]);
-    } catch (err) {
-      setFeedback({
-        type: "error",
-        message: err.response?.data?.error?.message || "No pudimos asignar el stock.",
-      });
-    } finally {
-      setSubmitting(false);
+    if (loadingProducts && products.length === 0) {
+      return <p className="stock-assignment__status">Cargando productos…</p>;
     }
-  };
-
-  if (loading) {
+    if (filteredProducts.length === 0) {
+      return <p className="stock-assignment__status">No hay productos sin ubicación asignada.</p>;
+    }
     return (
-      <div className="stock-assignment">
-        <PageHeader title="Asignación de stock" />
-        <Card>
-          <Spinner label="Cargando…" />
-        </Card>
+      <div className="stock-assignment__grid">
+        {filteredProducts.map((product) => (
+          <PendingLocationCard
+            key={product.id}
+            product={product}
+            meta={[
+              { icon: "grid", text: `Categoría: ${product.category}` },
+              { icon: "box", text: `Stock: ${product.availableStock} unidades` },
+            ]}
+            estadoInline
+            onAssign={openProductModal}
+          />
+        ))}
       </div>
     );
-  }
-
-  const formReady = selectedProduct && storageUnit && totalQuantity > 0;
+  };
 
   return (
     <div className="stock-assignment">
       <PageHeader
-        title="Asignación de stock"
-        subtitle="Elegí producto, tipo de unidad y cantidad. Después seleccioná en el mapa las posiciones disponibles e ingresá cuántas unidades poner en cada una."
+        title="Asignación de ubicación"
+        subtitle="Productos nuevos y de restock pendientes de ubicación. Asigná una ubicación disponible para cada uno."
       />
 
-      <Card padding="lg">
-        <CardHeader icon={<Icon name="box" size={16} />} title="Datos de la asignación" />
-        <div className="stock-assignment__form">
-          <Select
-            label="Producto"
-            value={productId}
-            onChange={handleProductChange}
-            options={productOptions}
-            placeholder="Seleccioná producto"
-          />
-          <Select
-            label="Tipo de unidad de almacenamiento"
-            value={storageUnit}
-            onChange={handleStorageUnitChange}
-            options={STORAGE_UNIT_OPTIONS}
-            placeholder={
-              !selectedProduct ? "Seleccioná un producto primero" : "Seleccioná unidad"
-            }
-            disabled={!selectedProduct}
-          />
-          <Input
-            name="quantity"
-            label="Cantidad de unidades"
-            type="number"
-            min={1}
-            step={1}
-            value={quantity}
-            onChange={handleQuantityChange}
-            disabled={!storageUnit}
-          />
-        </div>
-
-        {selectedProduct && storageUnit && (
-          <div className="stock-assignment__meta">
-            <span>
-              Unidad seleccionada: <strong>{STORAGE_UNIT_LABEL[storageUnit]}</strong>
-            </span>
-            <span>
-              Requiere posiciones de tamaño{" "}
-              <strong>{POSITION_SIZE_LABEL[requiredSize]}</strong>
-            </span>
-            {Number.isFinite(volumeCapacity) && (
-              <span>
-                Entran <strong>{volumeCapacity}</strong> u por posición (por volumen)
-                {totalQuantity > 0 && (
-                  <>
-                    {" · "}necesitás al menos <strong>{positionsNeeded}</strong>{" "}
-                    {positionsNeeded === 1 ? "posición" : "posiciones"}
-                  </>
-                )}
-              </span>
-            )}
-          </div>
-        )}
-      </Card>
-
-      <Card padding="lg">
-        <CardHeader
-          icon={<Icon name="map" size={16} />}
-          title="Mapa del warehouse"
-          action={
-            formReady && selected.length > 0 ? (
-              <Button variant="secondary" size="sm" onClick={resetSelection}>
-                Limpiar selección
-              </Button>
-            ) : null
-          }
+      <div className="stock-assignment__search">
+        <Input
+          placeholder="Buscar por nombre o SKU"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          iconLeft={<Icon name="search" size={16} />}
         />
+      </div>
 
-        {!formReady ? (
-          <EmptyState
-            icon="info"
-            title="Completá los datos de la asignación"
-            description="Cuando elijas producto, unidad y cantidad, vas a poder seleccionar las posiciones en el mapa."
-          />
-        ) : (
-          <>
-            <p className="stock-assignment__map-hint">
-              Seleccioná posiciones <strong>{POSITION_SIZE_LABEL[requiredSize]}</strong> libres
-              (resaltadas). Para cada una vas a indicar cuántas unidades guardar, hasta cubrir las{" "}
-              <strong>{totalQuantity}</strong> unidades.
-            </p>
-            <div className="stock-assignment__map">
-              {tree.zones.length === 0 ? (
-                <EmptyState
-                  icon="info"
-                  title="No hay zonas configuradas"
-                  description="Configurá el warehouse con posiciones del tamaño correspondiente antes de asignar stock."
-                />
-              ) : (
-                tree.zones.map((zone) => (
-                  <ZonePickerGrid
-                    key={zone.idZone}
-                    zone={zone}
-                    selectedIds={selectedIds}
-                    isSelectable={isSelectable}
-                    onToggle={handleTogglePosition}
-                  />
-                ))
-              )}
-            </div>
-            {tree.zones.length > 0 && (
-              <div className="stock-assignment__legend">
-                {tree.zones.map((zone) => (
-                  <span className="stock-assignment__legend-item" key={zone.idZone}>
-                    <span
-                      className={`stock-assignment__legend-dot stock-assignment__legend-dot--${(zone.color || zone.zoneCode || "").toLowerCase()}`}
-                    />
-                    {zone.name}
-                  </span>
-                ))}
-              </div>
-            )}
-          </>
-        )}
+      <section className="stock-assignment__section">
+        <h2 className="stock-assignment__section-title">
+          Productos sin ubicación asignada{" "}
+          <span className="stock-assignment__section-count">
+            ({loadingProducts ? "…" : filteredProducts.length})
+          </span>
+        </h2>
+        {renderProducts()}
+      </section>
 
-        {formReady && plan.length > 0 && (
-          <>
-            <ul className="stock-assignment__plan">
-              {plan.map((slot, idx) => {
-                const over = Number.isFinite(slot.capacity) && slot.quantity > slot.capacity;
-                return (
-                  <li key={slot.idPosition} className="stock-assignment__plan-item">
-                    <div className="stock-assignment__plan-pos">
-                      <span className="stock-assignment__plan-index">{idx + 1}</span>
-                      <Icon name="pin" size={14} />
-                      <span>
-                        {slot.zoneName} · Línea {String(slot.lineNumber).padStart(2, "0")} ·{" "}
-                        {slot.positionName}
-                      </span>
-                    </div>
-                    <span className="stock-assignment__plan-unit">
-                      {slot.quantity} u
-                      {Number.isFinite(slot.capacity) && (
-                        <small
-                          className={over ? "stock-assignment__plan-cap--over" : undefined}
-                        >
-                          {" "}/ {slot.capacity}
-                        </small>
-                      )}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-
-            <div className="stock-assignment__summary">
-              <span>
-                <strong>{totalQuantity}</strong> unidades repartidas en{" "}
-                <strong>{plan.length}</strong> posiciones.
-              </span>
-            </div>
-
-            {overCapacitySlot && (
-              <div className="stock-assignment__feedback stock-assignment__feedback--error">
-                <Icon name="info" size={14} /> La posición {overCapacitySlot.positionName}{" "}
-                supera su capacidad ({overCapacitySlot.quantity} &gt;{" "}
-                {overCapacitySlot.capacity}). Elegí al menos {positionsNeeded} posiciones o
-                reducí la cantidad.
-              </div>
-            )}
-          </>
-        )}
-
-        {feedback && (
-          <div className={`stock-assignment__feedback stock-assignment__feedback--${feedback.type}`}>
-            <Icon name="info" size={14} /> {feedback.message}
-          </div>
-        )}
-
-        <div className="stock-assignment__actions">
-          <Button
-            type="button"
-            onClick={handleConfirm}
-            disabled={!canConfirm || submitting || !!overCapacitySlot}
-          >
-            {submitting ? "Asignando…" : "Confirmar asignación"}
-          </Button>
+      <section className="stock-assignment__section">
+        <h2 className="stock-assignment__section-title">
+          Productos de restock pendientes de ubicación{" "}
+          <span className="stock-assignment__section-count">
+            ({filteredRestock.length})
+          </span>
+        </h2>
+        <div className="stock-assignment__grid">
+          {filteredRestock.map((product) => (
+            <PendingLocationCard
+              key={product.id}
+              product={product}
+              badge={{ variant: "success", label: "Restock aceptado" }}
+              meta={[
+                { icon: "file", text: `Orden: ${product.orderId}` },
+                { icon: "box", text: `${product.received} unidades` },
+                { icon: "calendar", text: `Recepción: ${product.receivedAt}` },
+              ]}
+              onAssign={openRestockModal}
+            />
+          ))}
         </div>
-      </Card>
+      </section>
+
+      <ProductLocationModal
+        open={productModalOpen}
+        onClose={closeProductModal}
+        onAssigned={load}
+        product={selectedProduct}
+      />
+
+      <LocationAssignmentModal
+        open={restockModalOpen}
+        onClose={closeRestockModal}
+        product={selectedRestock}
+      />
     </div>
   );
 }
