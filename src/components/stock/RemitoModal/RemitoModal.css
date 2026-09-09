@@ -47,6 +47,12 @@
   margin-top: -4px;
 }
 
+.remito-modal__status--error {
+  color: var(--color-danger);
+  background-color: var(--color-danger-soft);
+  border-radius: var(--radius-sm);
+}
+
 /* ── Disabled inputs ──────────────────────────────────────── */
 
 .remito-modal__section input:disabled {

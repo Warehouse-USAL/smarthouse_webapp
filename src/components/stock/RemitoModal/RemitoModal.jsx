@@ -5,6 +5,8 @@ import Select from "../../ui/Select/Select";
 import Button from "../../ui/Button/Button";
 import Badge from "../../ui/Badge/Badge";
 import Icon from "../../ui/Icon/Icon";
+import { restockService } from "../../../services/restockService";
+import { productService } from "../../../services/productService";
 import "./RemitoModal.css";
 
 const DELIVERY_UNIT_OPTIONS = [
@@ -13,21 +15,113 @@ const DELIVERY_UNIT_OPTIONS = [
   { value: "caja", label: "Caja" },
 ];
 
-const EMPTY = { order: "RST-00018", received: "", unit: "" };
+const EMPTY = { order: "", received: "", unit: "" };
+
+const STATUS_META = {
+  pendiente: { label: "Pendiente", variant: "warning" },
+  recibido: { label: "Recibido parcial", variant: "info" },
+};
 
 export default function RemitoModal({ open, onClose }) {
   const [values, setValues] = useState(EMPTY);
+  const [orders, setOrders] = useState([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [ordersError, setOrdersError] = useState(null);
 
   useEffect(() => {
     if (open) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setValues(EMPTY);
+      setOrdersError(null);
+
+      let cancelled = false;
+      setLoadingOrders(true);
+
+      // Órdenes de restock reales, enriquecidas con producto (name/sku) y lo
+      // recibido hasta ahora; se descartan las completadas. El modal NO crea la
+      // recepción (flujo webapp: la recepción se registra sin ubicación).
+      (async () => {
+        try {
+          const all = [];
+          let currentPage = 0;
+          const size = 100;
+          let totalPages = 1;
+          do {
+            const res = await restockService.listOrders({ page: currentPage, size });
+            all.push(...res.orders);
+            totalPages = Math.max(1, res.pagination?.totalPages ?? 1);
+            currentPage += 1;
+          } while (currentPage < totalPages);
+
+          const productIds = [
+            ...new Set(all.map((o) => o.productId).filter(Boolean)),
+          ];
+          const productEntries = await Promise.all(
+            productIds.map(async (id) => [id, await productService.get(id)])
+          );
+          const productById = new Map(productEntries);
+
+          const detailEntries = await Promise.all(
+            all.map(async (o) => [o.id, await restockService.getOrder(o.id)])
+          );
+          const detailById = new Map(detailEntries);
+
+          const enriched = all
+            .map((order) => {
+              const received = detailById.get(order.id)?.quantityReceivedSoFar ?? 0;
+              const product = productById.get(order.productId);
+              return {
+                ...order,
+                product: product?.name ?? "Producto",
+                sku: product?.sku ?? "—",
+                received,
+                status:
+                  received >= order.quantityRequested
+                    ? "completado"
+                    : received > 0
+                      ? "recibido"
+                      : "pendiente",
+              };
+            })
+            .filter((order) => order.status !== "completado");
+
+          if (!cancelled) setOrders(enriched);
+        } catch (err) {
+          if (cancelled) return;
+          setOrders([]);
+          setOrdersError(
+            err?.response?.data?.error?.message ||
+              "No pudimos cargar las órdenes de restock."
+          );
+        } finally {
+          if (!cancelled) setLoadingOrders(false);
+        }
+      })();
+
+      return () => {
+        cancelled = true;
+      };
     }
+    return undefined;
   }, [open]);
 
   const set = (key) => (e) => setValues((v) => ({ ...v, [key]: e.target.value }));
 
-  const discrepancy = (Number(values.received) || 0) - 50;
+  const orderOptions = orders.map((order) => ({
+    value: order.id,
+    label: `${order.id} · ${order.product} · ${order.quantityRequested} u · ${order.supplier}`,
+  }));
+
+  const selectedOrder = orders.find((o) => o.id === values.order) || null;
+
+  const placeholder = loadingOrders
+    ? "Cargando órdenes…"
+    : orders.length === 0
+      ? "No hay órdenes pendientes"
+      : "Seleccioná una orden";
+
+  const discrepancy =
+    (Number(values.received) || 0) - (selectedOrder?.quantityRequested || 0);
 
   return (
     <Modal
@@ -69,16 +163,28 @@ export default function RemitoModal({ open, onClose }) {
             Seleccioná la orden de restock
           </h4>
           <Select
-            options={[
-              { value: "RST-00018", label: "RST-00018 - 19/05/2024 - Logitech Argentina" },
-            ]}
+            placeholder={placeholder}
+            options={orderOptions}
             value={values.order}
             onChange={set("order")}
+            disabled={loadingOrders || orders.length === 0}
           />
-          <div className="remito-modal__info">
-            <Badge variant="warning" dot>Pendiente</Badge>
-            <span>Cantidad solicitada: <strong>50 unidades</strong></span>
-          </div>
+          {ordersError && (
+            <span className="remito-modal__field-hint remito-modal__status--error">
+              {ordersError}
+            </span>
+          )}
+          {selectedOrder && (
+            <div className="remito-modal__info">
+              <Badge variant={STATUS_META[selectedOrder.status].variant} dot>
+                {STATUS_META[selectedOrder.status].label}
+              </Badge>
+              <span>
+                Cantidad solicitada:{" "}
+                <strong>{selectedOrder.quantityRequested} unidades</strong>
+              </span>
+            </div>
+          )}
         </section>
 
         {/* ── Sección 2: Producto ──────────────────────────── */}
@@ -92,8 +198,12 @@ export default function RemitoModal({ open, onClose }) {
               <Icon name="box" size={24} />
             </div>
             <div className="remito-modal__product-info">
-              <span className="remito-modal__product-name">Mouse inalámbrico Logitech M185</span>
-              <span className="remito-modal__product-sku">SKU: MOU-001</span>
+              <span className="remito-modal__product-name">
+                {selectedOrder ? selectedOrder.product : "—"}
+              </span>
+              <span className="remito-modal__product-sku">
+                {selectedOrder ? `SKU: ${selectedOrder.sku}` : "Seleccioná una orden"}
+              </span>
             </div>
           </div>
         </section>
@@ -107,7 +217,7 @@ export default function RemitoModal({ open, onClose }) {
             </h4>
             <Input
               type="number"
-              value={50}
+              value={selectedOrder ? selectedOrder.quantityRequested : ""}
               disabled
               hint="Extraída de la orden"
             />
