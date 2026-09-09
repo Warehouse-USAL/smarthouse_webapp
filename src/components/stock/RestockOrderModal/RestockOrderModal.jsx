@@ -3,34 +3,83 @@ import Modal from "../../ui/Modal/Modal";
 import Input from "../../ui/Input/Input";
 import Select from "../../ui/Select/Select";
 import Button from "../../ui/Button/Button";
-import Icon from "../../ui/Icon/Icon";
+import { productService } from "../../../services/productService";
+import { restockService } from "../../../services/restockService";
 import "./RestockOrderModal.css";
 
-const PRIORITY_OPTIONS = [
-  { value: "alta", label: "Alta" },
-  { value: "media", label: "Media" },
-  { value: "baja", label: "Baja" },
-];
+const EMPTY = { product: "", quantity: "", supplier: "" };
 
-const QUANTITY_OPTIONS = Array.from({ length: 100 }, (_, i) => ({
-  value: i + 1,
-  label: String(i + 1),
-}));
-
-const EMPTY = { product: "", quantity: "", priority: "" };
-
-export default function RestockOrderModal({ open, onClose }) {
+export default function RestockOrderModal({ open, onClose, onCreated }) {
   const [values, setValues] = useState(EMPTY);
+  const [products, setProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Cada apertura arranca con el formulario limpio.
+  // Cada apertura arranca el formulario limpio y refresca el catálogo de
+  // productos (los IDs se persisten, no el SKU).
   useEffect(() => {
     if (open) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setValues(EMPTY);
+      setError(null);
+
+      let cancelled = false;
+      setLoadingProducts(true);
+      productService
+        .list({ size: 200 })
+        .then((list) => {
+          if (!cancelled) setProducts(list);
+        })
+        .catch(() => {
+          if (!cancelled) setProducts([]);
+        })
+        .finally(() => {
+          if (!cancelled) setLoadingProducts(false);
+        });
+
+      return () => {
+        cancelled = true;
+      };
     }
+    return undefined;
   }, [open]);
 
   const set = (key) => (e) => setValues((v) => ({ ...v, [key]: e.target.value }));
+
+  const productOptions = products.map((p) => ({
+    value: p.id,
+    label: `${p.name} — SKU ${p.sku}`,
+  }));
+
+  const quantity = Number(values.quantity);
+  const isValid =
+    !!values.product &&
+    Number.isFinite(quantity) &&
+    quantity >= 1 &&
+    values.supplier.trim().length > 0;
+
+  const handleSubmit = async () => {
+    if (!isValid || submitting) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const created = await restockService.createOrder({
+        productId: values.product,
+        quantityRequested: quantity,
+        supplier: values.supplier.trim(),
+      });
+      onCreated?.(created);
+      onClose?.();
+    } catch (err) {
+      setError(
+        err?.response?.data?.error?.message ||
+          "No pudimos crear la orden de restock."
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <Modal
@@ -43,7 +92,9 @@ export default function RestockOrderModal({ open, onClose }) {
           <Button variant="secondary" onClick={onClose}>
             Cancelar
           </Button>
-          <Button disabled>Crear orden</Button>
+          <Button disabled={!isValid || submitting} onClick={handleSubmit}>
+            {submitting ? "Creando orden…" : "Crear orden"}
+          </Button>
         </>
       }
     >
@@ -52,43 +103,38 @@ export default function RestockOrderModal({ open, onClose }) {
       </p>
 
       <div className="restock-modal__form">
-        <Input
-          label="Número de orden"
-          value="RST-00024"
-          readOnly
-          disabled
-          hint="Se generará automáticamente"
-        />
-
-        <Input
+        <Select
           label="Producto"
-          iconLeft={<Icon name="search" size={18} />}
-          placeholder="Buscar producto o SKU"
+          options={productOptions}
+          placeholder={loadingProducts ? "Cargando productos…" : "Seleccioná un producto"}
           value={values.product}
           onChange={set("product")}
           required
         />
 
         <div className="restock-modal__row">
-          <Select
+          <Input
             label="Cantidad solicitada"
-            options={QUANTITY_OPTIONS}
-            placeholder="Seleccioná cantidad"
+            type="number"
+            min={1}
+            step={1}
+            placeholder="Ej. 50"
             value={values.quantity}
             onChange={set("quantity")}
             required
           />
 
-          <Select
-            label="Prioridad"
-            options={PRIORITY_OPTIONS}
-            placeholder="Seleccioná prioridad"
-            value={values.priority}
-            onChange={set("priority")}
+          <Input
+            label="Proveedor"
+            placeholder="Ej. Distribuidora XYZ"
+            value={values.supplier}
+            onChange={set("supplier")}
             required
           />
         </div>
       </div>
+
+      {error && <p className="restock-modal__error">{error}</p>}
     </Modal>
   );
 }

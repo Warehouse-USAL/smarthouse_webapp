@@ -143,6 +143,24 @@
 
 /* ── Pestañas por estado ───────────────────────────────────── */
 
+.stock-management__status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-8) var(--space-5);
+}
+
+.stock-management__status-msg {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.stock-management__status-msg--error {
+  color: var(--color-danger);
+}
+
 .stock-management__table-card {
   overflow: hidden;
 }

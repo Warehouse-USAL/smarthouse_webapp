@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
 import Card from "../../components/ui/Card/Card";
 import Input from "../../components/ui/Input/Input";
@@ -12,6 +12,8 @@ import Pagination from "../../components/ui/Pagination/Pagination";
 import Icon from "../../components/ui/Icon/Icon";
 import RestockOrderModal from "../../components/stock/RestockOrderModal/RestockOrderModal";
 import RemitoModal from "../../components/stock/RemitoModal/RemitoModal";
+import { restockService } from "../../services/restockService";
+import { productService } from "../../services/productService";
 import "./StockManagementPage.css";
 
 const ACTION_CARDS = [
@@ -33,12 +35,12 @@ const ACTION_CARDS = [
   },
 ];
 
-// Estados de una orden de restock. `variant` es la variante del Badge.
+// Estados derivados: el backend no tiene campo `status` en RestockOrder. El
+// proxy es quantity_received_so_far contra lo solicitado (GET /restock/orders/:id).
 const STATUS_META = {
   pendiente: { label: "Pendiente", plural: "Pendientes", variant: "warning" },
   recibido: { label: "Recibido", plural: "Recibidos", variant: "info" },
   completado: { label: "Completado", plural: "Completados", variant: "success" },
-  cancelado: { label: "Cancelado", plural: "Cancelados", variant: "neutral" },
 };
 
 const STATUS_KEYS = Object.keys(STATUS_META);
@@ -54,46 +56,21 @@ const PAGE_SIZE_OPTIONS = [
   { value: "20", label: "20 por página" },
 ];
 
-// Datos de ejemplo para maquetar la pantalla. En el próximo sprint se
-// reemplazan por el listado real (GET /orders), ordenado por fecha desc.
-const ORDERS = [
-  { id: "RST-00023", createdAt: "2024-05-22T09:40", product: "Notebook 14 pulgadas", sku: "NOT-045", requested: 10, received: 0, status: "pendiente", estimatedAt: "2024-05-27" },
-  { id: "RST-00022", createdAt: "2024-05-21T15:05", product: "Router WiFi 6", sku: "ROU-009", requested: 40, received: 0, status: "pendiente", estimatedAt: "2024-05-26" },
-  { id: "RST-00021", createdAt: "2024-05-21T11:30", product: "Auriculares con micrófono", sku: "AUR-022", requested: 60, received: 0, status: "pendiente", estimatedAt: "2024-05-25" },
-  { id: "RST-00020", createdAt: "2024-05-20T17:20", product: "Disco SSD 1TB", sku: "SSD-064", requested: 35, received: 0, status: "pendiente", estimatedAt: "2024-05-24" },
-  { id: "RST-00019", createdAt: "2024-05-20T08:55", product: "Webcam HD", sku: "WEB-008", requested: 25, received: 0, status: "pendiente", estimatedAt: "2024-05-23" },
-  { id: "RST-00018", createdAt: "2024-05-19T10:30", product: "Mouse inalámbrico", sku: "MOU-001", requested: 50, received: 0, status: "pendiente", estimatedAt: "2024-05-22" },
-  { id: "RST-00017", createdAt: "2024-05-19T09:15", product: "Teclado mecánico", sku: "TEC-014", requested: 30, received: 0, status: "pendiente", estimatedAt: "2024-05-21" },
-  { id: "RST-00016", createdAt: "2024-05-18T16:45", product: "Cámara IP", sku: "CAM-021", requested: 20, received: 10, status: "recibido", estimatedAt: "2024-05-20" },
-  { id: "RST-00015", createdAt: "2024-05-18T11:20", product: "Lector de código", sku: "LEC-017", requested: 25, received: 25, status: "completado", estimatedAt: "2024-05-18" },
-  { id: "RST-00014", createdAt: "2024-05-17T14:10", product: "Monitor 24 pulgadas", sku: "MON-032", requested: 15, received: 0, status: "cancelado", estimatedAt: "2024-05-19" },
-  { id: "RST-00013", createdAt: "2024-05-17T10:05", product: "Impresora térmica", sku: "IMP-011", requested: 12, received: 0, status: "pendiente", estimatedAt: "2024-05-21" },
-  { id: "RST-00012", createdAt: "2024-05-16T16:40", product: "Tablet 10 pulgadas", sku: "TAB-030", requested: 18, received: 0, status: "pendiente", estimatedAt: "2024-05-20" },
-  { id: "RST-00011", createdAt: "2024-05-16T12:15", product: "Mouse inalámbrico", sku: "MOU-001", requested: 45, received: 0, status: "pendiente", estimatedAt: "2024-05-20" },
-  { id: "RST-00010", createdAt: "2024-05-16T09:30", product: "Cámara IP", sku: "CAM-021", requested: 22, received: 22, status: "completado", estimatedAt: "2024-05-19" },
-  { id: "RST-00009", createdAt: "2024-05-15T18:00", product: "Teclado mecánico", sku: "TEC-014", requested: 28, received: 14, status: "recibido", estimatedAt: "2024-05-19" },
-  { id: "RST-00008", createdAt: "2024-05-15T14:25", product: "Monitor 24 pulgadas", sku: "MON-032", requested: 16, received: 16, status: "completado", estimatedAt: "2024-05-18" },
-  { id: "RST-00007", createdAt: "2024-05-15T10:10", product: "Lector de código", sku: "LEC-017", requested: 30, received: 0, status: "pendiente", estimatedAt: "2024-05-18" },
-  { id: "RST-00006", createdAt: "2024-05-14T16:50", product: "Router WiFi 6", sku: "ROU-009", requested: 24, received: 12, status: "recibido", estimatedAt: "2024-05-17" },
-  { id: "RST-00005", createdAt: "2024-05-14T11:05", product: "Notebook 14 pulgadas", sku: "NOT-045", requested: 8, received: 8, status: "completado", estimatedAt: "2024-05-17" },
-  { id: "RST-00004", createdAt: "2024-05-13T15:35", product: "Webcam HD", sku: "WEB-008", requested: 20, received: 0, status: "pendiente", estimatedAt: "2024-05-16" },
-  { id: "RST-00003", createdAt: "2024-05-13T09:50", product: "Auriculares con micrófono", sku: "AUR-022", requested: 50, received: 30, status: "recibido", estimatedAt: "2024-05-16" },
-  { id: "RST-00002", createdAt: "2024-05-12T14:20", product: "Disco SSD 1TB", sku: "SSD-064", requested: 15, received: 15, status: "completado", estimatedAt: "2024-05-15" },
-  { id: "RST-00001", createdAt: "2024-05-12T10:00", product: "Impresora térmica", sku: "IMP-011", requested: 10, received: 0, status: "cancelado", estimatedAt: "2024-05-15" },
-];
+const deriveStatus = (requested, received) => {
+  if (received >= requested) return "completado";
+  if (received > 0) return "recibido";
+  return "pendiente";
+};
 
-const PRODUCT_OPTIONS = [
-  { value: "", label: "Todos los productos" },
-  ...[...new Set(ORDERS.map((o) => o.product))]
-    .sort((a, b) => a.localeCompare(b, "es"))
-    .map((name) => ({ value: name, label: name })),
-];
-
-const formatDate = (iso) => iso.split("-").reverse().join("/");
+const formatDate = (iso) => {
+  const day = String(iso ?? "").slice(0, 10);
+  return day ? day.split("-").reverse().join("/") : "—";
+};
 
 const formatDateTime = (iso) => {
-  const [date, time] = iso.split("T");
-  return `${formatDate(date)} ${time}`;
+  const [date, time] = String(iso ?? "").split("T");
+  if (!date) return "—";
+  return `${formatDate(date)} ${(time || "").slice(0, 8)}`;
 };
 
 const units = (n) => `${n} unidad${n === 1 ? "" : "es"}`;
@@ -103,6 +80,10 @@ export default function StockManagementPage() {
   const [receivingOpen, setReceivingOpen] = useState(false);
   const [detail, setDetail] = useState(null);
 
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("pendiente");
   const [product, setProduct] = useState("");
@@ -110,16 +91,90 @@ export default function StockManagementPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
 
+  // Trae el listado real de órdenes, lo enriquece con el detalle (recibido
+  // hasta ahora) y el join a producto (nombre/SKU). El backend no envía esos
+  // campos en el listado, así que se resuelven acá.
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const all = [];
+      let currentPage = 0;
+      const size = 100;
+      let totalPages = 1;
+      do {
+        const res = await restockService.listOrders({ page: currentPage, size });
+        all.push(...res.orders);
+        totalPages = Math.max(1, res.pagination?.totalPages ?? 1);
+        currentPage += 1;
+      } while (currentPage < totalPages);
+
+      const productIds = [
+        ...new Set(all.map((o) => o.productId).filter(Boolean)),
+      ];
+      const productEntries = await Promise.all(
+        productIds.map(async (id) => [id, await productService.get(id)])
+      );
+      const productById = new Map(productEntries);
+
+      const detailEntries = await Promise.all(
+        all.map(async (o) => [o.id, await restockService.getOrder(o.id)])
+      );
+      const detailById = new Map(detailEntries);
+
+      setOrders(
+        all.map((order) => {
+          const received =
+            detailById.get(order.id)?.quantityReceivedSoFar ?? 0;
+          const product = productById.get(order.productId);
+          return {
+            ...order,
+            product: product?.name ?? "Producto",
+            sku: product?.sku ?? "—",
+            received,
+            status: deriveStatus(order.quantityRequested, received),
+          };
+        })
+      );
+    } catch (err) {
+      setOrders([]);
+      setLoadError(
+        err?.response?.data?.error?.message ||
+          "No pudimos cargar las órdenes de restock."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    // load setea loading/error de forma síncrona para manejar la UI de carga;
+    // es intencional, no el cascade derivado de render que esta regla previene.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    load();
+  }, [load]);
+
   const handleOpen = (key) => {
     if (key === "restock") setRestockOpen(true);
     if (key === "receiving") setReceivingOpen(true);
   };
 
+  const productOptions = useMemo(
+    () => [
+      { value: "", label: "Todos los productos" },
+      ...[...new Map(orders.map((o) => [o.productId, o.product])).entries()]
+        .filter(([, name]) => name)
+        .sort((a, b) => a[1].localeCompare(b[1], "es"))
+        .map(([id, name]) => ({ value: id, label: name })),
+    ],
+    [orders]
+  );
+
   // Filtros que NO son el estado: sobre este subconjunto se cuentan las
   // pestañas, para que los números acompañen a la búsqueda.
   const matching = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return ORDERS.filter((order) => {
+    return orders.filter((order) => {
       if (
         q &&
         !order.product.toLowerCase().includes(q) &&
@@ -127,13 +182,13 @@ export default function StockManagementPage() {
       ) {
         return false;
       }
-      if (product && order.product !== product) return false;
-      const day = order.createdAt.slice(0, 10);
+      if (product && order.productId !== product) return false;
+      const day = String(order.createdAt ?? "").slice(0, 10);
       if (range.from && day < range.from) return false;
       if (range.to && day > range.to) return false;
       return true;
     });
-  }, [search, product, range]);
+  }, [orders, search, product, range]);
 
   const counts = useMemo(() => {
     const acc = {};
@@ -221,7 +276,7 @@ export default function StockManagementPage() {
               setProduct(e.target.value);
               setPage(1);
             }}
-            options={PRODUCT_OPTIONS}
+            options={productOptions}
           />
         </div>
         <div className="stock-management__filter">
@@ -255,7 +310,20 @@ export default function StockManagementPage() {
           ))}
         </div>
 
-        {pageItems.length === 0 ? (
+        {loadError ? (
+          <div className="stock-management__status">
+            <p className="stock-management__status-msg stock-management__status-msg--error">
+              {loadError}
+            </p>
+            <Button variant="secondary" size="sm" onClick={load}>
+              Reintentar
+            </Button>
+          </div>
+        ) : loading && pageItems.length === 0 ? (
+          <div className="stock-management__status">
+            <p className="stock-management__status-msg">Cargando órdenes…</p>
+          </div>
+        ) : pageItems.length === 0 ? (
           <EmptyState
             icon="box"
             title="No hay órdenes"
@@ -273,7 +341,7 @@ export default function StockManagementPage() {
                   <th>Cantidad solicitada</th>
                   <th>Recibido</th>
                   <th>Estado</th>
-                  <th>Fecha estimada</th>
+                  <th>Proveedor</th>
                   <th className="stock-table__actions-col">Acciones</th>
                 </tr>
               </thead>
@@ -291,14 +359,14 @@ export default function StockManagementPage() {
                       </div>
                     </td>
                     <td className="stock-table__sku">{order.sku}</td>
-                    <td>{units(order.requested)}</td>
+                    <td>{units(order.quantityRequested)}</td>
                     <td>{units(order.received)}</td>
                     <td>
                       <Badge variant={STATUS_META[order.status].variant} dot>
                         {STATUS_META[order.status].label}
                       </Badge>
                     </td>
-                    <td className="stock-table__date">{formatDate(order.estimatedAt)}</td>
+                    <td>{order.supplier}</td>
                     <td>
                       <button
                         type="button"
@@ -336,7 +404,11 @@ export default function StockManagementPage() {
         </footer>
       )}
 
-      <RestockOrderModal open={restockOpen} onClose={() => setRestockOpen(false)} />
+      <RestockOrderModal
+        open={restockOpen}
+        onClose={() => setRestockOpen(false)}
+        onCreated={load}
+      />
       <RemitoModal open={receivingOpen} onClose={() => setReceivingOpen(false)} />
 
       <Modal
@@ -369,16 +441,16 @@ export default function StockManagementPage() {
               <dd>{detail.sku}</dd>
             </div>
             <div>
+              <dt>Proveedor</dt>
+              <dd>{detail.supplier}</dd>
+            </div>
+            <div>
               <dt>Fecha de creación</dt>
               <dd>{formatDateTime(detail.createdAt)}</dd>
             </div>
             <div>
-              <dt>Fecha estimada</dt>
-              <dd>{formatDate(detail.estimatedAt)}</dd>
-            </div>
-            <div>
               <dt>Cantidad solicitada</dt>
-              <dd>{units(detail.requested)}</dd>
+              <dd>{units(detail.quantityRequested)}</dd>
             </div>
             <div>
               <dt>Recibido</dt>

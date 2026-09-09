@@ -1,19 +1,12 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
 import Input from "../../components/ui/Input/Input";
 import Icon from "../../components/ui/Icon/Icon";
 import PendingLocationCard from "../../components/stock/PendingLocationCard/PendingLocationCard";
 import ProductLocationModal from "../../components/stock/ProductLocationModal/ProductLocationModal";
 import LocationAssignmentModal from "../../components/stock/LocationAssignmentModal/LocationAssignmentModal";
+import { productService } from "../../services/productService";
 import "./StockAssignmentPage.css";
-
-const PRODUCTS_WITHOUT_LOCATION = [
-  { id: 1, name: "Micrófono condensador", sku: "MIC-003", category: "Periféricos", stockAvailable: 120 },
-  { id: 2, name: "Smart TV 43 pulgadas", sku: "TV-010", category: "Monitores", stockAvailable: 15 },
-  { id: 3, name: "Switch 24 puertos", sku: "SWI-006", category: "Redes", stockAvailable: 40 },
-  { id: 4, name: "Pendrive 64GB", sku: "PEN-014", category: "Almacenamiento", stockAvailable: 200 },
-  { id: 5, name: "Escáner A4", sku: "ESC-002", category: "Impresión", stockAvailable: 25 },
-];
 
 const PENDING_RESTOCK = [
   { id: 1, name: "Mouse inalámbrico Logitech M185", sku: "MOU-001", orderId: "RST-00018", received: 20, receivedAt: "22/05/2024" },
@@ -35,10 +28,50 @@ export default function StockAssignmentPage() {
   const [restockModalOpen, setRestockModalOpen] = useState(false);
   const [selectedRestock, setSelectedRestock] = useState(null);
 
+  const [products, setProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [productsError, setProductsError] = useState(null);
+
+  // Productos del catálogo sin ninguna ubicación asignada (locations vacío).
+  // El listado del backend no trae ubicación, así que se consulta aparte.
+  const load = useCallback(async () => {
+    setLoadingProducts(true);
+    setProductsError(null);
+    try {
+      const list = await productService.list({ size: 200 });
+      const withLocations = await Promise.all(
+        list.map(async (product) => ({
+          product,
+          locations: await productService.getLocations(product.id),
+        }))
+      );
+      setProducts(
+        withLocations
+          .filter((entry) => entry.locations.length === 0)
+          .map((entry) => entry.product)
+      );
+    } catch (err) {
+      setProducts([]);
+      setProductsError(
+        err?.response?.data?.error?.message ||
+          "No pudimos cargar los productos."
+      );
+    } finally {
+      setLoadingProducts(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    // load setea loading/error de forma síncrona para manejar la UI de carga;
+    // es intencional, no el cascade derivado de render que esta regla previene.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    load();
+  }, [load]);
+
   const filteredProducts = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return PRODUCTS_WITHOUT_LOCATION.filter((item) => matchesSearch(item, q));
-  }, [search]);
+    return products.filter((item) => matchesSearch(item, q));
+  }, [products, search]);
 
   const filteredRestock = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -65,6 +98,41 @@ export default function StockAssignmentPage() {
     setRestockModalOpen(false);
   };
 
+  const renderProducts = () => {
+    if (productsError) {
+      return (
+        <p className="stock-assignment__status stock-assignment__status--error">
+          {productsError}{" "}
+          <button type="button" className="stock-assignment__retry" onClick={load}>
+            Reintentar
+          </button>
+        </p>
+      );
+    }
+    if (loadingProducts && products.length === 0) {
+      return <p className="stock-assignment__status">Cargando productos…</p>;
+    }
+    if (filteredProducts.length === 0) {
+      return <p className="stock-assignment__status">No hay productos sin ubicación asignada.</p>;
+    }
+    return (
+      <div className="stock-assignment__grid">
+        {filteredProducts.map((product) => (
+          <PendingLocationCard
+            key={product.id}
+            product={product}
+            meta={[
+              { icon: "grid", text: `Categoría: ${product.category}` },
+              { icon: "box", text: `Stock: ${product.availableStock} unidades` },
+            ]}
+            estadoInline
+            onAssign={openProductModal}
+          />
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="stock-assignment">
       <PageHeader
@@ -85,23 +153,10 @@ export default function StockAssignmentPage() {
         <h2 className="stock-assignment__section-title">
           Productos sin ubicación asignada{" "}
           <span className="stock-assignment__section-count">
-            ({filteredProducts.length})
+            ({loadingProducts ? "…" : filteredProducts.length})
           </span>
         </h2>
-        <div className="stock-assignment__grid">
-          {filteredProducts.map((product) => (
-            <PendingLocationCard
-              key={product.id}
-              product={product}
-              meta={[
-                { icon: "grid", text: `Categoría: ${product.category}` },
-                { icon: "box", text: `Stock: ${product.stockAvailable} unidades` },
-              ]}
-              estadoInline
-              onAssign={openProductModal}
-            />
-          ))}
-        </div>
+        {renderProducts()}
       </section>
 
       <section className="stock-assignment__section">
@@ -131,6 +186,7 @@ export default function StockAssignmentPage() {
       <ProductLocationModal
         open={productModalOpen}
         onClose={closeProductModal}
+        onAssigned={load}
         product={selectedProduct}
       />
 

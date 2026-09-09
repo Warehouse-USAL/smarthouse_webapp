@@ -22,7 +22,15 @@ export default function PendingLocationCard({
 
       <div className="pending-card__body">
         <div className="pending-card__thumb">
-          <Icon name="box" size={44} />
+          {product.imageUrl ? (
+            <img
+              className="pending-card__thumb-img"
+              src={product.imageUrl}
+              alt={product.name}
+            />
+          ) : (
+            <Icon name="box" size={44} />
+          )}
         </div>
 
         <div className="pending-card__info">
