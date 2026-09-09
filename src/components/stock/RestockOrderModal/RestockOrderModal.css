@@ -1,0 +1,27 @@
+.restock-modal__subtitle {
+  margin: 0 0 var(--space-5);
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.restock-modal__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.restock-modal__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.restock-modal__error {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-danger);
+  background-color: var(--color-danger-soft);
+  border: 1px solid var(--color-danger-border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+}

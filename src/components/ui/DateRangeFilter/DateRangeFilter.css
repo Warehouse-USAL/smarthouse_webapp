@@ -1,0 +1,113 @@
+.date-range {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.date-range__label {
+  font-size: 14px;
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+/* Mismo control visual que Select, con el ícono de calendario a la izquierda */
+.date-range__trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-white);
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color var(--transition-duration-input),
+    box-shadow var(--transition-duration-input);
+}
+
+.date-range__trigger:focus-visible {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+}
+
+.date-range__icon {
+  flex-shrink: 0;
+  color: var(--color-text-secondary-alt);
+}
+
+.date-range__value {
+  flex: 1;
+  text-align: left;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.date-range__value--empty {
+  color: var(--color-text-muted);
+}
+
+.date-range__caret {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+/* Popover */
+.date-range__popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-dropdown);
+}
+
+.date-range__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.date-range__field input {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 14px;
+  color: var(--color-text-primary);
+}
+
+.date-range__field input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+}
+
+.date-range__clear {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 13px;
+  font-weight: var(--weight-medium);
+  color: var(--color-yellow-dark);
+  cursor: pointer;
+}
+
+.date-range__clear:disabled {
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}

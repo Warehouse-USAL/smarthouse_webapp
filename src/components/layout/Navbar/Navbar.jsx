@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import Logo from "../../ui/Logo/Logo";
+import Avatar from "../../ui/Avatar/Avatar";
 import { logout, getUser } from "../../../services/authService";
 import { can } from "../../../lib/permissions";
 import "./Navbar.css";
@@ -8,9 +9,10 @@ import "./Navbar.css";
 // `capability` opcional: si está, el ítem solo se muestra cuando el rol la tiene.
 const NAV_ITEMS = [
   { to: "/inicio", label: "Inicio" },
-  { to: "/configuracion", label: "Configuración del warehouse", capability: "warehouse.read" },
   { to: "/productos", label: "Productos" },
   { to: "/asignacion-stock", label: "Asignación de stock", capability: "stock.assign" },
+  { to: "/gestion-stock", label: "Gestión de stock", capability: "stock.assign" },
+  { to: "/configuracion", label: "Configuración del warehouse", capability: "warehouse.read" },
   { to: "/vehiculos", label: "Vehículos", capability: "vehicle.read" },
   { to: "/usuarios", label: "Usuarios", capability: "user.read" },
 ];
@@ -66,7 +68,7 @@ export default function Navbar() {
             aria-haspopup="menu"
             aria-expanded={open}
           >
-            <div className="navbar__avatar" aria-hidden="true" />
+            <Avatar name={user?.name} size={32} />
             <span className="navbar__user-name">{user?.name ?? "Usuario"}</span>
             <svg
               width="14"

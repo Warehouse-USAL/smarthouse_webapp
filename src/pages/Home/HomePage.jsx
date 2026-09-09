@@ -12,22 +12,34 @@ const TILES = [
     description: "Gestioná el catálogo y el stock de cada producto.",
   },
   {
-    to: "/configuracion",
-    icon: "map",
-    title: "Configuración del warehouse",
-    description: "Definí zonas, líneas y posiciones.",
-  },
-  {
     to: "/asignacion-stock",
     icon: "pin",
     title: "Asignación de stock",
     description: "Asigná stock de un producto a posiciones físicas del warehouse.",
   },
   {
+    to: "/gestion-stock",
+    icon: "grid",
+    title: "Gestión de stock",
+    description: "Consultá y administrá el stock asignado en el warehouse.",
+  },
+  {
+    to: "/configuracion",
+    icon: "map",
+    title: "Configuración del warehouse",
+    description: "Definí zonas, líneas y posiciones.",
+  },
+  {
     to: "/vehiculos",
     icon: "truck",
     title: "Vehículos",
     description: "Monitoreá el estado y la ubicación de cada vehículo.",
+  },
+  {
+    to: "/usuarios",
+    icon: "user",
+    title: "Usuarios",
+    description: "Administrar usuarios y sus permisos.",
   },
 ];
 

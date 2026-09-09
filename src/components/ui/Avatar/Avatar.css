@@ -1,0 +1,19 @@
+.avatar {
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  flex-shrink: 0;
+}
+
+.avatar--placeholder {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-title);
+  font-weight: var(--weight-semibold);
+  font-size: 13px;
+  line-height: 1;
+  user-select: none;
+}
