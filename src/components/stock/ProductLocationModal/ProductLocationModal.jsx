@@ -71,11 +71,9 @@ export default function ProductLocationModal({ open, onClose, product }) {
               <span className="product-location-modal__product-tag">Producto</span>
               <span className="product-location-modal__product-name">{product.name}</span>
               <span className="product-location-modal__product-sku">SKU: {product.sku}</span>
-              <span className="product-location-modal__product-meta inline-emoji">
-                🗂️ Categoría: {product.category}
-              </span>
               <span className="product-location-modal__product-meta">
-                📦 Stock disponible: {product.stockAvailable} unidades
+                <Icon name="box" size={14} />
+                Stock: {product.stockAvailable} unidades
               </span>
               <Badge variant="danger" dot>Sin ubicación</Badge>
             </div>

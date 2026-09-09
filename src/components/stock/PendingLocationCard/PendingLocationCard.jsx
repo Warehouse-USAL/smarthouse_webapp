@@ -3,7 +3,13 @@ import Button from "../../ui/Button/Button";
 import Icon from "../../ui/Icon/Icon";
 import "./PendingLocationCard.css";
 
-export default function PendingLocationCard({ product, badge, meta = [], onAssign }) {
+export default function PendingLocationCard({
+  product,
+  badge,
+  meta = [],
+  estadoInline = false,
+  onAssign,
+}) {
   return (
     <article className="pending-card">
       {badge && (
@@ -16,25 +22,34 @@ export default function PendingLocationCard({ product, badge, meta = [], onAssig
 
       <div className="pending-card__body">
         <div className="pending-card__thumb">
-          <Icon name="box" size={32} />
+          <Icon name="box" size={44} />
         </div>
 
         <div className="pending-card__info">
           <h3 className="pending-card__name">{product.name}</h3>
           <span className="pending-card__sku">SKU: {product.sku}</span>
           {meta.map((line) => (
-            <span className="pending-card__meta" key={line}>
-              {line}
+            <span className="pending-card__meta" key={`${line.icon}-${line.text}`}>
+              <Icon name={line.icon} size={14} />
+              <span>{line.text}</span>
             </span>
           ))}
+          {estadoInline && (
+            <span className="pending-card__meta pending-card__estado">
+              <Icon name="pin" size={14} />
+              <span>Estado: Pendiente de ubicación</span>
+            </span>
+          )}
         </div>
       </div>
 
       <div className="pending-card__footer">
-        <Badge variant="warning" dot>
-          <Icon name="pin" size={12} />
-          Estado: Pendiente de ubicación
-        </Badge>
+        {!estadoInline && (
+          <span className="pending-card__estado">
+            <Icon name="pin" size={14} />
+            Estado: Pendiente de ubicación
+          </span>
+        )}
         <Button
           variant="warning-outline"
           size="sm"

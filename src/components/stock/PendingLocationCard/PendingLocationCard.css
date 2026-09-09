@@ -1,6 +1,7 @@
 .pending-card {
   display: flex;
   flex-direction: column;
+  min-height: 280px;
   border: 1px solid var(--color-border-soft);
   border-radius: var(--radius-md);
   background-color: var(--color-white);
@@ -8,23 +9,24 @@
 }
 
 .pending-card__badge {
-  padding: var(--space-3) var(--space-4) 0;
+  padding: var(--space-4) var(--space-4) 0;
 }
 
 .pending-card__body {
+  flex: 1;
   display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-4);
 }
 
 .pending-card__thumb {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 72px;
-  height: 72px;
-  border-radius: var(--radius-sm);
+  width: 100px;
+  height: 100px;
+  border-radius: var(--radius-md);
   background-color: var(--color-surface-muted);
   color: var(--color-text-muted);
   flex-shrink: 0;
@@ -33,33 +35,51 @@
 .pending-card__info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-3);
   min-width: 0;
 }
 
 .pending-card__name {
   margin: 0;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--color-text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.pending-card__sku,
+.pending-card__sku {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
 .pending-card__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
   font-size: 13px;
   color: var(--color-text-secondary);
 }
 
 .pending-card__footer {
+  margin-top: auto;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
+  align-items: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4);
   background-color: var(--color-surface-muted);
+}
+
+.pending-card__estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  color: var(--color-yellow-dark);
+  background-color: var(--color-yellow-soft);
 }
 
 .pending-card__footer .button {
