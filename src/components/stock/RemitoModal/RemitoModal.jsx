@@ -4,7 +4,6 @@ import Input from "../../ui/Input/Input";
 import Select from "../../ui/Select/Select";
 import Button from "../../ui/Button/Button";
 import Badge from "../../ui/Badge/Badge";
-import ProgressBar from "../../ui/ProgressBar/ProgressBar";
 import Icon from "../../ui/Icon/Icon";
 import "./RemitoModal.css";
 
@@ -14,37 +13,11 @@ const DELIVERY_UNIT_OPTIONS = [
   { value: "caja", label: "Caja" },
 ];
 
-const CURRENT_LOCATIONS = [
-  { location: "A-01-01", status: "occupied", statusLabel: "Ocupada", qty: 35, capacity: 50 },
-  { location: "A-01-02", status: "full", statusLabel: "Llena", qty: 50, capacity: 50 },
-  { location: "A-02-01", status: "empty", statusLabel: "Vacía", qty: 0, capacity: 50 },
-  { location: "B-01-01", status: "occupied", statusLabel: "Ocupada", qty: 20, capacity: 50 },
-];
-
-const AVAILABLE_LOCATIONS = [
-  { location: "A-02-01", spaces: 20 },
-  { location: "B-01-01", spaces: 50 },
-  { location: "B-02-03", spaces: 50 },
-];
-
-const STATUS_VARIANT = {
-  occupied: "success",
-  full: "danger",
-  empty: "neutral",
-};
-
-const PROGRESS_VARIANT = {
-  occupied: "success",
-  full: "danger",
-  empty: "danger",
-};
-
-const EMPTY = { order: "RST-00018", quantity: "", unit: "", locations: [] };
+const EMPTY = { order: "RST-00018", received: "", unit: "" };
 
 export default function RemitoModal({ open, onClose }) {
   const [values, setValues] = useState(EMPTY);
 
-  // Cada apertura arranca con el formulario limpio.
   useEffect(() => {
     if (open) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -54,13 +27,7 @@ export default function RemitoModal({ open, onClose }) {
 
   const set = (key) => (e) => setValues((v) => ({ ...v, [key]: e.target.value }));
 
-  const toggleLocation = (location) =>
-    setValues((v) => ({
-      ...v,
-      locations: v.locations.includes(location)
-        ? v.locations.filter((l) => l !== location)
-        : [...v.locations, location],
-    }));
+  const discrepancy = (Number(values.received) || 0) - 50;
 
   return (
     <Modal
@@ -69,12 +36,25 @@ export default function RemitoModal({ open, onClose }) {
       title="Nuevo remito de recepción"
       size="lg"
       footer={
-        <>
-          <Button variant="secondary" onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button disabled>Guardar remito</Button>
-        </>
+        <div className="remito-modal__footer">
+          <div className="remito-modal__footer-left">
+            <Button
+              variant="danger-outline"
+              iconLeft={<Icon name="x" size={16} />}
+            >
+              Rechazar pedido
+            </Button>
+
+          </div>
+          <div className="remito-modal__footer-right">
+            <Button variant="secondary" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button iconLeft={<Icon name="check" size={16} />}>
+              Aceptar pedido
+            </Button>
+          </div>
+        </div>
       }
     >
       <p className="remito-modal__subtitle">
@@ -118,105 +98,76 @@ export default function RemitoModal({ open, onClose }) {
           </div>
         </section>
 
-        {/* ── Sección 3 + 4: Cantidad y Unidad ────────────── */}
+        {/* ── Sección 3 + 4 + 5: Cantidades ──────────────── */}
         <div className="remito-modal__row">
           <section className="remito-modal__section">
             <h4 className="remito-modal__section-title">
               <span className="remito-modal__section-num">3</span>
-              Cantidad recibida
+              Cantidad solicitada
             </h4>
             <Input
               type="number"
-              min={1}
-              step={1}
-              placeholder="Ej. 50"
-              hint="Unidades"
-              value={values.quantity}
-              onChange={set("quantity")}
+              value={50}
+              disabled
+              hint="Extraída de la orden"
             />
           </section>
 
           <section className="remito-modal__section">
             <h4 className="remito-modal__section-title">
               <span className="remito-modal__section-num">4</span>
-              Unidad de entrega
+              Cantidad recibida
             </h4>
-            <Select
-              options={DELIVERY_UNIT_OPTIONS}
-              placeholder="Seleccioná una unidad"
-              value={values.unit}
-              onChange={set("unit")}
+            <Input
+              type="number"
+              min={0}
+              step={1}
+              placeholder="Ej. 50"
+              hint="Unidades"
+              value={values.received}
+              onChange={set("received")}
+              required
             />
-            <span className="remito-modal__field-hint">Ej. Pallet, Medio Pallet, Caja</span>
+          </section>
+
+          <section className="remito-modal__section">
+            <h4 className="remito-modal__section-title">
+              <span className="remito-modal__section-num">5</span>
+              Discrepancia
+            </h4>
+            <Input
+              type="number"
+              value={discrepancy}
+              disabled
+              hint="Recibida − Solicitada"
+            />
           </section>
         </div>
 
-        {/* ── Sección 5: Ubicación actual ──────────────────── */}
-        <section className="remito-modal__section">
-          <h4 className="remito-modal__section-title">
-            <span className="remito-modal__section-num">5</span>
-            Ubicación actual del material
-          </h4>
-          <div className="remito-modal__table-wrap">
-            <table className="remito-modal__table">
-              <thead>
-                <tr>
-                  <th>Ubicación</th>
-                  <th>Estado</th>
-                  <th>Cantidad actual</th>
-                  <th>Capacidad</th>
-                </tr>
-              </thead>
-              <tbody>
-                {CURRENT_LOCATIONS.map((row) => (
-                  <tr key={row.location}>
-                    <td className="remito-modal__table-loc">{row.location}</td>
-                    <td>
-                      <Badge variant={STATUS_VARIANT[row.status]} dot>
-                        {row.statusLabel}
-                      </Badge>
-                    </td>
-                    <td>
-                      <div className="remito-modal__table-qty">
-                        <span className="remito-modal__qty-text">{row.qty}/{row.capacity} unidades</span>
-                        <ProgressBar
-                          value={Math.round((row.qty / row.capacity) * 100)}
-                          variant={PROGRESS_VARIANT[row.status]}
-                        />
-                      </div>
-                    </td>
-                    <td className="remito-modal__table-cap">{row.capacity} unidades</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        {/* ── Info box: discrepancia ───────────────────────── */}
+        <div className="remito-modal__info-box">
+          <Icon name="info" size={20} color="var(--color-info-blue)" />
+          <p>
+            La discrepancia se calcula como: <strong>cantidad recibida − cantidad solicitada</strong>.
+            <br />
+            Un valor negativo indica que llegó menos de lo solicitado.
+          </p>
+        </div>
 
-        {/* ── Sección 6: Ubicaciones disponibles ───────────── */}
+        {/* ── Sección 6: Unidad de entrega ─────────────────── */}
         <section className="remito-modal__section">
           <h4 className="remito-modal__section-title">
             <span className="remito-modal__section-num">6</span>
-            Ubicaciones disponibles para asignar el material recibido
+            Unidad de entrega
           </h4>
-          <div className="remito-modal__locations-grid">
-            {AVAILABLE_LOCATIONS.map((loc) => (
-              <label className="remito-modal__location-card" key={loc.location}>
-                <input
-                  type="checkbox"
-                  className="remito-modal__location-check"
-                  checked={values.locations.includes(loc.location)}
-                  onChange={() => toggleLocation(loc.location)}
-                />
-                <span className="remito-modal__location-name">{loc.location}</span>
-                <span className="remito-modal__location-spaces">{loc.spaces} espacios</span>
-              </label>
-            ))}
-            <button type="button" className="remito-modal__location-more" disabled>
-              <Icon name="plus" size={18} />
-              <span>Ver más ubicaciones</span>
-            </button>
-          </div>
+          <Select
+            options={DELIVERY_UNIT_OPTIONS}
+            placeholder="Seleccioná una unidad"
+            value={values.unit}
+            onChange={set("unit")}
+            required
+          />
+          <span className="remito-modal__field-hint">Ej. Pallet, Medio Pallet, Caja</span>
         </section>
       </div>
     </Modal>
