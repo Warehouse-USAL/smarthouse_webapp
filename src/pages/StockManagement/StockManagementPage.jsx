@@ -27,11 +27,12 @@ import "./StockManagementPage.css";
 /*
 | La pantalla tiene dos mitades que se alimentan de fuentes distintas:
 |
-|   · Izquierda — "Productos con alerta de reestock": sale de
-|     POST /metrics/restock-suggestions (rama feature/metrics-endpoints). Si ese
-|     endpoint todavía no está desplegado, se cae a derivar la alerta de
-|     GET /products con el mismo umbral que usa el backend (stock < mínimo) y la
-|     columna de sugerencia queda vacía — no se inventa la cantidad.
+|   · Izquierda — "Productos con alerta de reestock": se pide primero a
+|     POST /metrics/restock-suggestions, que calcula sobre demanda. Ese endpoint
+|     vive en una rama que backend confirmó que no va a mergear, así que en la
+|     práctica siempre responde que no existe y la lista se arma localmente:
+|     GET /products para los niveles y las órdenes abiertas para el stock en
+|     tránsito. El detalle del cálculo está en lib/restockSuggestion.
 |
 |   · Derecha — "Órdenes de restock": GET /restock/orders + GET /restock/receptions,
 |     compuestos en restockService.listOrdersWithProgress (el listado de órdenes
@@ -39,6 +40,32 @@ import "./StockManagementPage.css";
 |
 | El flujo completo es: alerta → orden de restock → remito de recepción → stock.
 */
+
+/*
+| Explica de dónde salió la cantidad sugerida. La local no es una proyección de
+| demanda, así que se dice con todas las letras en vez de dejar que el número
+| pase por cálculo del sistema.
+*/
+const suggestionTitle = (alert) => {
+  if (alert.suggestionSource === "backend") {
+    return "Calculada por el backend sobre la demanda reciente, el stock de seguridad y la mercadería en tránsito.";
+  }
+  if (!(alert.suggestedQuantity > 0)) {
+    return `No hace falta pedir más: entre las ${alert.availableStock} disponibles y las ${alert.onOrderStock} ya pedidas se llega a ${alert.inventoryPosition}, por encima del objetivo de ${alert.targetStock}.`;
+  }
+  const partes = [
+    `Repone hasta ${alert.targetStock} (doble del mínimo de ${alert.minimumStock}).`,
+    ` Hoy hay ${alert.availableStock} disponibles`,
+    alert.onOrderStock > 0
+      ? ` y ${alert.onOrderStock} ya pedidas: posición ${alert.inventoryPosition}.`
+      : ".",
+  ];
+  if (alert.maxQuantityPerOrder > 0) {
+    partes.push(` Tope por orden del producto: ${alert.maxQuantityPerOrder}.`);
+  }
+  partes.push(" No es una proyección de demanda.");
+  return partes.join("");
+};
 
 const ACTION_CARDS = [
   {
@@ -156,12 +183,13 @@ export default function StockManagementPage() {
       setProducts(productList);
       setCatalogTruncated(productList.length >= PRODUCT_CATALOG_LIMIT);
 
-      // Las sugerencias las calcula el backend. `null` significa que el
-      // endpoint todavía no existe: ahí se listan las alertas por el umbral de
-      // stock mínimo y la cantidad queda a cargo del operador.
+      // Si el backend expone la métrica de sugerencias, gana. En la práctica
+      // devuelve `null` (la rama que la trae no se va a mergear), y ahí las
+      // alertas se arman acá: stock mínimo contra disponible + en tránsito.
+      // Por eso se le pasan las órdenes, que aportan lo que está en camino.
       const suggested = await restockService.listAlerts(productList);
       setSuggestionsFromBackend(suggested !== null);
-      setAlerts(suggested ?? buildRestockAlerts(productList));
+      setAlerts(suggested ?? buildRestockAlerts(productList, orderList));
 
       setPendingLocation(await restockService.listPendingLocation());
 
@@ -416,7 +444,7 @@ export default function StockManagementPage() {
                 title={
                   suggestionsFromBackend
                     ? "El backend compara la posición de inventario (disponible + en tránsito) contra el punto de reposición calculado sobre la demanda."
-                    : "Un producto entra en alerta cuando su stock disponible queda por debajo del mínimo configurado."
+                    : "Un producto entra en alerta cuando su stock disponible queda por debajo del mínimo configurado. La cantidad sugerida descuenta lo que ya está pedido a proveedores."
                 }
               >
                 <Icon name="info" size={15} />
@@ -425,15 +453,8 @@ export default function StockManagementPage() {
             <p className="stock-panel__desc">
               {suggestionsFromBackend
                 ? "Cantidades sugeridas por el backend según demanda, stock de seguridad y mercadería en tránsito."
-                : "Productos que necesitan ser reabastecidos según niveles mínimos de stock."}
+                : "Productos por debajo de su stock mínimo. La sugerencia repone hasta el doble del mínimo y descuenta lo que ya viene en camino."}
             </p>
-            {!suggestionsFromBackend && !loading && alerts.length > 0 && (
-              <p className="stock-panel__warning">
-                <Icon name="info" size={14} />
-                El cálculo de cantidad sugerida todavía no está disponible en el
-                backend: al crear la orden, indicá vos la cantidad.
-              </p>
-            )}
           </header>
 
           <div className="stock-panel__toolbar">
@@ -523,12 +544,19 @@ export default function StockManagementPage() {
                       </td>
                       <td className="stock-table__num">{alert.threshold}</td>
                       <td className="stock-table__num stock-table__num--suggested">
-                        {alert.suggestedQuantity ?? (
-                          <span
-                            className="stock-table__num--unknown"
-                            title="La calcula el backend (POST /metrics/restock-suggestions). Todavía no está disponible: la cantidad se define al crear la orden."
-                          >
+                        {alert.suggestedQuantity == null ? (
+                          <span className="stock-table__num--unknown" title="Sin dato">
                             —
+                          </span>
+                        ) : (
+                          <span title={suggestionTitle(alert)}>
+                            {alert.suggestedQuantity}
+                            {alert.onOrderStock > 0 && (
+                              <span className="stock-table__num-note">
+                                {" "}
+                                (+{alert.onOrderStock} en camino)
+                              </span>
+                            )}
                           </span>
                         )}
                       </td>
@@ -739,6 +767,7 @@ export default function StockManagementPage() {
         open={orderModal !== null}
         alert={orderModal?.alert ?? null}
         products={products}
+        orders={orders}
         onClose={() => setOrderModal(null)}
         onCreated={handleOrderCreated}
       />

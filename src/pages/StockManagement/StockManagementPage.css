@@ -274,24 +274,6 @@
   color: var(--color-text-secondary-alt);
 }
 
-/* Aviso de que una capacidad del backend todavía no está disponible. */
-.stock-panel__warning {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin: var(--space-3) 0 0;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-sm);
-  background: var(--color-warning-bg);
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--color-yellow-dark);
-}
-
-.stock-panel__warning svg {
-  flex-shrink: 0;
-}
-
 .stock-panel__loading {
   display: grid;
   place-items: center;
@@ -473,11 +455,19 @@
   font-weight: var(--weight-semibold);
 }
 
-/* Dato que todavía no calcula el backend: se marca como ausente, no como cero. */
+/* Dato ausente: se marca como tal, no como cero. */
 .stock-table__num--unknown {
   color: var(--color-text-muted);
   font-weight: var(--weight-regular);
   cursor: help;
+}
+
+/* "(+N en camino)": contexto de la sugerencia, no el número principal. */
+.stock-table__num-note {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: var(--weight-regular);
+  white-space: nowrap;
 }
 
 .stock-table__thumb img {
