@@ -3,6 +3,7 @@ import Input from "../../ui/Input/Input";
 import Select from "../../ui/Select/Select";
 import Button from "../../ui/Button/Button";
 import "./CreateProductForm.css";
+import { fileService, MAX_FILE_BYTES } from "../../../services/fileService";
 
 const MAX_IMAGES = 5;
 
@@ -149,6 +150,7 @@ export default function CreateProductForm({
   const [errors, setErrors] = useState({});
   const [imageUrlDraft, setImageUrlDraft] = useState("");
   const [imageUrlError, setImageUrlError] = useState("");
+  const [uploading, setUploading] = useState(false);
   const [coverImageIndex, setCoverImageIndex] = useState(() => {
     if (!initial?.images?.length) return 0;
     const idx = initial.images.findIndex((img) => img.is_primary);
@@ -195,6 +197,46 @@ export default function CreateProductForm({
     }));
     setImageUrlDraft("");
     setImageUrlError("");
+  };
+
+  // Sube el archivo al backend (POST /api/v1/files/upload) y agrega la URL que
+  // devuelve. Es la misma lista `images` que las URLs pegadas a mano: lo único
+  // que cambia es de dónde sale la URL.
+  const handleUploadImage = async (event) => {
+    const file = event.target.files?.[0];
+    // Se limpia el input para poder volver a elegir el mismo archivo.
+    event.target.value = "";
+    if (!file) return;
+
+    if (values.images.length >= MAX_IMAGES) {
+      setImageUrlError(`Máximo ${MAX_IMAGES} imágenes`);
+      return;
+    }
+
+    setUploading(true);
+    setImageUrlError("");
+    try {
+      const { url } = await fileService.upload(file);
+      setValues((v) =>
+        v.images.some((img) => img.url === url)
+          ? v
+          : {
+              ...v,
+              images: [
+                ...v.images,
+                { url, alt: v.name.trim() || "", is_primary: false },
+              ],
+            }
+      );
+    } catch (e) {
+      setImageUrlError(
+        e?.message ||
+          e?.response?.data?.error?.message ||
+          "No se pudo subir la imagen."
+      );
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleRemoveImage = (indexToRemove) => {
@@ -383,6 +425,10 @@ export default function CreateProductForm({
       {/* ── 4. Imágenes ── */}
       <FormSection title={`Imágenes (${values.images.length}/${MAX_IMAGES})`}>
         <div className="cpf-image-field">
+          <p className="cpf-image-hint">
+            Pegá la URL de una imagen o subí un archivo (PNG, JPG, WEBP o GIF,
+            hasta {Math.round(MAX_FILE_BYTES / 1024 / 1024)} MB).
+          </p>
           <div className="cpf-url-row">
             <div className="cpf-url-preview">
               {draftIsValid ? (
@@ -405,10 +451,25 @@ export default function CreateProductForm({
                 error={imageUrlError}
                 disabled={submitting || values.images.length >= MAX_IMAGES}
               />
-              <Button type="button" variant="secondary" onClick={handleAddImage}
-                disabled={submitting || !canAddImage}>
-                Agregar
-              </Button>
+              <div className="cpf-image-actions">
+                <Button type="button" variant="secondary" onClick={handleAddImage}
+                  disabled={submitting || !canAddImage}>
+                  Agregar
+                </Button>
+                <label className="cpf-upload">
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif"
+                    onChange={handleUploadImage}
+                    disabled={
+                      submitting || uploading || values.images.length >= MAX_IMAGES
+                    }
+                  />
+                  <span>
+                    {uploading ? "Subiendo…" : "Subir archivo"}
+                  </span>
+                </label>
+              </div>
             </div>
           </div>
 

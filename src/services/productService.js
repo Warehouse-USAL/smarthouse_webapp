@@ -17,10 +17,9 @@
 | `category` es un enum del backend (ProductCategory: TECNOLOGIA, HERRAMIENTAS,
 | ALIMENTOS, OTROS). Viaja como string con el nombre del enum y el backend lo
 | valida (case-insensitive) en listado/alta/edición → 400 INVALID_CATEGORY si no
-| coincide. categoryService mantiene el espejo de esos valores en el front.
+| coincide. categoryService trae la lista viva con GET /products/categories.
 |
 | NO existe en el backend (se ignora / se resuelve en el front):
-|   - GET /products/categories      → categoryService espeja el enum (no hay endpoint)
 |   - PATCH /products/:id/location  → la asignación se hace por posición
 |     (warehouseConfigService.assignProductToPosition / PATCH positions)
 |   - stock no se envía: el backend lo computa desde current_stock de las
@@ -34,6 +33,7 @@
 */
 
 import { apiClient } from "../lib/apiClient";
+import { categoryService } from "./categoryService";
 import { productMockService } from "./mocks/productMockService";
 
 // Backend same-origin vía proxy de Vite: el único interruptor es el flag.
@@ -237,11 +237,12 @@ export const productService = {
     size = 50,
   } = {}) {
     if (USE_MOCK) {
-      return productMockService.list({
+      const mocked = await productMockService.list({
         category,
         search,
         isActive,
       });
+      return mocked.map(normalize);
     }
 
     const params = {
@@ -273,8 +274,8 @@ export const productService = {
 
   async get(id) {
     if (USE_MOCK) {
-      return productMockService.get(
-        id
+      return normalize(
+        await productMockService.get(id)
       );
     }
 
@@ -288,20 +289,19 @@ export const productService = {
     );
   },
 
-  // El backend NO expone /products/categories. Delegamos en categoryService,
-  // que mantiene la lista canónica de categorías en el front.
+  // Delegamos en categoryService, que llama a GET /products/categories y le
+  // pone las etiquetas en castellano.
   async getCategories() {
     if (USE_MOCK) {
       return productMockService.getCategories();
     }
-    const { categoryService } = await import("./categoryService");
     return categoryService.list();
   },
 
   async create(input) {
     if (USE_MOCK) {
-      return productMockService.create(
-        input
+      return normalize(
+        await productMockService.create(input)
       );
     }
 
@@ -318,9 +318,8 @@ export const productService = {
 
   async update(id, patch) {
     if (USE_MOCK) {
-      return productMockService.update(
-        id,
-        patch
+      return normalize(
+        await productMockService.update(id, patch)
       );
     }
 
