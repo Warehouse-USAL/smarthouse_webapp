@@ -39,6 +39,10 @@ import { productMockService } from "./mocks/productMockService";
 // Backend same-origin vía proxy de Vite: el único interruptor es el flag.
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 
+// El backend clampea `size` a 50 (ProductController).
+const PRODUCT_PAGE_SIZE = 50;
+const MAX_PRODUCT_PAGES = 20;
+
 /*
 |--------------------------------------------------------------------------
 | NORMALIZERS
@@ -229,6 +233,31 @@ const toUpdatePayload = (input) => {
 */
 
 export const productService = {
+  /*
+  | Todas las páginas de una vez.
+  |
+  | `list` devuelve UNA página (size 50 como máximo, el backend lo clampea), asi
+  | que cualquier pantalla que necesite el catálogo completo — cruzar productos
+  | contra alertas u órdenes, por ejemplo — tiene que usar esto. Con `list` a
+  | secas, el producto 51 en adelante no aparece y las órdenes de esos productos
+  | se muestran como "Producto dado de baja" aunque estén activos.
+  */
+  async listAll(filters = {}) {
+    if (USE_MOCK) return this.list(filters);
+
+    const out = [];
+    for (let page = 0; page < MAX_PRODUCT_PAGES; page += 1) {
+      const items = await this.list({ ...filters, page, size: PRODUCT_PAGE_SIZE });
+      out.push(...items);
+      if (items.length < PRODUCT_PAGE_SIZE) return out;
+    }
+    // Llegar acá es quedarse sin páginas para pedir: mejor fallar que devolver
+    // un catálogo incompleto que la pantalla trataría como completo.
+    throw new Error(
+      `El catálogo supera los ${MAX_PRODUCT_PAGES * PRODUCT_PAGE_SIZE} productos; hay que paginar la pantalla.`
+    );
+  },
+
   async list({
     category,
     search,

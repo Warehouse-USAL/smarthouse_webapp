@@ -217,17 +217,20 @@ export default function CreateProductForm({
     setImageUrlError("");
     try {
       const { url } = await fileService.upload(file);
-      setValues((v) =>
-        v.images.some((img) => img.url === url)
-          ? v
-          : {
-              ...v,
-              images: [
-                ...v.images,
-                { url, alt: v.name.trim() || "", is_primary: false },
-              ],
-            }
-      );
+      // El límite se revalida ACÁ DENTRO, contra el estado del momento: la
+      // subida es asíncrona y mientras tanto el operador pudo agregar imágenes
+      // por URL. Chequearlo solo antes de subir dejaba pasar la sexta.
+      setValues((v) => {
+        if (v.images.length >= MAX_IMAGES) return v;
+        if (v.images.some((img) => img.url === url)) return v;
+        return {
+          ...v,
+          images: [
+            ...v.images,
+            { url, alt: v.name.trim() || "", is_primary: false },
+          ],
+        };
+      });
     } catch (e) {
       setImageUrlError(
         e?.message ||
@@ -250,6 +253,12 @@ export default function CreateProductForm({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    // Con una subida en vuelo el producto se crearía sin esa imagen, y la
+    // respuesta tardía escribiría sobre un formulario que quizá ya se cerró.
+    if (uploading) {
+      setImageUrlError("Esperá a que termine de subir la imagen.");
+      return;
+    }
     const errs = validate(values);
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
@@ -530,7 +539,7 @@ export default function CreateProductForm({
         <Button variant="secondary" type="button" onClick={onCancel} disabled={submitting}>
           Cancelar
         </Button>
-        <Button type="submit" disabled={submitting}>
+        <Button type="submit" disabled={submitting || uploading}>
           {submitLabel}
         </Button>
       </div>

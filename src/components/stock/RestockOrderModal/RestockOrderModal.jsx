@@ -6,6 +6,7 @@ import Button from "../../ui/Button/Button";
 import Icon from "../../ui/Icon/Icon";
 import StatusBanner from "../../ui/StatusBanner/StatusBanner";
 import { restockService } from "../../../services/restockService";
+import { errorText } from "../../../lib/apiError";
 import { toRestockAlert } from "../../../lib/restockSuggestion";
 import "./RestockOrderModal.css";
 
@@ -94,9 +95,9 @@ export default function RestockOrderModal({
       onClose?.();
     } catch (e) {
       setError(
-        e?.response?.data?.message ||
-          e?.response?.data?.error ||
-          "No se pudo crear la orden de restock. Intentá de nuevo."
+        errorText(e, {
+          PRODUCT_NOT_FOUND: "El producto no existe o está inactivo.",
+        }, "No se pudo crear la orden de restock. Intentá de nuevo.")
       );
     } finally {
       setSubmitting(false);

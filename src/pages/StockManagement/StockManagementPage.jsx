@@ -142,7 +142,9 @@ export default function StockManagementPage() {
     setLoadError(null);
     try {
       const [productList, orderList] = await Promise.all([
-        productService.list({ isActive: true }),
+        // listAll, no list: `list` trae una sola página de 50 y el cruce con
+        // órdenes y alertas necesita el catálogo entero.
+        productService.listAll({ isActive: true }),
         restockService.listOrdersWithProgress(),
       ]);
       setProducts(productList);

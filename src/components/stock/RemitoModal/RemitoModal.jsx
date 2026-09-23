@@ -9,6 +9,7 @@ import Spinner from "../../ui/Spinner/Spinner";
 import StatusBanner from "../../ui/StatusBanner/StatusBanner";
 import PositionAssigner from "../PositionAssigner/PositionAssigner";
 import { restockService } from "../../../services/restockService";
+import { errorText } from "../../../lib/apiError";
 import { productService } from "../../../services/productService";
 import { STORAGE_UNITS, STORAGE_UNIT_LABEL } from "../../../lib/storageCompatibility";
 import "./RemitoModal.css";
@@ -191,9 +192,8 @@ export default function RemitoModal({
       onCreated?.(reception);
       onClose?.();
     } catch (e) {
-      const code = e?.response?.data?.message || e?.response?.data?.error;
       setError(
-        {
+        errorText(e, {
           ASSIGNMENT_QUANTITY_MISMATCH:
             "El reparto entre posiciones no coincide con la cantidad recibida.",
           POSITION_ALREADY_OCCUPIED:
@@ -205,7 +205,7 @@ export default function RemitoModal({
           RECEPTION_ALREADY_COMPLETED:
             "Ese remito ya tiene toda su mercadería ubicada.",
           PRODUCT_NOT_FOUND: "El producto no existe o está inactivo.",
-        }[code] || code || "No se pudo registrar el remito. Intentá de nuevo."
+        }, "No se pudo registrar el remito. Intentá de nuevo.")
       );
     } finally {
       setSubmitting(false);

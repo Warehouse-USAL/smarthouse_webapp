@@ -13,8 +13,19 @@
 
 import { localStore } from "../../lib/localStore";
 
-const ORDERS_KEY = "mock_restock_orders";
-const RECEPTIONS_KEY = "mock_restock_receptions";
+/*
+| Las claves llevan versión.
+|
+| Los registros del mock pasaron de snake_case a camelCase. Con la clave vieja,
+| a cualquiera que ya tuviera datos guardados le volvían registros con
+| `productId`, `createdAt` y `restockOrderId` en undefined, y el progreso y los
+| filtros de la pantalla quedaban rotos sin ningún error visible.
+|
+| Subir la versión descarta lo viejo y vuelve a sembrar. Es data de prueba: no
+| vale la pena migrarla, pero sí que deje de romper en silencio.
+*/
+const ORDERS_KEY = "mock_restock_orders_v2";
+const RECEPTIONS_KEY = "mock_restock_receptions_v2";
 
 const daysAgo = (n) => {
   const d = new Date();

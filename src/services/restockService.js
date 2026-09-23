@@ -192,10 +192,16 @@ const fetchAllPages = async (url, params, key, normalizer) => {
     const items = (data?.[key] || []).map(normalizer);
     out.push(...items);
     const total = data?.pagination?.total_pages ?? data?.pagination?.totalPages;
-    if (items.length < MAX_PAGE_SIZE) break;
-    if (total !== undefined && page >= total - 1) break;
+    if (items.length < MAX_PAGE_SIZE) return out;
+    if (total !== undefined && page >= total - 1) return out;
   }
-  return out;
+  // Se acabaron las páginas permitidas y el backend todavía tiene más. Devolver
+  // la lista igual sería peor que fallar: los totales recibidos y los códigos
+  // RST-xxxxx se calculan sobre el conjunto completo, así que con datos
+  // truncados saldrían mal sin que nada lo indique.
+  throw new Error(
+    `El listado ${url} supera los ${MAX_PAGES * MAX_PAGE_SIZE} registros; hay que paginar la pantalla.`
+  );
 };
 
 // RST-00001, RST-00002… por orden cronológico de creación (la más vieja es la 1).
@@ -237,10 +243,30 @@ const SUGGESTIONS_PATH = "/metrics/restock-suggestions";
 // undefined = no se preguntó todavía; null = el backend no la tiene.
 let suggestionsMetric;
 
-// ¿El backend desplegado ya maneja remitos sin ubicar? Se sabe mirando si sus
-// recepciones traen `status`: el campo lo agrega feature/117 y antes no existía.
-// Arranca en false para no ofrecer guardar sin ubicar contra un backend que lo
-// rechazaría con 400 (assignments es @NotEmpty en la versión vieja).
+/*
+| ¿El backend desplegado ya maneja remitos sin ubicar?
+|
+| Se pregunta al catálogo de entidades (GET /query/catalog), que se autodescribe
+| campo por campo y existe en las dos versiones: feature/117 agregó `status` a
+| la entidad `receptions`, antes no estaba. Es la fuente confiable, porque
+| responde igual con la base vacía.
+|
+| El fallback mira si alguna recepción trajo `status`. Sirve cuando el rol del
+| usuario no ve la entidad en el catálogo (WAREHOUSE_ADMINS), pero NO alcanza
+| solo: con cero recepciones nunca se prendería y el primer remito sin ubicar
+| sería imposible de crear.
+|
+| Arranca apagado para no ofrecer "guardar sin ubicar" contra un backend que lo
+| rechazaría con 400 (assignments es @NotEmpty en la versión vieja).
+*/
+const RECEPTIONS_ENTITY = "receptions";
+const PENDING_LOCATION_FIELD = "status";
+
+// undefined = no se preguntó; true/false = respuesta del catálogo;
+// null = el catálogo no lo dice (rol sin permiso, o error de red).
+let pendingLocationCapability;
+
+// Señal secundaria: alguna recepción llegó con `status`.
 let pendingLocationSupported = false;
 
 export const RESTOCK_PARAMS = {
@@ -402,13 +428,42 @@ export const restockService = {
   // Si el backend ya devolvió alguna recepción con `status`, maneja remitos sin
   // ubicar. Hasta entonces la UI exige repartir todo al registrar el remito.
   supportsPendingLocation() {
-    return pendingLocationSupported;
+    return pendingLocationCapability === true || pendingLocationSupported;
+  },
+
+  // Pregunta al catálogo si `receptions` ya declara el campo `status`. Se
+  // cachea: una sola vez por sesión.
+  async detectPendingLocationSupport() {
+    if (pendingLocationCapability !== undefined) return pendingLocationCapability;
+    // El mock implementa el flujo completo, así que lo soporta por definición.
+    if (USE_MOCK) {
+      pendingLocationCapability = true;
+      return pendingLocationCapability;
+    }
+    try {
+      const { data } = await apiClient.get("/query/catalog");
+      const entity = (data?.entities || []).find(
+        (e) => e.name === RECEPTIONS_ENTITY
+      );
+      // Sin la entidad no se concluye nada: puede ser un backend viejo o un rol
+      // que no la ve. En los dos casos queda el fallback.
+      pendingLocationCapability = entity
+        ? (entity.fields || []).some((f) => f.name === PENDING_LOCATION_FIELD)
+        : null;
+    } catch {
+      pendingLocationCapability = null;
+    }
+    return pendingLocationCapability;
   },
 
   // Remitos que todavía tienen mercadería sin posición. El backend filtra por
   // `status` desde feature/117; el viejo ignora el parámetro, pero ahí todas
   // las recepciones se normalizan como COMPLETED y el filtro local las descarta.
   async listPendingLocation() {
+    // Antes de listar, se resuelve la capacidad: es lo que decide si el modal
+    // de remito puede ofrecer "guardar sin ubicar", y la pantalla re-renderiza
+    // recién cuando esta carga termina.
+    await this.detectPendingLocationSupport();
     const receptions = await this.listReceptions({
       status: RECEPTION_STATUS.PENDING_LOCATION,
     });

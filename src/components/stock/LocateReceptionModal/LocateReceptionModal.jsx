@@ -7,6 +7,7 @@ import Icon from "../../ui/Icon/Icon";
 import StatusBanner from "../../ui/StatusBanner/StatusBanner";
 import PositionAssigner from "../PositionAssigner/PositionAssigner";
 import { restockService } from "../../../services/restockService";
+import { errorText } from "../../../lib/apiError";
 import { STORAGE_UNIT_LABEL } from "../../../lib/storageCompatibility";
 import "./LocateReceptionModal.css";
 
@@ -78,9 +79,8 @@ export default function LocateReceptionModal({
       onLocated?.();
       onClose?.();
     } catch (e) {
-      const code = e?.response?.data?.message || e?.response?.data?.error;
       setError(
-        {
+        errorText(e, {
           ASSIGNMENT_QUANTITY_MISMATCH:
             "Estás asignando más unidades de las que quedan sin ubicar.",
           RECEPTION_ALREADY_COMPLETED: "Ese remito ya está completamente ubicado.",
@@ -88,7 +88,7 @@ export default function LocateReceptionModal({
             "Alguna de las posiciones elegidas ya tiene otro producto.",
           STOCK_EXCEEDS_CAPACITY:
             "La cantidad asignada supera la capacidad de alguna posición.",
-        }[code] || code || "No se pudieron asignar las posiciones."
+        }, "No se pudieron asignar las posiciones.")
       );
     } finally {
       setSubmitting(false);
