@@ -53,8 +53,30 @@ const SEED_RECEPTIONS = [
   { id: "RCP-2004", restockOrderId: "RSO-1007", productId: "PROD-006", quantityReceived: 40,  deliveryUnit: "CAJA",         supplier: "Farma Distribución", assignments: [{ positionId: "POS-MOCK-4", quantity: 40 }],  receivedByUserId: "USR-001", createdAt: daysAgo(2) },
 ];
 
+/*
+| El mock tiene que devolver EXACTAMENTE el mismo contrato que normalizeReception
+| arma para el backend. Si no, la pantalla se comporta distinto según el flag:
+| `status`, `quantityLocated` y `quantityPendingLocation` son campos derivados
+| que listPendingLocation() necesita para encontrar los remitos sin ubicar.
+*/
+const withDerived = (reception) => {
+  const quantityReceived = Number(reception.quantityReceived) || 0;
+  const quantityLocated = (reception.assignments || []).reduce(
+    (sum, a) => sum + (Number(a.quantity) || 0),
+    0
+  );
+  return {
+    ...reception,
+    quantityLocated,
+    quantityPendingLocation: Math.max(0, quantityReceived - quantityLocated),
+    status:
+      quantityLocated >= quantityReceived ? "COMPLETED" : "PENDING_LOCATION",
+  };
+};
+
 const readOrders = () => localStore.get(ORDERS_KEY, SEED_ORDERS);
-const readReceptions = () => localStore.get(RECEPTIONS_KEY, SEED_RECEPTIONS);
+const readReceptions = () =>
+  localStore.get(RECEPTIONS_KEY, SEED_RECEPTIONS).map(withDerived);
 
 const nextId = (list, prefix, start) => {
   const max = list.reduce((acc, item) => {
@@ -132,12 +154,7 @@ export const restockMockService = {
         quantity: Number(a.quantity) || 0,
       })),
     ];
-    const located = merged.reduce((sum, a) => sum + a.quantity, 0);
-    const updated = {
-      ...reception,
-      assignments: merged,
-      status: located >= reception.quantityReceived ? "COMPLETED" : "PENDING_LOCATION",
-    };
+    const updated = withDerived({ ...reception, assignments: merged });
     const next = [...list];
     next[index] = updated;
     localStore.set(RECEPTIONS_KEY, next);
@@ -161,6 +178,8 @@ export const restockMockService = {
       createdAt: new Date().toISOString(),
     };
     localStore.set(RECEPTIONS_KEY, [...list, reception]);
-    return reception;
+    // Derivado al salir: un remito creado sin ubicar nace PENDING_LOCATION y
+    // tiene que aparecer en el panel de pendientes.
+    return withDerived(reception);
   },
 };

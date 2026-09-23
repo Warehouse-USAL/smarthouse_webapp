@@ -110,7 +110,14 @@ export default function RemitoModal({
     setOrderId(value);
     setAssignments({});
     const order = openOrders.find((o) => o.id === value);
-    if (!order) return;
+    // "Sin orden asociada": hay que soltar también el producto y la cantidad.
+    // Dejándolos puestos, el remito directo se enviaba con los datos de la
+    // orden anterior aunque el selector ya estuviera vacío.
+    if (!order) {
+      setProductId("");
+      setQuantity("");
+      return;
+    }
     setProductId(order.productId);
     const pending = Math.max(
       0,

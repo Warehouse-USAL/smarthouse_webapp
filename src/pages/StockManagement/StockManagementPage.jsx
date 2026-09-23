@@ -15,7 +15,10 @@ import Icon from "../../components/ui/Icon/Icon";
 import RestockOrderModal from "../../components/stock/RestockOrderModal/RestockOrderModal";
 import RemitoModal from "../../components/stock/RemitoModal/RemitoModal";
 import LocateReceptionModal from "../../components/stock/LocateReceptionModal/LocateReceptionModal";
-import { productService } from "../../services/productService";
+import {
+  productService,
+  PRODUCT_CATALOG_LIMIT,
+} from "../../services/productService";
 import { restockService } from "../../services/restockService";
 import { buildRestockAlerts } from "../../lib/restockSuggestion";
 import { STORAGE_UNIT_LABEL } from "../../lib/storageCompatibility";
@@ -108,6 +111,9 @@ export default function StockManagementPage() {
   const [suggestionsFromBackend, setSuggestionsFromBackend] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
+  // El catálogo llegó al tope que listAll trae de una: los cruces con órdenes y
+  // alertas pueden quedar incompletos, pero la pantalla sigue siendo usable.
+  const [catalogTruncated, setCatalogTruncated] = useState(false);
   const [feedback, setFeedback] = useState(null);
 
   // null = cerrado. { alert } = precargado desde una alerta; {} = form vacío.
@@ -148,6 +154,7 @@ export default function StockManagementPage() {
         restockService.listOrdersWithProgress(),
       ]);
       setProducts(productList);
+      setCatalogTruncated(productList.length >= PRODUCT_CATALOG_LIMIT);
 
       // Las sugerencias las calcula el backend. `null` significa que el
       // endpoint todavía no existe: ahí se listan las alertas por el umbral de
@@ -336,6 +343,14 @@ export default function StockManagementPage() {
           statusBannerState="status-banner-error"
           icon={<Icon name="alert" size={16} />}
           text={loadError}
+        />
+      )}
+
+      {catalogTruncated && (
+        <StatusBanner
+          statusBannerState="status-banner"
+          icon={<Icon name="info" size={16} />}
+          text={`Se están mostrando los primeros ${PRODUCT_CATALOG_LIMIT} productos activos. Puede haber órdenes o alertas de productos que no aparezcan en esta lista.`}
         />
       )}
 

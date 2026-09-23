@@ -43,6 +43,11 @@ const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 const PRODUCT_PAGE_SIZE = 50;
 const MAX_PRODUCT_PAGES = 20;
 
+// Tope de productos que `listAll` trae de una. Llegar acá no es un error: es la
+// señal de que la pantalla ya no puede resolver el catálogo entero en memoria y
+// necesita paginar de verdad. Quien lo consuma avisa, no explota.
+export const PRODUCT_CATALOG_LIMIT = PRODUCT_PAGE_SIZE * MAX_PRODUCT_PAGES;
+
 /*
 |--------------------------------------------------------------------------
 | NORMALIZERS
@@ -241,6 +246,9 @@ export const productService = {
   | contra alertas u órdenes, por ejemplo — tiene que usar esto. Con `list` a
   | secas, el producto 51 en adelante no aparece y las órdenes de esos productos
   | se muestran como "Producto dado de baja" aunque estén activos.
+  |
+  | Trae hasta PRODUCT_CATALOG_LIMIT. Si devuelve esa cantidad exacta puede haber
+  | más sin traer, y la pantalla lo avisa en vez de fallar.
   */
   async listAll(filters = {}) {
     if (USE_MOCK) return this.list(filters);
@@ -251,11 +259,10 @@ export const productService = {
       out.push(...items);
       if (items.length < PRODUCT_PAGE_SIZE) return out;
     }
-    // Llegar acá es quedarse sin páginas para pedir: mejor fallar que devolver
-    // un catálogo incompleto que la pantalla trataría como completo.
-    throw new Error(
-      `El catálogo supera los ${MAX_PRODUCT_PAGES * PRODUCT_PAGE_SIZE} productos; hay que paginar la pantalla.`
-    );
+    // Se llegó al tope. Se devuelve lo traído en vez de tirar: que el catálogo
+    // crezca es normal, y voltear la pantalla entera por eso es peor que
+    // mostrarla con un aviso. Quien llama compara contra PRODUCT_CATALOG_LIMIT.
+    return out;
   },
 
   async list({
