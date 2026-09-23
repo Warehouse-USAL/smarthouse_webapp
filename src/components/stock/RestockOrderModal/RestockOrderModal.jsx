@@ -1,80 +1,103 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Modal from "../../ui/Modal/Modal";
 import Input from "../../ui/Input/Input";
 import Select from "../../ui/Select/Select";
 import Button from "../../ui/Button/Button";
-import { productService } from "../../../services/productService";
+import Icon from "../../ui/Icon/Icon";
+import StatusBanner from "../../ui/StatusBanner/StatusBanner";
 import { restockService } from "../../../services/restockService";
+import { errorText } from "../../../lib/apiError";
+import { toRestockAlert } from "../../../lib/restockSuggestion";
 import "./RestockOrderModal.css";
 
-const EMPTY = { product: "", quantity: "", supplier: "" };
+/*
+| El modal tiene dos modos:
+|
+|   · Desde una alerta (`alert`): el producto ya está decidido. La cantidad la
+|     trae el backend (POST /metrics/restock-suggestions); si ese endpoint
+|     todavía no está desplegado la alerta llega sin cantidad y el campo se pide
+|     igual que en el modo libre — nunca se rellena con un número inventado.
+|   · En blanco (sin `alert`, entrando por la tarjeta "Agregar órdenes de
+|     restock"): el formulario arranca vacío y el operador elige producto y
+|     cantidad. Al elegir producto se muestran sus números para que la decisión
+|     no sea a ciegas.
+|
+| El proveedor NO se pide: el backend lo exige (@NotBlank supplier en
+| CreateRestockOrderRequest) pero el producto no lo guarda y el diseño no lo
+| contempla, así que viaja con este valor fijo hasta que exista el dato.
+*/
+const SUPPLIER_PLACEHOLDER = "Sin especificar";
 
-export default function RestockOrderModal({ open, onClose, onCreated }) {
-  const [values, setValues] = useState(EMPTY);
-  const [products, setProducts] = useState([]);
-  const [loadingProducts, setLoadingProducts] = useState(false);
+const units = (n) => `${n} unidad${n === 1 ? "" : "es"}`;
+
+export default function RestockOrderModal({
+  open,
+  alert,
+  products = [],
+  onClose,
+  onCreated,
+}) {
+  const [productId, setProductId] = useState("");
+  const [quantity, setQuantity] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
-  // Cada apertura arranca el formulario limpio y refresca el catálogo de
-  // productos (los IDs se persisten, no el SKU).
+  const fromAlert = Boolean(alert);
+
+  // Cada apertura arranca limpia: en modo alerta se precarga lo decidido por el
+  // sistema; en modo libre, vacío — nunca se eligió producto ni cantidad.
   useEffect(() => {
-    if (open) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setValues(EMPTY);
-      setError(null);
+    if (!open) return;
+    /* eslint-disable react-hooks/set-state-in-effect -- reinicio del form al abrir */
+    setProductId(alert?.productId ?? "");
+    setQuantity(
+      alert?.suggestedQuantity != null ? String(alert.suggestedQuantity) : ""
+    );
+    setError(null);
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [open, alert]);
 
-      let cancelled = false;
-      setLoadingProducts(true);
-      productService
-        .list({ size: 200 })
-        .then((list) => {
-          if (!cancelled) setProducts(list);
-        })
-        .catch(() => {
-          if (!cancelled) setProducts([]);
-        })
-        .finally(() => {
-          if (!cancelled) setLoadingProducts(false);
-        });
+  const productOptions = useMemo(
+    () =>
+      products.map((product) => ({
+        value: product.id,
+        label: `${product.name} — ${product.sku}`,
+      })),
+    [products]
+  );
 
-      return () => {
-        cancelled = true;
-      };
-    }
-    return undefined;
-  }, [open]);
+  // Los números que se muestran: los de la alerta, o los del producto elegido.
+  const detail = useMemo(() => {
+    if (fromAlert) return alert;
+    return toRestockAlert(products.find((p) => p.id === productId));
+  }, [fromAlert, alert, products, productId]);
 
-  const set = (key) => (e) => setValues((v) => ({ ...v, [key]: e.target.value }));
+  const quantityNumber = Number(quantity) || 0;
+  const canSubmit = !submitting && Boolean(productId) && quantityNumber > 0;
 
-  const productOptions = products.map((p) => ({
-    value: p.id,
-    label: `${p.name} — SKU ${p.sku}`,
-  }));
+  // ¿El backend ya calculó cuánto pedir para este producto?
+  const hasSuggestion = detail?.suggestedQuantity != null;
 
-  const quantity = Number(values.quantity);
-  const isValid =
-    !!values.product &&
-    Number.isFinite(quantity) &&
-    quantity >= 1 &&
-    values.supplier.trim().length > 0;
+  // El campo de cantidad aparece siempre que no haya una sugerencia que
+  // confirmar: en el modo libre, y también desde una alerta sin cantidad.
+  const asksQuantity = !fromAlert || !hasSuggestion;
 
-  const handleSubmit = async () => {
-    if (!isValid || submitting) return;
+  const handleCreate = async () => {
     setSubmitting(true);
     setError(null);
     try {
-      const created = await restockService.createOrder({
-        productId: values.product,
-        quantityRequested: quantity,
-        supplier: values.supplier.trim(),
+      const order = await restockService.createOrder({
+        productId,
+        quantityRequested: quantityNumber,
+        supplier: SUPPLIER_PLACEHOLDER,
       });
-      onCreated?.(created);
+      onCreated?.(order);
       onClose?.();
-    } catch (err) {
+    } catch (e) {
       setError(
-        err?.response?.data?.error?.message ||
-          "No pudimos crear la orden de restock."
+        errorText(e, {
+          PRODUCT_NOT_FOUND: "El producto no existe o está inactivo.",
+        }, "No se pudo crear la orden de restock. Intentá de nuevo.")
       );
     } finally {
       setSubmitting(false);
@@ -89,52 +112,154 @@ export default function RestockOrderModal({ open, onClose, onCreated }) {
       size="md"
       footer={
         <>
-          <Button variant="secondary" onClick={onClose}>
+          <Button variant="secondary" onClick={onClose} disabled={submitting}>
             Cancelar
           </Button>
-          <Button disabled={!isValid || submitting} onClick={handleSubmit}>
-            {submitting ? "Creando orden…" : "Crear orden"}
+          <Button onClick={handleCreate} disabled={!canSubmit}>
+            {submitting ? "Creando…" : "Crear orden"}
           </Button>
         </>
       }
     >
       <p className="restock-modal__subtitle">
-        Completá la información para crear una nueva orden de restock.
+        {fromAlert && hasSuggestion ? (
+          <>
+            Se generará una orden de restock con el producto y{" "}
+            <strong>la cantidad sugerida por el sistema</strong>.
+          </>
+        ) : fromAlert ? (
+          <>
+            Indicá cuánto querés solicitar de este producto.{" "}
+            <strong>El sistema todavía no sugiere una cantidad.</strong>
+          </>
+        ) : (
+          <>Elegí el producto y la cantidad que querés solicitar al proveedor.</>
+        )}
       </p>
 
-      <div className="restock-modal__form">
-        <Select
-          label="Producto"
-          options={productOptions}
-          placeholder={loadingProducts ? "Cargando productos…" : "Seleccioná un producto"}
-          value={values.product}
-          onChange={set("product")}
-          required
-        />
+      {/* ── Producto ─────────────────────────────────────── */}
+      {fromAlert ? (
+        <div className="restock-modal__product">
+          <div className="restock-modal__thumb">
+            <Icon name="box" size={28} />
+            {detail.imageUrl && <img src={detail.imageUrl} alt="" />}
+          </div>
+          <div className="restock-modal__product-info">
+            <span className="restock-modal__product-label">Producto</span>
+            <h4 className="restock-modal__product-name">{detail.name}</h4>
+            <span className="restock-modal__product-sku">SKU: {detail.sku}</span>
+            {detail.category && (
+              <span className="restock-modal__product-category">
+                <Icon name="box" size={14} />
+                Categoría: {detail.category}
+              </span>
+            )}
+          </div>
+        </div>
+      ) : null}
 
-        <div className="restock-modal__row">
+      {asksQuantity && (
+        <div className="restock-modal__form">
+          {!fromAlert && (
+            <Select
+              label="Producto"
+              placeholder="Seleccioná un producto"
+              value={productId}
+              onChange={(e) => setProductId(e.target.value)}
+              options={productOptions}
+              required
+            />
+          )}
+
           <Input
             label="Cantidad solicitada"
             type="number"
             min={1}
             step={1}
             placeholder="Ej. 50"
-            value={values.quantity}
-            onChange={set("quantity")}
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+            hint={
+              hasSuggestion
+                ? `El sistema sugiere ${units(detail.suggestedQuantity)}.`
+                : "Unidades a solicitar al proveedor."
+            }
             required
           />
 
-          <Input
-            label="Proveedor"
-            placeholder="Ej. Distribuidora XYZ"
-            value={values.supplier}
-            onChange={set("supplier")}
-            required
-          />
+          {hasSuggestion && detail.suggestedQuantity > 0 && (
+            <button
+              type="button"
+              className="restock-modal__use-suggested"
+              onClick={() => setQuantity(String(detail.suggestedQuantity))}
+            >
+              <Icon name="chart" size={14} />
+              Usar la cantidad sugerida ({detail.suggestedQuantity})
+            </button>
+          )}
         </div>
-      </div>
+      )}
 
-      {error && <p className="restock-modal__error">{error}</p>}
+      {/* ── Números del producto ─────────────────────────── */}
+      {detail && (
+        <div className="restock-modal__stats">
+          <div className="restock-modal__stat">
+            <span className="restock-modal__stat-head">
+              <Icon name="box" size={14} />
+              Stock actual
+            </span>
+            <strong className="restock-modal__stat-value">
+              {units(detail.availableStock)}
+            </strong>
+          </div>
+
+          <div className="restock-modal__stat">
+            <span className="restock-modal__stat-head">
+              <Icon name="alert" size={14} />
+              {detail.thresholdLabel}
+            </span>
+            <strong className="restock-modal__stat-value">
+              {units(detail.threshold)}
+            </strong>
+          </div>
+
+          <div className="restock-modal__stat restock-modal__stat--suggested">
+            <span className="restock-modal__stat-head">
+              <Icon name="chart" size={14} />
+              Cantidad sugerida
+            </span>
+            <strong
+              className="restock-modal__stat-value"
+              title={
+                hasSuggestion
+                  ? `Stock objetivo ${detail.targetStock} menos la posición de inventario ${detail.inventoryPosition} (disponible ${detail.availableStock} + en tránsito ${detail.onOrderStock}). Lo calcula el backend.`
+                  : "La calcula el backend en POST /metrics/restock-suggestions. Todavía no está disponible."
+              }
+            >
+              {hasSuggestion ? units(detail.suggestedQuantity) : "Sin dato"}
+              <Icon name="info" size={14} />
+            </strong>
+          </div>
+        </div>
+      )}
+
+      {fromAlert && hasSuggestion && (
+        <div className="restock-modal__note">
+          <Icon name="info" size={16} />
+          <span>
+            Se generará la orden con la cantidad sugerida para alcanzar el stock
+            óptimo.
+          </span>
+        </div>
+      )}
+
+      {error && (
+        <StatusBanner
+          statusBannerState="status-banner-error"
+          icon={<Icon name="alert" size={16} />}
+          text={error}
+        />
+      )}
     </Modal>
   );
 }

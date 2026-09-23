@@ -17,10 +17,9 @@
 | `category` es un enum del backend (ProductCategory: TECNOLOGIA, HERRAMIENTAS,
 | ALIMENTOS, OTROS). Viaja como string con el nombre del enum y el backend lo
 | valida (case-insensitive) en listado/alta/edición → 400 INVALID_CATEGORY si no
-| coincide. categoryService mantiene el espejo de esos valores en el front.
+| coincide. categoryService trae la lista viva con GET /products/categories.
 |
 | NO existe en el backend (se ignora / se resuelve en el front):
-|   - GET /products/categories      → categoryService espeja el enum (no hay endpoint)
 |   - PATCH /products/:id/location  → la asignación se hace por posición
 |     (warehouseConfigService.assignProductToPosition / PATCH positions)
 |   - stock no se envía: el backend lo computa desde current_stock de las
@@ -34,10 +33,20 @@
 */
 
 import { apiClient } from "../lib/apiClient";
+import { categoryService } from "./categoryService";
 import { productMockService } from "./mocks/productMockService";
 
 // Backend same-origin vía proxy de Vite: el único interruptor es el flag.
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
+
+// El backend clampea `size` a 50 (ProductController).
+const PRODUCT_PAGE_SIZE = 50;
+const MAX_PRODUCT_PAGES = 20;
+
+// Tope de productos que `listAll` trae de una. Llegar acá no es un error: es la
+// señal de que la pantalla ya no puede resolver el catálogo entero en memoria y
+// necesita paginar de verdad. Quien lo consuma avisa, no explota.
+export const PRODUCT_CATALOG_LIMIT = PRODUCT_PAGE_SIZE * MAX_PRODUCT_PAGES;
 
 /*
 |--------------------------------------------------------------------------
@@ -229,6 +238,33 @@ const toUpdatePayload = (input) => {
 */
 
 export const productService = {
+  /*
+  | Todas las páginas de una vez.
+  |
+  | `list` devuelve UNA página (size 50 como máximo, el backend lo clampea), asi
+  | que cualquier pantalla que necesite el catálogo completo — cruzar productos
+  | contra alertas u órdenes, por ejemplo — tiene que usar esto. Con `list` a
+  | secas, el producto 51 en adelante no aparece y las órdenes de esos productos
+  | se muestran como "Producto dado de baja" aunque estén activos.
+  |
+  | Trae hasta PRODUCT_CATALOG_LIMIT. Si devuelve esa cantidad exacta puede haber
+  | más sin traer, y la pantalla lo avisa en vez de fallar.
+  */
+  async listAll(filters = {}) {
+    if (USE_MOCK) return this.list(filters);
+
+    const out = [];
+    for (let page = 0; page < MAX_PRODUCT_PAGES; page += 1) {
+      const items = await this.list({ ...filters, page, size: PRODUCT_PAGE_SIZE });
+      out.push(...items);
+      if (items.length < PRODUCT_PAGE_SIZE) return out;
+    }
+    // Se llegó al tope. Se devuelve lo traído en vez de tirar: que el catálogo
+    // crezca es normal, y voltear la pantalla entera por eso es peor que
+    // mostrarla con un aviso. Quien llama compara contra PRODUCT_CATALOG_LIMIT.
+    return out;
+  },
+
   async list({
     category,
     search,
@@ -237,11 +273,12 @@ export const productService = {
     size = 50,
   } = {}) {
     if (USE_MOCK) {
-      return productMockService.list({
+      const mocked = await productMockService.list({
         category,
         search,
         isActive,
       });
+      return mocked.map(normalize);
     }
 
     const params = {
@@ -273,8 +310,8 @@ export const productService = {
 
   async get(id) {
     if (USE_MOCK) {
-      return productMockService.get(
-        id
+      return normalize(
+        await productMockService.get(id)
       );
     }
 
@@ -288,20 +325,19 @@ export const productService = {
     );
   },
 
-  // El backend NO expone /products/categories. Delegamos en categoryService,
-  // que mantiene la lista canónica de categorías en el front.
+  // Delegamos en categoryService, que llama a GET /products/categories y le
+  // pone las etiquetas en castellano.
   async getCategories() {
     if (USE_MOCK) {
       return productMockService.getCategories();
     }
-    const { categoryService } = await import("./categoryService");
     return categoryService.list();
   },
 
   async create(input) {
     if (USE_MOCK) {
-      return productMockService.create(
-        input
+      return normalize(
+        await productMockService.create(input)
       );
     }
 
@@ -318,9 +354,8 @@ export const productService = {
 
   async update(id, patch) {
     if (USE_MOCK) {
-      return productMockService.update(
-        id,
-        patch
+      return normalize(
+        await productMockService.update(id, patch)
       );
     }
 
