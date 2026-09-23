@@ -12,7 +12,7 @@
 
 .remito-modal__row {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: var(--space-4);
 }
 
@@ -45,19 +45,6 @@
   font-size: 12px;
   color: var(--color-text-muted);
   margin-top: -4px;
-}
-
-.remito-modal__status--error {
-  color: var(--color-danger);
-  background-color: var(--color-danger-soft);
-  border-radius: var(--radius-sm);
-}
-
-/* ── Disabled inputs ──────────────────────────────────────── */
-
-.remito-modal__section input:disabled {
-  background-color: #f3f4f6;
-  color: var(--color-text-secondary);
 }
 
 /* ── Info bar ─────────────────────────────────────────────── */
@@ -114,40 +101,47 @@
   color: var(--color-text-secondary);
 }
 
-/* ── Info box (discrepancia) ──────────────────────────────── */
+/* ── Table ────────────────────────────────────────────────── */
 
-.remito-modal__info-box {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  background-color: var(--color-info-blue-soft);
+.remito-modal__table-wrap {
+  border: 1px solid var(--color-border-soft);
   border-radius: var(--radius-md);
-  font-size: 13px;
-  color: var(--color-text-secondary);
-  line-height: 1.5;
+  overflow: hidden;
 }
 
-.remito-modal__info-box p {
-  margin: 0;
-}
-
-/* ── Footer ───────────────────────────────────────────────── */
-
-.remito-modal__footer {
-  display: flex;
-  justify-content: space-between;
+.remito-modal__table {
   width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
 }
 
-.remito-modal__footer-left {
+.remito-modal__table th {
   text-align: left;
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-surface-muted);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  border-bottom: 1px solid var(--color-border-soft);
 }
 
+.remito-modal__table td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border-soft);
+  color: var(--color-text-primary);
+}
 
-.remito-modal__footer-right {
-  display: flex;
-  gap: var(--space-3);
+.remito-modal__table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.remito-modal__table-loc {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.remito-modal__table-total td {
+  background: var(--color-surface-muted);
+  font-weight: var(--weight-semibold);
 }
 
 /* ── Responsive ───────────────────────────────────────────── */
@@ -156,4 +150,36 @@
   .remito-modal__row {
     grid-template-columns: 1fr;
   }
+}
+
+/* Sección que deja de ser obligatoria cuando el backend acepta remitos sin
+   ubicar (feature/117). */
+.remito-modal__section-optional {
+  margin-left: var(--space-2);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--color-surface-muted);
+  font-size: 11px;
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary-alt);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.remito-modal__pending-note {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-warning-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-warning-bg);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-yellow-dark);
+}
+
+.remito-modal__pending-note svg {
+  flex-shrink: 0;
 }

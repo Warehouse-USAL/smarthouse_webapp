@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react'
 // eslint-disable-next-line no-undef
 const API_TARGET = process.env.VITE_API_TARGET || 'http://localhost:8080'
 
-const proxiedPaths = ['/products', '/orders', '/vehicles', '/users', '/auth', '/ws', '/warehouse', '/restock']
+const proxiedPaths = ['/products', '/orders', '/vehicles', '/users', '/auth', '/ws', '/warehouse', '/restock', '/metrics', '/query', '/api/v1/files']
 
 export default defineConfig({
   // Served behind the reverse proxy under /app. Vite bakes this into every
