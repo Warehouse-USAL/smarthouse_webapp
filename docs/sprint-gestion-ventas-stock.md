@@ -270,11 +270,40 @@ Romper 5 unidades → ajuste -5 motivo "Rotura en picking" → físico y disponi
 
 > Alcance: esto es `Order` = despacho al cliente. `RestockOrder` (`/restock/orders`) NO tiene `status` ni transiciones (RFC Restock §9: registro histórico simple). No confundir.
 
-### Contrato API (`3.7 Órdenes`)
-- `GET /orders?status=pending|in_progress|completed|cancelled&from&to&vehicleId` → filtra por rol. Devuelve `id, status, requested_by_user_id, items[{product_id, sku, quantity}], destination_area, assigned_vehicle_id, address{street,department,floor,postal_code}, timestamps{created_at,started_at,completed_at}, cancel_reason`.
-- `GET /orders/:id` detalle.
-- `POST /orders {items[{product_id,quantity}], destination_area, address}` → valida stock, encola a Central Vehículos. Errores: `INSUFFICIENT_STOCK, PRODUCT_NOT_FOUND, QUANTITY_EXCEEDS_LIMIT, MISSING_ADDRESS, NO_VEHICLES_AVAILABLE`. Requiere `admin_sales` o `admin_warehouse`.
-- `POST /orders/:id/cancel {reason}` → solo `pending/in_progress`. Requiere `admin_warehouse` o `admin_sales`. Devuelve Order con `cancelled`.
+### Contrato API — fuente: Backend §9.4 Órdenes (verdad, antes citado como `3.7`)
+
+Modelo `Order` (§3.3):
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `id` | string (UUID) | Identificador único de la orden |
+| `status` | enum | Estado actual. Ver §3.5 |
+| `requested_by_user_id` | string (UUID) | Usuario que creó la orden |
+| `items` | array\<OrderItem\> | Productos solicitados. Ver §3.3.1 |
+| `destination_area` | string | Área destino dentro del warehouse |
+| `assigned_vehicle_id` | string (UUID) \| null | Vehículo asignado. Null si aún no fue asignada |
+| `timestamps.created_at` | string (ISO 8601) | Momento de creación |
+| `timestamps.started_at` | string (ISO 8601) \| null | Momento en que un vehículo tomó la orden |
+| `timestamps.completed_at` | string (ISO 8601) \| null | Momento de finalización |
+| `cancel_reason` | string \| null | Motivo de cancelación, si aplica |
+
+`OrderItem` (§3.3.1): `product_id` string (UUID), `sku` string (SKU al momento de la orden), `quantity` integer.
+
+| Endpoint | Descripción | Rol requerido |
+|---|---|---|
+| `GET /orders` | Listado filtrado por rol. Params: `status`, `from`, `to`, `vehicleId`. | Todos los roles |
+| `GET /orders/:id` | Detalle completo de una orden. | Todos los roles |
+| `POST /orders` | Crea una nueva orden. Valida stock y publica en Redpanda. Request: `{ items: [{ product_id, quantity }], destination_area }`. Responde 201 con `order` en `pending`, `assigned_vehicle_id: null`, `timestamps: { created_at, started_at: null, completed_at: null }`. | `admin_sales`, `admin_warehouse` |
+| `POST /orders/:id/cancel` | Cancela una orden `pending` o `in_progress`. Body: `{ reason }`. Devuelve Order con `cancelled`. | `admin_warehouse`, `admin_sales` |
+
+Errores `POST /orders`:
+
+| HTTP | Código | Descripción |
+|---|---|---|
+| 400 | `INSUFFICIENT_STOCK` | No hay stock suficiente para uno o más productos. |
+| 400 | `PRODUCT_NOT_FOUND` | Uno o más `product_id` no existen. |
+| 400 | `QUANTITY_EXCEEDS_LIMIT` | La cantidad supera el máximo permitido por orden. |
+| 503 | `NO_VEHICLES_AVAILABLE` | No hay rovers disponibles en este momento. |
 
 ### DECISIÓN CONFIRMADA: sin cambio backend
 `falla` NO es estado backend nuevo. Es **visual derivado de `cancelled + cancel_reason`**.
@@ -294,7 +323,7 @@ Romper 5 unidades → ajuste -5 motivo "Rotura en picking" → físico y disponi
 ### Tareas
 - [ ] Util `mapOrderStatus(order)` centralizada.
 - [ ] Filtros UI por estado negocio (mapean a 1 o N estados backend).
-- [ ] Modal detalle venta muestra rover, direcciones, timeline `creada→iniciada→completada/cancelada`, motivo falla.
+- [ ] Modal detalle venta muestra rover (`assigned_vehicle_id`), `destination_area`, timeline `creada→iniciada→completada/cancelada`, motivo falla.
 - [ ] No pedir endpoint nuevo.
 
 ---
