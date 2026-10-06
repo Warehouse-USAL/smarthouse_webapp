@@ -1,6 +1,6 @@
 ---
 name: lauti-guidelines-mk1
-description: "Úsalas al escribir, editar, revisar o refactorizar código para seguir el flujo de trabajo general de Lolo: exponer suposiciones, señalar ambigüedades, preferir implementaciones simples y acotadas, evitar abstracciones especulativas, realizar cambios quirúrgicos y verificar el trabajo frente a criterios de éxito claros."
+description: "Úsalas al escribir, editar, revisar o refactorizar código para seguir el flujo de trabajo general de lauti: exponer suposiciones, señalar ambigüedades, preferir implementaciones simples y acotadas, evitar abstracciones especulativas, realizar cambios quirúrgicos y verificar el trabajo frente a criterios de éxito claros."
 ---
 
 ## 1. Piensa antes de programar
