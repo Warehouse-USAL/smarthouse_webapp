@@ -1,24 +1,26 @@
 # Verificación — Restock Orders & Reception de Mercadería
 
 > Fuente: `RFC_restock_reception.md` (Grupo 4 — Backend y API) pegado por negocio el 2026-10-06.
-> Estado: pendiente de verificación — chequear si actualmente se hace así y si se aplican bien los endpoints y demás.
+> Estado: verificado el 2026-10-06 contra `src/` — ver resultado por ítem abajo.
 > No modifica código. Solo guarda el RFC para contraste posterior contra `src/services/`.
 
 ---
 
-## Checklist de verificación (pendiente)
+## Checklist de verificación (verificado 2026-10-06)
 
-- [ ] `POST /restock/orders` — crea pedido, no toca stock
-- [ ] `GET /restock/orders` — listado paginado (`productId`, `supplier`, `from`, `to`, `page`, `size`)
-- [ ] `GET /restock/orders/:id` — detalle enriquecido con `quantity_received_so_far`
-- [ ] `POST /restock/receptions` — alta atómica remito + assignments + `$inc` stock
-- [ ] `GET /restock/receptions` — listado paginado (`productId`, `restockOrderId`, `from`, `to`, `page`, `size`)
-- [ ] `GET /restock/receptions/:id` — detalle con desglose por posición
-- [ ] `GET /products/:id/location` — respuesta extendida con `total_stock`
-- [ ] `GET /warehouse/positions/available` — params `productId`, `deliveryUnit`, `quantity`
-- [ ] Errores `POST /restock/receptions`: `PRODUCT_NOT_FOUND`, `ASSIGNMENT_QUANTITY_MISMATCH`, `RESTOCK_ORDER_PRODUCT_MISMATCH`, `RESTOCK_ORDER_NOT_FOUND`, `POSITION_NOT_FOUND`, `POSITION_INACTIVE`, `POSITION_ALREADY_OCCUPIED`, `STOCK_EXCEEDS_CAPACITY`
-- [ ] Errores `GET /warehouse/positions/available`: `PRODUCT_NOT_FOUND`, `INVALID_QUANTITY`
-- [ ] Contraste con frontend: `restockService.js` / `orderService` / mocks usan estos contratos
+- [x] `POST /restock/orders` — crea pedido, no toca stock — SÍ. Evidencia: `src/services/restockService.js:334-338` + payload `154-158`.
+- [x] `GET /restock/orders` — listado paginado (`productId`, `supplier`, `from`, `to`, `page`, `size`) — SÍ parcial. Evidencia: `restockService.js:322-325` + `fetchAllPages:186-205`. Gap: el service acepta filtros passthrough pero `StockManagementPage.jsx:153-154` no los envía (filtra en memoria).
+- [x] `GET /restock/orders/:id` — detalle enriquecido con `quantity_received_so_far` — SÍ. Evidencia: `restockService.js:327-331` + normaliza `110-111`; consumo autoritativo en `StockManagementPage.jsx:127-130,309`.
+- [x] `POST /restock/receptions` — alta atómica remito + assignments + `$inc` stock — SÍ. Evidencia: `restockService.js:358-365`, payload `166-177`, comentario RN-07 en `357`.
+- [x] `GET /restock/receptions` — listado paginado (`productId`, `restockOrderId`, `from`, `to`, `page`, `size`) — SÍ. Evidencia: `restockService.js:344-347`.
+- [x] `GET /restock/receptions/:id` — detalle con desglose por posición — SÍ. Evidencia: `restockService.js:349-353` + `123-145` (`quantityLocated`/`quantityPendingLocation`).
+- [x] `GET /products/:id/location` — respuesta extendida con `total_stock` — NO aplicado. Evidencia: `src/services/productService.js:379-389` solo lee `data.locations`; el total se suma en front (`RemitoModal.jsx:239-242`).
+- [x] `GET /warehouse/positions/available` — params `productId`, `deliveryUnit`, `quantity` — SÍ. Evidencia: `src/services/warehouseConfigService.js:434-472`, reexpuesto en `restockService.js:418-424`. Gap mock: sin fórmula de volumen completa (`435-461`).
+- [x] Errores `POST /restock/receptions` — PARCIAL. Con texto propio en `RemitoModal.jsx:202-215`: `PRODUCT_NOT_FOUND`, `ASSIGNMENT_QUANTITY_MISMATCH`, `RESTOCK_ORDER_PRODUCT_MISMATCH`, `POSITION_ALREADY_OCCUPIED`, `STOCK_EXCEEDS_CAPACITY`. Sin texto propio (caen al mensaje del backend vía `src/lib/apiError.js:35-38`): `RESTOCK_ORDER_NOT_FOUND`, `POSITION_NOT_FOUND`, `POSITION_INACTIVE`.
+- [x] Errores `GET /warehouse/positions/available` — NO mapeados. `PRODUCT_NOT_FOUND`, `INVALID_QUANTITY` solo llegan al fallback genérico.
+- [x] Contraste con frontend — SÍ parcial. `restockService.js:1-57` cita el RFC (RN-03/RN-04, estados derivados RFC §9 en `77-95`). No existe `orderService` en `src/`; mocks: `mocks/restockMockService.js`. Roles JWT: el front no los valida, delega al backend.
+
+> Extras fuera del RFC base (no son desvíos): rama `feature/117` — remito sin ubicar, `PATCH /restock/receptions/:id`, `RECEPTION_STATUS` (`restockService.js:246-270,428-486`); métricas `POST /metrics/restock-suggestions` vía `/metrics/catalog` (`376-413`).
 
 ---
 
