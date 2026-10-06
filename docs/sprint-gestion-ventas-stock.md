@@ -74,6 +74,8 @@ No existe forma por UI de cargar otra moneda que no sea ARS.
 
 ## 4. Cancelar una orden de restock
 
+> Nota (Backend §3.5 + RFC Restock §9): `RestockOrder` hoy no tiene `status` ni cancelación — es registro histórico simple. El `POST /orders/:id/cancel` y los estados `pending/in_progress/cancelled` de §11 son de `Order` (despacho al cliente / ventas, punto 9), no de restock. Este punto queda bloqueado hasta que negocio defina lifecycle de `RestockOrder`; si se refiere a cancelar `Order`, aplica al flujo de ventas.
+
 ### Requerimiento
 Agregar opción de cancelar una orden de restock en estado pendiente.
 
@@ -257,11 +259,16 @@ Romper 5 unidades → ajuste -5 motivo "Rotura en picking" → físico y disponi
 
 ## 11. Estados órdenes compra vs backend — mapeo sin cambiar backend
 
-### Backend declarado
-- `pending`: creada esperando rover → puede ir a `in_progress, cancelled`.
-- `in_progress`: rover asignado procesando → `completed, cancelled`.
-- `completed`: ejecutada OK → final.
-- `cancelled`: cancelada usuario/sistema → final.
+### Backend declarado — fuente: Backend §3.5 Estados de Orden (verdad)
+
+| Estado | Descripción | Transiciones posibles |
+|---|---|---|
+| `pending` | La orden fue creada y está esperando asignación a un rover. | `in_progress`, `cancelled` |
+| `in_progress` | Un rover fue asignado y está procesando la orden. | `completed`, `cancelled` |
+| `completed` | La orden fue ejecutada exitosamente. | nil (estado final) |
+| `cancelled` | La orden fue cancelada por el usuario o por el sistema. | nil (estado final) |
+
+> Alcance: esto es `Order` = despacho al cliente. `RestockOrder` (`/restock/orders`) NO tiene `status` ni transiciones (RFC Restock §9: registro histórico simple). No confundir.
 
 ### Contrato API (`3.7 Órdenes`)
 - `GET /orders?status=pending|in_progress|completed|cancelled&from&to&vehicleId` → filtra por rol. Devuelve `id, status, requested_by_user_id, items[{product_id, sku, quantity}], destination_area, assigned_vehicle_id, address{street,department,floor,postal_code}, timestamps{created_at,started_at,completed_at}, cancel_reason`.
@@ -271,6 +278,7 @@ Romper 5 unidades → ajuste -5 motivo "Rotura en picking" → físico y disponi
 
 ### DECISIÓN CONFIRMADA: sin cambio backend
 `falla` NO es estado backend nuevo. Es **visual derivado de `cancelled + cancel_reason`**.
+`completed` y `cancelled` son finales (nil): sin transiciones de salida.
 
 ### Mapeo UI
 | UI negocio | Backend | Badge | Detalle |
