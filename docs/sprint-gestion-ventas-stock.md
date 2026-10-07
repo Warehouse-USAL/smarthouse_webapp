@@ -92,6 +92,16 @@ No tocado a propósito:
 - (5) Placeholder del buscador de alertas → `Buscar por producto o SKU`.
 - (6) `max-width: 88px` de headers numéricos pasado a variable `--stock-table-head-max` (definida en `.stock-management`, mismo valor en todas las pantallas). Aclaración: el scroll lo causaba el ancho del contenido, no ese tope — se achicó el contenido (botón, padding de celdas `space-3` → `space-2`, nombre `110px` → `96px`) para que entre sin scroll en desktop. En mobile el scroll-x sigue como fallback.
 
+### Tercera ronda (2026-10-07, pedido directo de negocio)
+- Contenedor global `--container-width: 1440px` → `1700px` (`variables.css`). Era el tope real que recortaba las cards: a 1600px de viewport cada panel pasa de ~670px a ~750px y la columna Acciones entra sin scroll. Afecta a todas las páginas (mismo token). En viewports ≤1366 el límite sigue siendo el viewport.
+- Botón `Orden de Restock` más bajo: `height: 32px` (el `height: 55px` fijo de `.button` ignoraba el padding; por eso el ajuste anterior no había cambiado la altura).
+- `Ver acción` / `Ver detalle` con `>` literal (`&gt;`) en vez del icono chevron SVG.
+
+### Cuarta ronda (2026-10-07, pedido directo de negocio)
+- Tabla derecha sin scroll horizontal: modificador `stock-table-wrap--fit` (`overflow: hidden`) solo en órdenes; la de alertas conserva el scroll como fallback.
+- Para que entre a presión se compactó solo esa tabla: celdas con padding lateral `space-2`, headers con wrap permitido, thumb `34px` → `28px`, badge `13px` → `12px`, link de acción `14px` → `13px`.
+- Red de seguridad: debajo de 1500px de viewport el panel ya no contiene las 9 columnas y vuelve `overflow-x: auto` (si no, se recortaría la columna Acciones justo la que se quería mostrar). En mobile (<1180px) los paneles ya apilan a ancho completo.
+
 ---
 
 ## 3. Alta — ARS fijo sin posibilidad de cambio

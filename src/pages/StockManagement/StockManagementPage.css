@@ -429,8 +429,46 @@
 
 .stock-table--wrap-head .button {
   white-space: nowrap;
+  height: 32px;
   padding: 6px 10px;
   font-size: 12px;
+}
+
+/* Tabla de órdenes sin scroll horizontal: entra a presión en el panel con
+   celdas compactas. Debajo de 1500px de viewport el panel ya no la contiene y
+   vuelve el scroll como red de seguridad (si no, se recortaría Acciones). */
+.stock-table-wrap--fit {
+  overflow: hidden;
+}
+
+.stock-table-wrap--fit .stock-table thead th {
+  white-space: normal;
+}
+
+.stock-table-wrap--fit .stock-table thead th,
+.stock-table-wrap--fit .stock-table tbody td {
+  padding-left: var(--space-2);
+  padding-right: var(--space-2);
+}
+
+.stock-table-wrap--fit .stock-table__thumb {
+  width: 28px;
+  height: 28px;
+}
+
+.stock-table-wrap--fit .badge {
+  font-size: 12px;
+  padding: 3px 8px;
+}
+
+.stock-table-wrap--fit .stock-table__detail {
+  font-size: 13px;
+}
+
+@media (max-width: 1500px) {
+  .stock-table-wrap--fit {
+    overflow-x: auto;
+  }
 }
 
 /* Nombre del producto en la tabla de alertas (en órdenes va solo la foto). */

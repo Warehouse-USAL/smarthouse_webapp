@@ -631,7 +631,7 @@ export default function StockManagementPage() {
               description="No encontramos órdenes de restock con los filtros seleccionados."
             />
           ) : (
-            <div className="stock-table-wrap">
+            <div className="stock-table-wrap stock-table-wrap--fit">
               <table className="stock-table">
                 <thead>
                   <tr>
@@ -683,7 +683,7 @@ export default function StockManagementPage() {
                           onClick={() => openDetail(order)}
                         >
                           {order.status === "pendiente" ? "Ver acción" : "Ver detalle"}
-                          <Icon name="chevronRight" size={14} />
+                          <span aria-hidden="true">&gt;</span>
                         </button>
                       </td>
                     </tr>
