@@ -13,9 +13,12 @@
 | El backend serializa en snake_case; este service traduce camelCase ↔ snake.
 |
 | LO QUE EL BACKEND NO TIENE:
-|   · Despacho manual desde el front. La orden la completan los rovers vía
-|     Central (in_progress → completed); no hay endpoint para marcarla
-|     despachada a mano. La UI lo informa en vez de inventar la llamada.
+|   · Despacho manual usado por el front: swagger SÍ declara
+|     PATCH /internal/orders/{id}/status (ChangeOrderStatusRequest:
+|     status + completed_at), pero la UI no lo invoca — la orden la
+|     completan los rovers vía Central y el modal de despacho solo
+|     informa. Pendiente de decisión de negocio (auditoría en
+|     docs/auditoria-endpoints.md).
 |   · Nombre de cliente: Order solo trae requested_by_user_id. La página lo
 |     cruza con userService cuando el rol lo permite (requiere admin_system);
 |     si no, muestra "—".
@@ -45,9 +48,9 @@ export const ORDER_STATUS = {
 export const mapOrderStatus = (order) => {
   const status = order?.status;
   if (status === ORDER_STATUS.DESPACHADO)
-    return { key: "despachado", label: "Despachado", variant: "info" };
+    return { key: "despachado", label: "Despachado", variant: "celeste" };
   if (status === ORDER_STATUS.EN_PROCESO)
-    return { key: "en_proceso", label: "En proceso", variant: "neutral" };
+    return { key: "en_proceso", label: "En proceso", variant: "info" };
   if (status === ORDER_STATUS.CANCELADO) {
     const reason = order?.cancelReason ?? "";
     if (reason.includes("INSUFFICIENT_STOCK") || reason.includes("Stock insuficiente"))

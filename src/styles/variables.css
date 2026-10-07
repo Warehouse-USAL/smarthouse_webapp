@@ -52,6 +52,9 @@
   --color-danger: #dc2626;
   --color-danger-soft: #fee2e2;
   --color-danger-border: #f87171;
+  /* Despachado (orden completed): celeste, distinto del azul En proceso. */
+  --color-celeste: #0284c7;
+  --color-celeste-soft: #e0f2fe;
 
   /* Zone palette (warehouse map) */
   --color-zone-a: #fde68a;

@@ -47,7 +47,7 @@
   padding: 0 var(--space-2);
   text-align: center;
   vertical-align: middle;
-  white-space: nowrap;
+  white-space: normal;
   font-size: 13px;
   font-weight: var(--weight-bold);
   color: var(--color-text-secondary);
@@ -104,7 +104,7 @@
 
 .products-table__name {
   display: inline-block;
-  max-width: 200px;
+  max-width: 160px;
   overflow: hidden;
   text-overflow: ellipsis;
   vertical-align: middle;
@@ -114,6 +114,13 @@
   font-variant-numeric: tabular-nums;
   color: var(--color-text-primary);
   white-space: nowrap;
+}
+
+/* "unidades" al lado de cada valor de stock: acompañante chico y apagado para
+   no ensanchar las columnas. */
+.products-table__unit {
+  font-size: 11px;
+  color: var(--color-text-muted);
 }
 
 .products-table__loc {

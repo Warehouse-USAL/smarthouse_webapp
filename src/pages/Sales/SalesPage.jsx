@@ -541,7 +541,7 @@ export default function SalesPage() {
         )}
       </Modal>
 
-      {/* ── Despacho (sin endpoint: se informa) ──────────── */}
+      {/* ── Despacho (endpoint interno existe, la UI no lo usa) ────── */}
       <Modal
         open={dispatchTarget !== null}
         onClose={() => setDispatchTarget(null)}

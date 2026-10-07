@@ -35,8 +35,10 @@ export default function StockAssignmentPage() {
     setLoadingProducts(true);
     setProductsError(null);
     try {
+      // listAll pagina de verdad: list({size:200}) lo clampea el backend a 50
+      // y los productos fuera de esa página no se cruzaban con las recepciones.
       const [list, pending, orders] = await Promise.all([
-        productService.list({ size: 200 }),
+        productService.listAll(),
         restockService.listPendingLocation(),
         restockService.listOrdersWithProgress().catch(() => []),
       ]);
@@ -60,6 +62,9 @@ export default function StockAssignmentPage() {
             id: reception.id,
             name: product?.name ?? "Producto dado de baja",
             sku: product?.sku ?? reception.productId,
+            // PendingLocationCard lee imageUrl del producto; sin este cruce la
+            // card mostraba el placeholder en lugar de la foto.
+            imageUrl: product?.imageUrl ?? "",
             orderId:
               orderCode.get(reception.restockOrderId) ??
               reception.restockOrderId ??

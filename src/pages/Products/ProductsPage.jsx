@@ -424,10 +424,10 @@ export default function ProductsPage() {
                 <th>Nombre</th>
                 <th>Categoría</th>
                 <th>Precio</th>
-                <th>Físico</th>
-                <th>Reserva</th>
-                <th>Disponible</th>
-                <th>Mínimo</th>
+                <th>Stock físico</th>
+                <th>Stock reservado</th>
+                <th>Stock disponible</th>
+                <th>Stock mínimo</th>
                 <th>Ubicación</th>
                 <th>Reponer</th>
                 <th>Acciones</th>
@@ -462,21 +462,25 @@ export default function ProductsPage() {
                     <td data-label="Precio" className="products-table__num">
                       ${formatPrice(product.price)}
                     </td>
-                    <td data-label="Físico" className="products-table__num">
-                      {product.stock?.physical ?? 0}
+                    <td data-label="Stock físico" className="products-table__num">
+                      {product.stock?.physical ?? 0}{" "}
+                      <span className="products-table__unit">unidades</span>
                     </td>
-                    <td data-label="Reserva" className="products-table__num">
-                      {product.reservedStock}
+                    <td data-label="Stock reservado" className="products-table__num">
+                      {product.reservedStock}{" "}
+                      <span className="products-table__unit">unidades</span>
                     </td>
                     <td
-                      data-label="Disponible"
+                      data-label="Stock disponible"
                       className="products-table__num"
-                      title="Disponible = Físico − Reserva"
+                      title="Disponible = Stock físico − Stock reservado"
                     >
-                      {product.availableStock}
+                      {product.availableStock}{" "}
+                      <span className="products-table__unit">unidades</span>
                     </td>
-                    <td data-label="Mínimo" className="products-table__num">
-                      {product.minimumStock}
+                    <td data-label="Stock mínimo" className="products-table__num">
+                      {product.minimumStock}{" "}
+                      <span className="products-table__unit">unidades</span>
                     </td>
                     <td data-label="Ubicación" className="products-table__loc">
                       {first ? (
