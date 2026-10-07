@@ -343,15 +343,22 @@ Hoy la única forma de bajar stock es con despacho. Si se rompe mercadería en w
 Inventario de productos con todos los datos de stock + permitir modificación y baja de producto y su stock + ajuste manual (merma/rotura).
 
 ### Tareas
-- [ ] Vista inventario: SKU, nombre, categoría, imagen, físico, reserva, disponible, mínimo, ubicación, necesita reposición.
-- [ ] Editar producto (nombre, SKU, categoría, mínimo, objetivo, precio ARS, imagen).
-- [ ] Baja producto (lógica, pide motivo, bloquea si tiene reserva/pendientes).
-- [ ] Ajuste manual stock: `+ entrada / - merma / - rotura / - vencimiento / conteo` con motivo obligatorio + usuario + fecha. Afecta físico y recalcula disponible.
-- [ ] Kardex / historial movimientos por producto.
-- [ ] Permisos: solo `admin_warehouse`.
+- [x] Vista inventario: SKU, nombre, categoría, imagen, precio, físico, reserva, disponible, mínimo, ubicación, necesita reposición. Tabla formato Ventas (sin scroll horizontal: filas apiladas bajo 768px, columna dimensiones descartada por negocio).
+- [x] Editar producto (nombre, SKU, categoría, mínimo, objetivo, precio ARS, imagen) — modal existente, ahora desde la acción por fila.
+- [x] Baja producto (lógica) en DOS pasos (aviso → confirmación final), sin motivo.
+- [x] Ajuste manual stock: `+ entrada / - merma / - rotura / - vencimiento / conteo` → `PATCH /warehouse/positions/:id { current_stock }` (verificado 2026-10-07 contra backend local: recalcula físico/reserva/disponible del producto).
+- [ ] Ajuste con motivo obligatorio + usuario + fecha (auditoría): ⛔ backend — `UpdatePositionRequest` no tiene campo de motivo ni historial; no se pide en el front para no simular una auditoría que no se persiste.
+- [ ] Kardex / historial movimientos por producto: ⛔ backend — no existe endpoint de movimientos.
+- [x] Permisos: ajuste = `stock.assign`; editar/borrar = `product.edit`/`product.delete` (espejo del backend).
 
 ### Criterio de aceptación
-Romper 5 unidades → ajuste -5 motivo "Rotura en picking" → físico y disponible bajan 5, queda auditoría.
+Romper 5 unidades → ajuste -5 → físico y disponible bajan 5. ✔ verificado en backend local (PATCH posición → `GET /products` devuelve physical/available recalculados; 20 → 15 → available 9, restaurado a 20). La auditoría (motivo/usuario/fecha) queda bloqueada por backend.
+
+### Implementación (2026-10-07)
+- Tabla en `ProductsPage.jsx` (clases `products-table*`, CSS propia en `ProductsPage.css`, mismo patrón que `sales-table`/`stock-table`). Acciones por fila: editar / ajustar / eliminar.
+- Ajuste: modal con posición (viene de `getLocations()`, con `current_stock` por posición), tipo, cantidad y preview actual → resultante. Es un valor absoluto por posición; el front calcula el delta. Validación front: entero ≥ 0 y no bajar de la reserva (el backend permite stock físico < reserva y dejaría disponible negativo); capacidad/mínimo los valida el backend con 400.
+- Producto sin posiciones: no muestra la acción de ajuste (la carga inicial es Asignación de stock).
+- Se eliminó `ProductCard` (quedó sin uso) y los alias snake_case de `normalizeLocation` (solo los usaba esa card).
 
 ---
 
@@ -440,6 +447,12 @@ Cadena en `listAlerts`: `product.restock` guardado (corrida diaria, sin request)
 - [ ] Cantidad editable si es local — no aplica (no hay cálculo local).
 - [ ] Eliminar aviso permanente + CSS — el aviso ya se había quitado; el actual solo sale sin ninguna fuente.
 
+### Diagnóstico 2026-10-07 — tabla de alertas vacía con productos bajo mínimo (solo documentado, sin cambio de código)
+Caso: DES-001 (disponible 1, mínimo 10) no aparece; la tabla queda vacía aunque MOU-010 (0 < 14) y TAL-001 (14 < 20) también están bajo mínimo.
+Causa verificada contra el backend local: el `POST /metrics/restock-suggestions` (mismos params del front) devuelve `should_restock: false` en los 3 (DES-001: posición 1 vs punto 0.0; MOU-010: posición 150 vs punto 0.0; TAL-001: posición 174 vs punto 1.29). El backend compara posición de inventario (disponible + en tránsito) contra punto por demanda, y sin historial de ventas el punto da ~0. Como el vivo devuelve `[]` (no `null`), el fallback local de `listAlerts` nunca corre (`suggested ?? buildRestockAlerts(...)` en `StockManagementPage.jsx:177`) y la tabla queda vacía.
+Aplica a cualquier ambiente con productos sin demanda: local y servidor se comportan igual (mismo front, depende solo de los datos de cada backend).
+Fix propuesto (no aplicado): en `listAlerts`, sumar las alertas locales (`needsRestock`) de los productos que el backend no marcó, con sugerencia `null`. Trade-off: mezcla criterio por demanda con criterio por mínimo (un producto con mercadería en camino aparecería igual). Decisión pendiente de negocio.
+
 ---
 
 ## Orden de implementación sugerido
@@ -466,6 +479,6 @@ Cadena en `listAlerts`: `product.restock` guardado (corrida diaria, sin request)
 | 7 | Modal Acciones restock | ✅ completado (spec negocio) | Verificación visual en browser |
 | 8 | Nueva orden restock con imagen | 🟡 parcial (card unificada) | Preview auto de sugerida (depende punto 12, congelado) |
 | 9 | Gestión de Ventas | 🟡 front listo (despacho manual bloqueado) | Backend: endpoint despacho manual + cliente en Order + confirmar forma GET /orders |
-| 10 | Inventario + ABM + ajuste manual | ⬜ no iniciado | Definir alcance con backend (sin endpoint de ajuste conocido) antes de codificar |
+| 10 | Inventario + ABM + ajuste manual | 🟡 front listo (tabla + baja en 2 pasos + ajuste vía PATCH posición) | Auditoría del ajuste (motivo/usuario/fecha) y kardex ⛔ backend. Verificación visual 1600/1366/768/375 |
 | 11 | Mapeo estados órdenes | ⬜ no iniciado | Util `mapOrderStatus` + filtros + detalle. Conviene hacerlo junto con 9 |
 | 12 | Sugerencia de restock | ✅ conectado (restock → POST → —) | Columna "Ya pedido" con onOrderStock (dato ya disponible) |
