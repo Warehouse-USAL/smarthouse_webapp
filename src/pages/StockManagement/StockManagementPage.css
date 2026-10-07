@@ -451,12 +451,6 @@
   line-height: 1.3;
 }
 
-.stock-table__product-sku {
-  font-size: 12px;
-  font-weight: var(--weight-regular);
-  color: var(--color-text-secondary-alt);
-}
-
 .stock-table__num {
   font-variant-numeric: tabular-nums;
   color: var(--color-text-primary);

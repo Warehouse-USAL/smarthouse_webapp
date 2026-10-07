@@ -488,9 +488,10 @@ export default function StockManagementPage() {
                 <thead>
                   <tr>
                     <th>Producto</th>
+                    <th>SKU</th>
                     <th>Stock actual</th>
                     <th>{alertItems[0]?.thresholdLabel ?? "Stock mínimo"}</th>
-                    <th>Sugerencia</th>
+                    <th>Sugerencia de reestock</th>
                     <th className="stock-table__actions-col">Acciones</th>
                   </tr>
                 </thead>
@@ -512,12 +513,10 @@ export default function StockManagementPage() {
                             >
                               {alert.name}
                             </span>
-                            <span className="stock-table__product-sku">
-                              {alert.sku}
-                            </span>
                           </span>
                         </div>
                       </td>
+                      <td className="stock-table__sku">{alert.sku}</td>
                       <td className="stock-table__num stock-table__num--low">
                         {alert.availableStock}
                       </td>
@@ -646,6 +645,7 @@ export default function StockManagementPage() {
                     <th>Orden (RST)</th>
                     <th>Fecha</th>
                     <th>Producto</th>
+                    <th>SKU</th>
                     <th>Solicitado</th>
                     <th>Recibido</th>
                     <th>Unidad</th>
@@ -675,12 +675,10 @@ export default function StockManagementPage() {
                             >
                               {order.productName}
                             </span>
-                            <span className="stock-table__product-sku">
-                              {order.sku}
-                            </span>
                           </span>
                         </div>
                       </td>
+                      <td className="stock-table__sku">{order.sku}</td>
                       <td className="stock-table__num">{order.quantityRequested}</td>
                       <td className="stock-table__num">{order.quantityReceived}</td>
                       <td>
@@ -699,7 +697,7 @@ export default function StockManagementPage() {
                           className="stock-table__detail"
                           onClick={() => openDetail(order)}
                         >
-                          Ver detalle
+                          {order.status === "pendiente" ? "Ver acción" : "Ver detalle"}
                           <Icon name="chevronRight" size={14} />
                         </button>
                       </td>

@@ -61,6 +61,20 @@ Mismo ancho, misma grilla, mismos radios/bordes/sombras para ambas tarjetas/tabl
 ### Criterio de aceptación
 Captura lado a lado: ambas tarjetas alineadas pixel-perfect.
 
+### Ajuste UI según spec de negocio (2026-10-07)
+Spec detallado provisto por negocio (mockup con datos mayo 2024). Se tomó como guía estructural; tamaños y colores no se tocaron.
+
+Hecho en `StockManagementPage.jsx` (+ CSS huérfano eliminado):
+- Columna `SKU` separada en ambas tablas (antes apilado bajo el nombre). Alertas: Producto · SKU · Stock actual · Stock mínimo · Sugerencia de reestock · Acciones. Órdenes: Orden · Fecha · Producto · SKU · Solicitado · Recibido · Unidad · Estado · Acciones.
+- Header `Sugerencia` → `Sugerencia de reestock`.
+- Acción en órdenes: pendientes muestran `Ver acción`, el resto `Ver detalle` (abre el mismo modal detalle hasta que exista el modal de acciones del punto 7).
+
+No tocado a propósito:
+- Nav `Asignación de stock`: el spec dice "Asignación de Ubicación", pero el nombre actual se usa en 6 lugares consistentes (`Navbar`, `HomePage`, `ProductsPage`, `CreateProductForm`, mocks, permisos). Renombrar solo el nav rompería esa consistencia; va a decisión de negocio.
+- Copy: el código ya está todo en voseo (`Gestioná…` también en el panel derecho); el tuteo del mockup (`Gestiona`) era inconsistencia del ejemplo, no del código.
+- Regla de estados `deriveStatus` sin cambios: parcial → `recibido`, completo → `completado`.
+- Datos del mockup (mayo 2024): `RST-00020` figura "Completado" con 36/40 y `RST-00022` "Recibido" con 20/20 — ambos contradicen la regla vigente; son datos de ejemplo. Si negocio quiere admitir cierre con faltante o un paso intermedio manual, se define como regla nueva (punto 4/11).
+
 ---
 
 ## 3. Alta — ARS fijo sin posibilidad de cambio
@@ -383,7 +397,7 @@ Calcular la sugerencia localmente con política de reposición por nivel: repone
 | # | Punto | Estado | Qué falta |
 |---|---|---|---|
 | 1 | Logo no carga en servidor | ✅ front verificado | Verificación en servidor (Network) + SVG alta resolución de negocio |
-| 2 | Gestión de Stock — igualar anchos | ✅ front verificado | Captura visual lado a lado pixel-perfect (1600/1366/768/375px) |
+| 2 | Gestión de Stock — igualar anchos + ajuste UI spec negocio | ✅ front verificado | Captura visual lado a lado pixel-perfect (1600/1366/768/375px). Decisiones abiertas: nombre "Asignación de Ubicación" y semántica de cierre parcial |
 | 3 | Alta — ARS fijo | ⬜ no iniciado | Badge ARS fijo en `CreateProductForm`, hardcodear `currency: 'ARS'` en `productService`, quitar input editable |
 | 4 | Cancelar orden de restock | ⛔ bloqueado por backend | `RestockOrder` no tiene `status` ni cancelación (RFC §9). `POST /orders/:id/cancel` es de `Order`/ventas. Hacer front (botón + confirm con motivo) y dejar UI deshabilitada/oculta hasta definición de negocio |
 | 5 | Datos de stock en ficha | ⬜ no iniciado | UI: disponible / reserva / físico / badge Reponer (datos ya expuestos en `productService.normalize`) |
