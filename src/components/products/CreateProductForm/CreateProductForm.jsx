@@ -347,7 +347,7 @@ export default function CreateProductForm({
           </div>
 
           <Input
-            name="minimumStock" label="Punto de reposición" type="number" min={0} step={1}
+            name="minimumStock" label="Stock mínimo" type="number" min={0} step={1}
             value={values.minimumStock} onChange={handleChange("minimumStock")}
             error={errors.minimumStock} required
           />
