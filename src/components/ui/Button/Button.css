@@ -123,4 +123,6 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  /* Dentro de una celda angosta el flex del botón aplastaba el SVG. */
+  flex-shrink: 0;
 }

@@ -1,206 +1,185 @@
+/*
+|--------------------------------------------------------------------------
+| RESTOCK MOCK SERVICE
+|--------------------------------------------------------------------------
+|
+| Espejo de restockService para VITE_USE_MOCK=true. Persiste en localStorage
+| (mismo patrón que el resto de los mocks) y devuelve objetos YA normalizados
+| en camelCase — el mock vive del lado de la UI, no del cable.
+|
+| Los product_id referencian los del productMockService (PROD-00X).
+|
+*/
+
 import { localStore } from "../../lib/localStore";
-import { UNIT_TO_SIZE } from "../../lib/storageCompatibility";
-import { warehouseConfigMockService } from "./warehouseConfigMockService";
 
-const ORDERS_KEY = "mock_restock_orders";
-const RECEPTIONS_KEY = "mock_restock_receptions";
+/*
+| Las claves llevan versión.
+|
+| Los registros del mock pasaron de snake_case a camelCase. Con la clave vieja,
+| a cualquiera que ya tuviera datos guardados le volvían registros con
+| `productId`, `createdAt` y `restockOrderId` en undefined, y el progreso y los
+| filtros de la pantalla quedaban rotos sin ningún error visible.
+|
+| Subir la versión descarta lo viejo y vuelve a sembrar. Es data de prueba: no
+| vale la pena migrarla, pero sí que deje de romper en silencio.
+*/
+const ORDERS_KEY = "mock_restock_orders_v2";
+const RECEPTIONS_KEY = "mock_restock_receptions_v2";
 
-// Mismas órdenes de maqueta que usaba StockManagementPage, ahora con el shape
-// del contrato (snake_case) + supplier. El orden list→detalle replicará el
-// backend: el listado NO trae quantity_received_so_far (solo el detalle).
-const ORDERS_SEED = [
-  { id: "RSO-10023", product_id: "PROD-001", quantity_requested: 10, supplier: "Distribuidora XYZ", created_at: "2026-05-22T09:40:00Z" },
-  { id: "RSO-10022", product_id: "PROD-002", quantity_requested: 40, supplier: "Alimentos del Sur", created_at: "2026-05-21T15:05:00Z" },
-  { id: "RSO-10021", product_id: "PROD-003", quantity_requested: 60, supplier: "TecnoImport SRL", created_at: "2026-05-21T11:30:00Z" },
-  { id: "RSO-10020", product_id: "PROD-004", quantity_requested: 35, supplier: "Limpieza Total SA", created_at: "2026-05-20T17:20:00Z" },
-  { id: "RSO-10019", product_id: "PROD-005", quantity_requested: 25, supplier: "Textil Hogar", created_at: "2026-05-20T08:55:00Z" },
-  { id: "RSO-10018", product_id: "PROD-006", quantity_requested: 50, supplier: "Farmacia Mayorista", created_at: "2026-05-19T10:30:00Z" },
-  { id: "RSO-10017", product_id: "PROD-007", quantity_requested: 30, supplier: "AutoRepuestos RG", created_at: "2026-05-19T09:15:00Z" },
-  { id: "RSO-10016", product_id: "PROD-008", quantity_requested: 20, supplier: "Deportes Integrales", created_at: "2026-05-18T16:45:00Z" },
-  { id: "RSO-10015", product_id: "PROD-001", quantity_requested: 25, supplier: "Distribuidora XYZ", created_at: "2026-05-18T11:20:00Z" },
-  { id: "RSO-10014", product_id: "PROD-003", quantity_requested: 15, supplier: "TecnoImport SRL", created_at: "2026-05-17T14:10:00Z" },
-  { id: "RSO-10013", product_id: "PROD-006", quantity_requested: 12, supplier: "Farmacia Mayorista", created_at: "2026-05-17T10:05:00Z" },
-  { id: "RSO-10012", product_id: "PROD-008", quantity_requested: 18, supplier: "Deportes Integrales", created_at: "2026-05-16T16:40:00Z" },
-  { id: "RSO-10011", product_id: "PROD-002", quantity_requested: 45, supplier: "Alimentos del Sur", created_at: "2026-05-16T12:15:00Z" },
-];
-
-// Recepciones de ejemplo, enlazadas a las órdenes de arriba. `assignments`
-// opcional; sin él, la orden queda "recibida" pero sin ubicar (nuestro flujo).
-const RECEPTIONS_SEED = [
-  { id: "RCP-2001", restock_order_id: "RSO-10015", product_id: "PROD-001", quantity_received: 25, delivery_unit: "CAJA", supplier: "Distribuidora XYZ", assignments: [{ position_id: "POS-A-01-01", quantity: 25 }], created_at: "2026-05-18T14:00:00Z" },
-  { id: "RCP-2002", restock_order_id: "RSO-10016", product_id: "PROD-008", quantity_received: 8, delivery_unit: "MEDIO_PALLET", supplier: "Deportes Integrales", assignments: [], created_at: "2026-05-19T10:00:00Z" },
-  { id: "RCP-2003", restock_order_id: "RSO-10017", product_id: "PROD-007", quantity_received: 14, delivery_unit: "PALLET", supplier: "AutoRepuestos RG", assignments: [], created_at: "2026-05-19T12:00:00Z" },
-];
-
-const readOrders = () => localStore.get(ORDERS_KEY, ORDERS_SEED);
-const writeOrders = (list) => localStore.set(ORDERS_KEY, list);
-const readReceptions = () => localStore.get(RECEPTIONS_KEY, RECEPTIONS_SEED);
-const writeReceptions = (list) => localStore.set(RECEPTIONS_KEY, list);
-
-const delay = (ms = 200) => new Promise((r) => setTimeout(r, ms));
-
-const nextOrderId = (list) => {
-  const max = list
-    .map((o) => parseInt(String(o.id || "").replace(/\D/g, ""), 10) || 0)
-    .reduce((a, b) => Math.max(a, b), 0);
-  return `RSO-${String(max + 1).padStart(4, "0")}`;
+const daysAgo = (n) => {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toISOString();
 };
 
-const paginate = (list, page, size) => {
-  const start = page * size;
-  const items = list.slice(start, start + size);
+const SEED_ORDERS = [
+  { id: "RSO-1001", productId: "PROD-003", quantityRequested: 90,  supplier: "Samsung Argentina",   requestedByUserId: "USR-001", createdAt: daysAgo(9) },
+  { id: "RSO-1002", productId: "PROD-005", quantityRequested: 150, supplier: "Textiles del Sur",    requestedByUserId: "USR-001", createdAt: daysAgo(8) },
+  { id: "RSO-1003", productId: "PROD-008", quantityRequested: 100, supplier: "Deportes Mayorista",  requestedByUserId: "USR-001", createdAt: daysAgo(7) },
+  { id: "RSO-1004", productId: "PROD-001", quantityRequested: 200, supplier: "Distribuidora XYZ",   requestedByUserId: "USR-001", createdAt: daysAgo(6) },
+  { id: "RSO-1005", productId: "PROD-004", quantityRequested: 120, supplier: "Limpieza Total SA",   requestedByUserId: "USR-001", createdAt: daysAgo(5) },
+  { id: "RSO-1006", productId: "PROD-002", quantityRequested: 300, supplier: "Aguas Cuyanas",       requestedByUserId: "USR-001", createdAt: daysAgo(4) },
+  { id: "RSO-1007", productId: "PROD-006", quantityRequested: 80,  supplier: "Farma Distribución",  requestedByUserId: "USR-001", createdAt: daysAgo(3) },
+  { id: "RSO-1008", productId: "PROD-007", quantityRequested: 60,  supplier: "Lubricantes del Sur", requestedByUserId: "USR-001", createdAt: daysAgo(2) },
+];
+
+// Recepciones parciales/completas sobre algunas de las órdenes sembradas, para
+// que la pantalla muestre los tres estados derivados desde el arranque.
+const SEED_RECEPTIONS = [
+  { id: "RCP-2001", restockOrderId: "RSO-1004", productId: "PROD-001", quantityReceived: 200, deliveryUnit: "PALLET",       supplier: "Distribuidora XYZ",  assignments: [{ positionId: "POS-MOCK-1", quantity: 200 }], receivedByUserId: "USR-001", createdAt: daysAgo(5) },
+  { id: "RCP-2002", restockOrderId: "RSO-1005", productId: "PROD-004", quantityReceived: 60,  deliveryUnit: "MEDIO_PALLET", supplier: "Limpieza Total SA",  assignments: [{ positionId: "POS-MOCK-2", quantity: 60 }],  receivedByUserId: "USR-001", createdAt: daysAgo(4) },
+  { id: "RCP-2003", restockOrderId: "RSO-1006", productId: "PROD-002", quantityReceived: 300, deliveryUnit: "PALLET",       supplier: "Aguas Cuyanas",      assignments: [{ positionId: "POS-MOCK-3", quantity: 300 }], receivedByUserId: "USR-001", createdAt: daysAgo(3) },
+  { id: "RCP-2004", restockOrderId: "RSO-1007", productId: "PROD-006", quantityReceived: 40,  deliveryUnit: "CAJA",         supplier: "Farma Distribución", assignments: [{ positionId: "POS-MOCK-4", quantity: 40 }],  receivedByUserId: "USR-001", createdAt: daysAgo(2) },
+];
+
+/*
+| El mock tiene que devolver EXACTAMENTE el mismo contrato que normalizeReception
+| arma para el backend. Si no, la pantalla se comporta distinto según el flag:
+| `status`, `quantityLocated` y `quantityPendingLocation` son campos derivados
+| que listPendingLocation() necesita para encontrar los remitos sin ubicar.
+*/
+const withDerived = (reception) => {
+  const quantityReceived = Number(reception.quantityReceived) || 0;
+  const quantityLocated = (reception.assignments || []).reduce(
+    (sum, a) => sum + (Number(a.quantity) || 0),
+    0
+  );
   return {
-    orders: items,
-    pagination: {
-      page,
-      size,
-      total_elements: list.length,
-      total_pages: Math.max(1, Math.ceil(list.length / size)),
-    },
+    ...reception,
+    quantityLocated,
+    quantityPendingLocation: Math.max(0, quantityReceived - quantityLocated),
+    status:
+      quantityLocated >= quantityReceived ? "COMPLETED" : "PENDING_LOCATION",
   };
 };
 
-// El backend solo expone quantity_received_so_far en el DETALLE. Este mock
-// replica eso: acumula las recepciones que referencian la orden.
-const receivedSoFar = (orderId) =>
-  readReceptions()
-    .filter((r) => r.restock_order_id === orderId)
-    .reduce((sum, r) => sum + (r.quantity_received || 0), 0);
+const readOrders = () => localStore.get(ORDERS_KEY, SEED_ORDERS);
+const readReceptions = () =>
+  localStore.get(RECEPTIONS_KEY, SEED_RECEPTIONS).map(withDerived);
+
+const nextId = (list, prefix, start) => {
+  const max = list.reduce((acc, item) => {
+    const n = Number(String(item.id).replace(`${prefix}-`, ""));
+    return Number.isFinite(n) ? Math.max(acc, n) : acc;
+  }, start - 1);
+  return `${prefix}-${max + 1}`;
+};
+
+const inRange = (iso, from, to) => {
+  if (!iso) return true;
+  const day = iso.slice(0, 10);
+  if (from && day < from) return false;
+  if (to && day > to) return false;
+  return true;
+};
 
 export const restockMockService = {
-  async listOrders({ productId, supplier, from, to, page = 0, size = 20 } = {}) {
-    await delay();
-    let results = readOrders();
-
-    if (productId) results = results.filter((o) => o.product_id === productId);
-    if (supplier) {
-      const q = supplier.toLowerCase();
-      results = results.filter((o) => (o.supplier || "").toLowerCase().includes(q));
-    }
-    if (from) results = results.filter((o) => o.created_at.slice(0, 10) >= from);
-    if (to) results = results.filter((o) => o.created_at.slice(0, 10) <= to);
-
-    return paginate(results, page, size);
+  async listOrders({ productId, supplier, from, to } = {}) {
+    return readOrders().filter(
+      (o) =>
+        (!productId || o.productId === productId) &&
+        (!supplier || o.supplier === supplier) &&
+        inRange(o.createdAt, from, to)
+    );
   },
 
   async getOrder(id) {
-    await delay();
-    const order = readOrders().find((o) => o.id === id);
-    if (!order) {
-      throw {
-        response: {
-          data: {
-            error: { code: "RESTOCK_ORDER_NOT_FOUND", message: "Orden no encontrada." },
-          },
-        },
-      };
-    }
-    return { ...order, quantity_received_so_far: receivedSoFar(id) };
+    const order = readOrders().find((o) => o.id === id) || null;
+    if (!order) return null;
+    const received = readReceptions()
+      .filter((r) => r.restockOrderId === id)
+      .reduce((sum, r) => sum + r.quantityReceived, 0);
+    return { ...order, quantityReceivedSoFar: received };
   },
 
   async createOrder({ productId, quantityRequested, supplier }) {
-    await delay();
     const list = readOrders();
-    const created = {
-      id: nextOrderId(list),
-      product_id: productId,
-      quantity_requested: Number(quantityRequested) || 0,
+    const order = {
+      id: nextId(list, "RSO", 1001),
+      productId,
+      quantityRequested: Number(quantityRequested) || 0,
       supplier,
-      requested_by_user_id: null,
-      created_at: new Date().toISOString(),
+      requestedByUserId: "USR-001",
+      createdAt: new Date().toISOString(),
     };
-    writeOrders([created, ...list]);
-    return created;
+    localStore.set(ORDERS_KEY, [...list, order]);
+    return order;
   },
 
-  async listReceptions({ productId, restockOrderId, from, to, page = 0, size = 20 } = {}) {
-    await delay();
-    let results = readReceptions();
-    if (productId) results = results.filter((r) => r.product_id === productId);
-    if (restockOrderId) results = results.filter((r) => r.restock_order_id === restockOrderId);
-    if (from) results = results.filter((r) => r.created_at.slice(0, 10) >= from);
-    if (to) results = results.filter((r) => r.created_at.slice(0, 10) <= to);
-
-    const start = page * size;
-    return {
-      receptions: results.slice(start, start + size),
-      pagination: {
-        page,
-        size,
-        total_elements: results.length,
-        total_pages: Math.max(1, Math.ceil(results.length / size)),
-      },
-    };
+  async listReceptions({ productId, restockOrderId, from, to } = {}) {
+    return readReceptions().filter(
+      (r) =>
+        (!productId || r.productId === productId) &&
+        (!restockOrderId || r.restockOrderId === restockOrderId) &&
+        inRange(r.createdAt, from, to)
+    );
   },
 
   async getReception(id) {
-    await delay();
-    const reception = readReceptions().find((r) => r.id === id);
-    if (!reception) {
-      throw {
-        response: { data: { error: { code: "RECEPTION_NOT_FOUND", message: "Recepción no encontrada." } } },
-      };
-    }
-    return reception;
+    return readReceptions().find((r) => r.id === id) || null;
+  },
+
+  // Ubicación diferida de un remito (rama feature/117). Acumula assignments y
+  // marca COMPLETED cuando lo ubicado iguala lo recibido, igual que el backend.
+  async assignReceptionPositions(id, assignments = []) {
+    const list = readReceptions();
+    const index = list.findIndex((r) => r.id === id);
+    if (index === -1) return null;
+    const reception = list[index];
+    const merged = [
+      ...(reception.assignments || []),
+      ...assignments.map((a) => ({
+        positionId: a.positionId,
+        quantity: Number(a.quantity) || 0,
+      })),
+    ];
+    const updated = withDerived({ ...reception, assignments: merged });
+    const next = [...list];
+    next[index] = updated;
+    localStore.set(RECEPTIONS_KEY, next);
+    return updated;
   },
 
   async createReception(input) {
-    await delay();
     const list = readReceptions();
-    const created = {
-      id: `RCP-${String(list.length + 2001).padStart(4, "0")}`,
-      restock_order_id: input.restockOrderId ?? null,
-      product_id: input.productId,
-      quantity_received: Number(input.quantityReceived) || 0,
-      delivery_unit: input.deliveryUnit,
+    const reception = {
+      id: nextId(list, "RCP", 2001),
+      restockOrderId: input.restockOrderId || null,
+      productId: input.productId,
+      quantityReceived: Number(input.quantityReceived) || 0,
+      deliveryUnit: input.deliveryUnit,
       supplier: input.supplier,
       assignments: (input.assignments || []).map((a) => ({
-        position_id: a.positionId,
-        quantity: a.quantity,
+        positionId: a.positionId,
+        quantity: Number(a.quantity) || 0,
       })),
-      received_by_user_id: null,
-      created_at: new Date().toISOString(),
+      receivedByUserId: "USR-001",
+      createdAt: new Date().toISOString(),
     };
-    writeReceptions([created, ...list]);
-    return created;
-  },
-
-  // Posiciones disponibles reutilizando el árbol mock del warehouse: sin otro
-  // producto asignado y del tamaño pedido (CAJA/MEDIO_PALLET/PALLET). El mock
-  // del warehouse usa PEQUEÑA/MEDIANA/GRANDE, así que traducimos con
-  // UNIT_TO_SIZE (misma correspondencia que el service real).
-  async getAvailablePositions({ productId, deliveryUnit, quantity }) {
-    await delay();
-    const config = await warehouseConfigMockService.get();
-    const zones = config?.zones || [];
-    const available = [];
-
-    for (const zone of zones) {
-      for (const line of zone.lines || []) {
-        for (const position of line.positions || []) {
-          const sameUnit =
-            UNIT_TO_SIZE[position.sizeStockToSave] === String(deliveryUnit || "").toUpperCase();
-          const positionProductId =
-            position.assignedProduct?.id ?? position.productId ?? null;
-          const free =
-            !positionProductId ||
-            String(positionProductId) === String(productId);
-          if (position.isActive === false || !sameUnit || !free) continue;
-
-          const availableUnits =
-            Math.max(0, (position.maximumCapacity || 1000) - (position.currentStock || 0));
-          if (availableUnits <= 0 || availableUnits < Number(quantity)) continue;
-
-          available.push({
-            position_id: position.idPosition,
-            position_name: position.positionName,
-            available_units: availableUnits,
-          });
-        }
-      }
-    }
-
-    available.sort((a, b) => b.available_units - a.available_units);
-    return { positions: available };
+    localStore.set(RECEPTIONS_KEY, [...list, reception]);
+    // Derivado al salir: un remito creado sin ubicar nace PENDING_LOCATION y
+    // tiene que aparecer en el panel de pendientes.
+    return withDerived(reception);
   },
 };

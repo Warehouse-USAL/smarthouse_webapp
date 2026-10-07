@@ -1,0 +1,125 @@
+/* ── Grilla de posiciones candidatas ───────────────────────── */
+
+.position-assigner__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+  /* Un warehouse con decenas de posiciones compatibles no puede empujar el
+     resto del formulario fuera de la vista: la grilla scrollea aparte. */
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: var(--space-2);
+}
+
+.position-assigner__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  background-color: var(--color-white);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.position-assigner__card:hover {
+  border-color: var(--color-primary);
+}
+
+.position-assigner__card--on {
+  border-color: var(--color-primary);
+  background-color: var(--color-yellow-soft);
+}
+
+.position-assigner__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.position-assigner__check {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* Unidades que van a ESTA posición: la suma debe dar la cantidad recibida. */
+.position-assigner__qty {
+  width: 100%;
+  padding: 6px var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-soft);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+  background: var(--color-white);
+}
+
+.position-assigner__qty:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.position-assigner__name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.position-assigner__spaces {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+/* ── Barra de reparto ─────────────────────────────────────── */
+
+.position-assigner__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-muted);
+}
+
+.position-assigner__count {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 13px;
+  font-weight: var(--weight-medium);
+  color: var(--color-yellow-dark);
+}
+
+.position-assigner__count--ok {
+  color: var(--color-success);
+}
+
+.position-assigner__bar .button {
+  flex: 0 0 auto;
+  width: auto;
+}
+
+/* ── Placeholders ─────────────────────────────────────────── */
+
+.position-assigner__placeholder {
+  margin: 0;
+  padding: var(--space-4);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  color: var(--color-text-secondary-alt);
+}
+
+
+@media (max-width: 640px) {
+  .position-assigner__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

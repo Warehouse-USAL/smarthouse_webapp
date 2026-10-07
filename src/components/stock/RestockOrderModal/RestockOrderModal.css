@@ -1,8 +1,86 @@
 .restock-modal__subtitle {
   margin: 0 0 var(--space-5);
   font-size: 14px;
+  line-height: 1.55;
   color: var(--color-text-secondary);
 }
+
+.restock-modal__subtitle strong {
+  color: var(--color-text-primary);
+  font-weight: var(--weight-semibold);
+}
+
+/* ── Ficha del producto ────────────────────────────────────── */
+
+.restock-modal__product {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-muted);
+}
+
+.restock-modal__thumb {
+  position: relative;
+  flex: 0 0 auto;
+  width: 96px;
+  height: 96px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+  color: var(--color-text-muted);
+}
+
+/* La imagen tapa al ícono solo si carga; si falla queda el ícono, nunca el
+   texto alternativo. */
+.restock-modal__thumb img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  font-size: 0;
+}
+
+.restock-modal__product-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.restock-modal__product-label {
+  font-size: 12px;
+  color: var(--color-text-secondary-alt);
+}
+
+.restock-modal__product-name {
+  margin: 0;
+  font-family: var(--font-title);
+  font-size: 18px;
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.restock-modal__product-sku {
+  font-size: 13px;
+  color: var(--color-text-secondary-alt);
+}
+
+.restock-modal__product-category {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--space-2);
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+/* ── Formulario en blanco (sin alerta de origen) ───────────── */
 
 .restock-modal__form {
   display: flex;
@@ -10,10 +88,109 @@
   gap: var(--space-4);
 }
 
-.restock-modal__row {
+.restock-modal__use-suggested {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 6px;
+  padding: 6px var(--space-3);
+  border: 1px dashed var(--color-yellow-primary);
+  border-radius: var(--radius-soft);
+  background: var(--color-yellow-soft);
+  font-size: 13px;
+  font-weight: var(--weight-medium);
+  color: var(--color-yellow-dark);
+  cursor: pointer;
+  transition: background var(--transition-duration-button);
+}
+
+.restock-modal__use-suggested:hover {
+  background: var(--color-warning-bg);
+}
+
+/* ── Tarjetas de números ───────────────────────────────────── */
+
+.restock-modal__stats {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-4);
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  margin-top: var(--space-4);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-lg);
+  background: var(--color-border-soft);
+  overflow: hidden;
+}
+
+.restock-modal__stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--color-white);
+}
+
+.restock-modal__stat-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text-secondary-alt);
+}
+
+.restock-modal__stat-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 16px;
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+/* La cantidad sugerida es el dato con el que se crea la orden: se destaca. */
+.restock-modal__stat--suggested {
+  background: var(--color-yellow-soft);
+}
+
+.restock-modal__stat--suggested .restock-modal__stat-head,
+.restock-modal__stat--suggested .restock-modal__stat-value {
+  color: var(--color-yellow-dark);
+}
+
+.restock-modal__stat--suggested .restock-modal__stat-value {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: help;
+}
+
+/* ── Aclaración ────────────────────────────────────────────── */
+
+.restock-modal__note {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-warning-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-warning-bg);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-yellow-dark);
+}
+
+.restock-modal__note svg {
+  flex-shrink: 0;
+}
+
+@media (max-width: 560px) {
+  .restock-modal__product {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .restock-modal__stats {
+    grid-template-columns: 1fr;
+  }
 }
 
 .restock-modal__error {

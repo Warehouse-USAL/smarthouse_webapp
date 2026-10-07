@@ -386,6 +386,91 @@ export const warehouseConfigService = {
     return normalizePosition(data);
   },
 
+  // Cuántas unidades de un producto entran en una posición de ese tamaño, según
+  // el backend: POST /warehouse/positions/validate-fit.
+  //
+  // Hoy no tiene consumidor: la pantalla de asignación pasó a resolverlo con
+  // GET /warehouse/positions/available, que además de la fórmula de volumen
+  // aplica la capacidad de cada posición. Se deja expuesto porque es la única
+  // forma de preguntar "¿entra esta cantidad?" sin pedir la lista entera.
+  //   { product_id, quantity, size } → { fits, product_volume, container_volume,
+  //                                      required_volume, max_quantity_allowed }
+  // Es la MISMA validación que aplica PositionService al asignar stock, así que
+  // preguntarla evita que el front y el backend discrepen sobre si algo entra.
+  // `size` viaja con el vocabulario del enum StockSize (CAJA/MEDIO_PALLET/PALLET).
+  async validateFit({ productId, quantity, size }) {
+    if (USE_MOCK) {
+      // El mock no modela volúmenes: se responde el tope por capacidad.
+      return {
+        fits: true,
+        productVolume: 0,
+        containerVolume: 0,
+        requiredVolume: 0,
+        maxQuantityAllowed: DEFAULT_POSITION_CAPACITY,
+      };
+    }
+    const { data } = await apiClient.post("/warehouse/positions/validate-fit", {
+      product_id: productId,
+      quantity: Number(quantity) || 1,
+      size: SIZE_FE_TO_BE[size] ?? size,
+    });
+    return {
+      fits: data?.fits ?? false,
+      productVolume: data?.product_volume ?? data?.productVolume ?? 0,
+      containerVolume: data?.container_volume ?? data?.containerVolume ?? 0,
+      requiredVolume: data?.required_volume ?? data?.requiredVolume ?? 0,
+      maxQuantityAllowed:
+        data?.max_quantity_allowed ?? data?.maxQuantityAllowed ?? 0,
+    };
+  },
+
+  // Posiciones donde se puede ubicar una recepción (RFC Restock §6.4):
+  //   GET /warehouse/positions/available?productId&deliveryUnit&quantity
+  // El backend filtra por posición activa, tamaño == unidad de entrega y
+  // producto nulo o igual, y devuelve las unidades que todavía entran en cada
+  // una (por capacidad y por volumen), ordenadas de mayor a menor.
+  // `deliveryUnit` viaja tal cual: el front ya usa el vocabulario del enum
+  // StockSize del backend (CAJA / MEDIO_PALLET / PALLET).
+  async getAvailablePositions({ productId, deliveryUnit, quantity }) {
+    if (USE_MOCK) {
+      // El árbol del mock no modela is_active ni maximum_capacity por posición
+      // (solo idPosition/positionName/sizeStockToSave/assignedProduct + el
+      // currentStock derivado), así que acá se aplican los mismos criterios con
+      // los defaults del front.
+      const tree = await warehouseConfigMockService.get();
+      const size = SIZE_BE_TO_FE[deliveryUnit] ?? deliveryUnit;
+      return tree.zones
+        .flatMap((zone) => zone.lines.flatMap((line) => line.positions))
+        .filter((position) => {
+          if (position.isActive === false) return false;
+          if (position.sizeStockToSave !== size) return false;
+          const occupantId =
+            position.assignedProduct?.id ?? position.productId ?? null;
+          return !occupantId || occupantId === productId;
+        })
+        .map((position) => ({
+          positionId: position.idPosition,
+          positionName: position.positionName,
+          availableUnits: Math.max(
+            0,
+            (position.maximumCapacity || DEFAULT_POSITION_CAPACITY) -
+              (position.currentStock || 0)
+          ),
+        }))
+        .filter((position) => position.availableUnits > 0)
+        .sort((a, b) => b.availableUnits - a.availableUnits);
+    }
+
+    const { data } = await apiClient.get("/warehouse/positions/available", {
+      params: { productId, deliveryUnit, quantity },
+    });
+    return (data?.positions || []).map((raw) => ({
+      positionId: raw.position_id ?? raw.positionId,
+      positionName: raw.position_name ?? raw.positionName,
+      availableUnits: raw.available_units ?? raw.availableUnits ?? 0,
+    }));
+  },
+
   // Asigna un producto a una posición. La fuente de verdad en el backend es la
   // propia Position (product_id + current_stock). Se activa la posición al
   // ocuparla. El backend rechaza con 409 si ya tiene OTRO producto: en ese caso

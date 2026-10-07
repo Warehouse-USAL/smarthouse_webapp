@@ -353,3 +353,57 @@
 .cpf-image-alt-input::placeholder {
   color: var(--color-text-muted);
 }
+/* ── Subida de archivo ─────────────────────────────────────── */
+
+.cpf-image-actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.cpf-image-actions .button {
+  flex: 1;
+}
+
+.cpf-image-hint {
+  margin: 0 0 var(--space-3);
+  font-size: 13px;
+  color: var(--color-text-secondary-alt);
+}
+
+/* El input file real queda oculto: el label es el botón. */
+.cpf-upload input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cpf-upload {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 55px;
+  padding: 0 var(--space-4);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-soft);
+  background: var(--color-white);
+  font-size: 15px;
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color var(--transition-duration-button),
+    color var(--transition-duration-button);
+}
+
+.cpf-upload:hover {
+  border-color: var(--color-yellow-primary);
+  color: var(--color-yellow-dark);
+}
+
+.cpf-upload:has(input:disabled) {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
