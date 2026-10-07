@@ -129,6 +129,20 @@ export default function RestockOrderModal({
         </>
       }
     >
+      {/* ── Selector (modo libre): la card aparece debajo al elegir ─ */}
+      {!fromAlert && (
+        <div className="restock-modal__form restock-modal__form--select">
+          <Select
+            label="Producto"
+            placeholder="Seleccioná un producto"
+            value={productId}
+            onChange={(e) => setProductId(e.target.value)}
+            options={productOptions}
+            required
+          />
+        </div>
+      )}
+
       {/* ── Producto (misma card que el modal de acciones) ─── */}
       {detail && (
         <ProductSummaryCard
@@ -161,17 +175,6 @@ export default function RestockOrderModal({
 
       {asksQuantity && (
         <div className="restock-modal__form">
-          {!fromAlert && (
-            <Select
-              label="Producto"
-              placeholder="Seleccioná un producto"
-              value={productId}
-              onChange={(e) => setProductId(e.target.value)}
-              options={productOptions}
-              required
-            />
-          )}
-
           <Input
             label="Cantidad solicitada"
             type="number"

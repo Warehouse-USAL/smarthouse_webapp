@@ -253,6 +253,13 @@ Desvíos honestos del spec: la lista `Remitos de esta orden` se conserva cuando 
 - Estados siempre con fondo: el modal de acciones usa el mismo `Badge` con pill que la tabla (se eliminó el estilo dot-only sin fondo).
 - SKU de la card, subtítulo del modal e icono de categoría en `var(--color-text-secondary)` (color de "Gestioná tus órdenes…"), no azul. Aplica a ambos modales por ser componentes compartidos.
 
+### Séptima ronda (2026-10-07, pedido directo de negocio)
+- (1) Nueva orden: la card aparece debajo del selector de producto (orden: selector → card → cantidad).
+- (2) Remito: al elegir orden muestra la misma `ProductSummaryCard` (imagen, categoría, actual/mínimo). `ProductSummaryCard` ya en 5 modales.
+- (3) Subtitle del remito movido al header del `Modal` (arriba de la línea), como el resto.
+- (4) Métricas de la card con `align-items: center` (el icono desplazaba la línea de base y el valor quedaba un escalón abajo).
+- (5) Categoría larga en una línea con ellipsis + tooltip del texto completo.
+
 ---
 
 ## 8. Modal nueva orden restock — incluir imagen al seleccionar producto

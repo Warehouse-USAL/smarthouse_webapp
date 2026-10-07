@@ -33,7 +33,7 @@ export default function ProductSummaryCard({
         </h4>
         <span className="product-summary-card__sku">SKU: {sku}</span>
         {category && (
-          <span className="product-summary-card__category">
+          <span className="product-summary-card__category" title={`Categoría: ${category}`}>
             <Icon name="box" size={14} />
             Categoría: {category}
           </span>
