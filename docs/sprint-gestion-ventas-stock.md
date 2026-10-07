@@ -51,9 +51,12 @@ En `/gestion-stock` el bloque `Productos con alerta de restock` tiene distinto a
 Mismo ancho, misma grilla, mismos radios/bordes/sombras para ambas tarjetas/tablas. Si una colapsa en responsive, la otra colapsa igual.
 
 ### Tareas
-- [ ] Inspeccionar `src/pages/StockManagement/StockManagementPage` + estilos.
-- [ ] Unificar contenedor: mismo `max-width`, `padding`, `border: 1px solid #E5E7EB`, `border-radius: 12-16px`.
+- [x] Inspeccionar `src/pages/StockManagement/StockManagementPage` + estilos.
+  - Resultado 2026-10-07: el desparejo era intencional en `StockManagementPage.css:174` → `minmax(0, 0.92fr) minmax(0, 1.28fr)` (panel derecho ~40% más ancho).
+- [x] Unificar contenedor: mismo `max-width`, `padding`, `border: 1px solid #E5E7EB`, `border-radius: 12-16px`.
+  - Hecho 2026-10-07: `grid-template-columns: minmax(0, 1fr) minmax(0, 1fr)` (una línea). Los paneles ya comparten `Card` + `.stock-panel` (mismo padding/borde/radio), solo difería el ancho de columna. Se conservó `minmax(0, …)` para que las tablas anchas scrolleen dentro del panel sin estirar la grilla. Build OK.
 - [ ] Verificar en 1600px, 1366px, 768px, 375px.
+  - Parcial: 1600/1366 usan el grid igualado; 768/375 caen bajo el breakpoint `1180px → 1fr` (apilados iguales, sin cambios). Pendiente captura visual lado a lado pixel-perfect.
 
 ### Criterio de aceptación
 Captura lado a lado: ambas tarjetas alineadas pixel-perfect.
@@ -380,7 +383,7 @@ Calcular la sugerencia localmente con política de reposición por nivel: repone
 | # | Punto | Estado | Qué falta |
 |---|---|---|---|
 | 1 | Logo no carga en servidor | ✅ front verificado | Verificación en servidor (Network) + SVG alta resolución de negocio |
-| 2 | Gestión de Stock — igualar anchos | ⬜ no iniciado | Cambio `StockManagementPage.css:174` → `1fr 1fr` + capturas 1600/1366/768/375px |
+| 2 | Gestión de Stock — igualar anchos | ✅ front verificado | Captura visual lado a lado pixel-perfect (1600/1366/768/375px) |
 | 3 | Alta — ARS fijo | ⬜ no iniciado | Badge ARS fijo en `CreateProductForm`, hardcodear `currency: 'ARS'` en `productService`, quitar input editable |
 | 4 | Cancelar orden de restock | ⛔ bloqueado por backend | `RestockOrder` no tiene `status` ni cancelación (RFC §9). `POST /orders/:id/cancel` es de `Order`/ventas. Hacer front (botón + confirm con motivo) y dejar UI deshabilitada/oculta hasta definición de negocio |
 | 5 | Datos de stock en ficha | ⬜ no iniciado | UI: disponible / reserva / físico / badge Reponer (datos ya expuestos en `productService.normalize`) |
