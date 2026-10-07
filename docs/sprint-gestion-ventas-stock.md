@@ -205,7 +205,7 @@ Un único formato `BaseModal` que admita variaciones (con/sin gráficos, distint
 - [x] Crear subcomponentes: `ProductCard`, `InfoGrid`, `AlertBanner`, `ModalFooter`.
   - Parcial: `ProductSummaryCard` (`src/components/stock/ProductSummaryCard/`) compartida por 4 modales (acciones restock, nueva orden, 2 de asignación). `InfoGrid`/banner quedaron como estilos locales del modal de acciones (solo él los usa); footer ya era patrón (secundario + primario/destructivo a derecha) en todos.
 - [x] Migrar: Acciones restock, Nueva orden restock, Agregar remito, Ver detalle venta.
-  - Parcial 2026-10-07: migrados acciones restock, nueva orden, `ProductLocationModal` y `LocationAssignmentModal` (card + `subtitle`; el resto de cada modal intacto). Pendientes: `RemitoModal`, `LocateReceptionModal`, resto (warehouse/usuarios, ver `docs/futuro-unificacion-modales-css.md`).
+  - Parcial 2026-10-07: migrados acciones restock, nueva orden, `ProductLocationModal` y `LocationAssignmentModal` (card + `subtitle`; el resto de cada modal intacto). `LocationAssignmentModal` fue eliminado el 2026-10-07 (era un boceto sin `onClick` en el botón principal): la tarjeta de restock en Asignación de ubicación ahora abre `LocateReceptionModal`. Pendientes: `RemitoModal`, `LocateReceptionModal`, resto (warehouse/usuarios, ver `docs/futuro-unificacion-modales-css.md`).
 - [ ] Storybook/manual de uso en este doc.
   - Pendiente. Uso actual: `Modal` + `subtitle` + `ProductSummaryCard { imageUrl, name, sku, category?, metrics[]?, badge? }`.
 
