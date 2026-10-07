@@ -1,6 +1,7 @@
 # Verificación — Restock Orders & Reception de Mercadería
 
 > Fuente: `RFC_restock_reception.md` (Grupo 4 — Backend y API) pegado por negocio el 2026-10-06.
+> Spec vivo: `docs/backend-openapi.json` (copia exacta de `GET /v3/api-docs`, SmartWarehouse API v1.0, descargada 2026-10-07, 39 paths, 70 schemas). Los contrastes "verificado en Swagger" refieren a ese archivo.
 > Estado: verificado el 2026-10-06 contra `src/` — ver resultado por ítem abajo.
 > No modifica código. Solo guarda el RFC para contraste posterior contra `src/services/`.
 
