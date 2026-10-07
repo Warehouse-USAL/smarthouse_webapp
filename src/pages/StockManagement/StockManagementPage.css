@@ -595,29 +595,78 @@
   color: var(--color-danger);
 }
 
-.stock-management__detail {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
+/* Grilla 2×3 de datos de la orden: etiqueta gris arriba, valor abajo. */
+.stock-management__order-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4) var(--space-5);
+  margin: 0;
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
 }
 
-.stock-management__detail > div {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-}
-
-.stock-management__detail dt {
-  font-size: 13px;
+.stock-management__order-grid dt {
+  font-size: 12px;
   color: var(--color-text-secondary-alt);
 }
 
-.stock-management__detail dd {
+.stock-management__order-grid dd {
+  margin: var(--space-1) 0 0;
   font-size: 14px;
   font-weight: var(--weight-medium);
   color: var(--color-text-primary);
-  text-align: right;
+}
+
+/* Estado sin pill: solo punto + texto de color. */
+.order-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}
+
+.order-status__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: currentColor;
+  flex-shrink: 0;
+}
+
+.order-status--pendiente {
+  color: var(--color-warning);
+}
+
+.order-status--recibido {
+  color: var(--color-link);
+}
+
+.order-status--completado {
+  color: var(--color-success);
+}
+
+/* Aviso contextual: sin remito registrado se puede cancelar. */
+.order-actions__banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin: var(--space-4) 0 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-danger-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-danger-soft);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-danger);
+}
+
+.order-actions__banner svg {
+  flex-shrink: 0;
+  margin-top: 1px;
 }
 
 .stock-management__detail-title {
@@ -625,12 +674,6 @@
   font-size: 14px;
   font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
-}
-
-.stock-management__detail-empty {
-  margin: 0;
-  font-size: 13px;
-  color: var(--color-text-secondary-alt);
 }
 
 .stock-management__receptions {

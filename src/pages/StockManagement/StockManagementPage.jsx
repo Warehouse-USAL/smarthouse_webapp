@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
 import Card from "../../components/ui/Card/Card";
 import Input from "../../components/ui/Input/Input";
@@ -13,6 +13,7 @@ import Spinner from "../../components/ui/Spinner/Spinner";
 import StatusBanner from "../../components/ui/StatusBanner/StatusBanner";
 import Icon from "../../components/ui/Icon/Icon";
 import RestockOrderModal from "../../components/stock/RestockOrderModal/RestockOrderModal";
+import ProductSummaryCard from "../../components/stock/ProductSummaryCard/ProductSummaryCard";
 import RemitoModal from "../../components/stock/RemitoModal/RemitoModal";
 import LocateReceptionModal from "../../components/stock/LocateReceptionModal/LocateReceptionModal";
 import {
@@ -139,10 +140,6 @@ export default function StockManagementPage() {
   const [cancelNotes, setCancelNotes] = useState("");
   const [cancelError, setCancelError] = useState(null);
   const [cancelSending, setCancelSending] = useState(false);
-  // GET /restock/orders/:id devuelve quantity_received_so_far calculado por el
-  // backend. El listado no lo trae, así que en la tabla se agrega desde los
-  // remitos; al abrir el detalle se pide el número autoritativo.
-  const [detailReceived, setDetailReceived] = useState(null);
 
   // Panel de alertas
   const [alertSearch, setAlertSearch] = useState("");
@@ -309,29 +306,12 @@ export default function StockManagementPage() {
     await load();
   };
 
-  // Qué orden está abierta ahora mismo: una respuesta que llega tarde, después
-  // de que el usuario abrió otra orden o cerró el modal, se descarta.
-  const openDetailId = useRef(null);
-
   const openDetail = (order) => {
     setDetail(order);
-    setDetailReceived(null);
-    openDetailId.current = order.id;
-    restockService
-      .getOrder(order.id)
-      .then((full) => {
-        if (openDetailId.current !== order.id) return;
-        setDetailReceived(full?.quantityReceivedSoFar ?? null);
-      })
-      .catch(() => {
-        /* se sigue mostrando lo agregado desde los remitos */
-      });
   };
 
   const closeDetail = () => {
-    openDetailId.current = null;
     setDetail(null);
-    setDetailReceived(null);
   };
 
   const openCancel = (order) => {
@@ -810,8 +790,9 @@ export default function StockManagementPage() {
       <Modal
         open={detail !== null}
         onClose={closeDetail}
-        title={detail ? `Orden ${detail.code}` : ""}
-        size="sm"
+        title="Acciones de orden de restock"
+        subtitle="Visualizá los detalles de la orden y podés cancelarla si ya no es necesaria."
+        size="md"
         footer={
           <div className="stock-management__detail-foot">
             <Button variant="secondary" onClick={closeDetail}>
@@ -831,68 +812,99 @@ export default function StockManagementPage() {
       >
         {detail && (
           <>
-            <dl className="stock-management__detail">
+            <ProductSummaryCard
+              imageUrl={detail.imageUrl}
+              name={detail.productName}
+              sku={detail.sku}
+              category={detailProduct?.category}
+              metrics={[
+                {
+                  icon: "box",
+                  label: "Stock actual",
+                  value: units(detailProduct?.availableStock ?? 0),
+                },
+                {
+                  icon: "alert",
+                  label: "Stock mínimo",
+                  value: units(detailProduct?.minimumStock ?? 0),
+                },
+                {
+                  icon: "chart",
+                  label: "Cantidad sugerida",
+                  value: (() => {
+                    const suggested = alerts.find(
+                      (a) => a.productId === detail.productId
+                    )?.suggestedQuantity;
+                    return suggested != null ? units(suggested) : "—";
+                  })(),
+                },
+              ]}
+            />
+
+            <h4 className="stock-management__detail-title">
+              Información de la orden
+            </h4>
+            <dl className="stock-management__order-grid">
+              <div>
+                <dt>Número de orden</dt>
+                <dd>{detail.code}</dd>
+              </div>
               <div>
                 <dt>Estado</dt>
                 <dd>
-                  <Badge variant={STATUS_META[detail.status].variant} dot>
+                  <span
+                    className={`order-status order-status--${detail.status}`}
+                  >
+                    <span className="order-status__dot" aria-hidden="true" />
                     {STATUS_META[detail.status].label}
-                  </Badge>
+                  </span>
                 </dd>
-              </div>
-              <div>
-                <dt>Producto</dt>
-                <dd>{detail.productName}</dd>
-              </div>
-              <div>
-                <dt>SKU</dt>
-                <dd>{detail.sku}</dd>
-              </div>
-              <div>
-                <dt>Proveedor</dt>
-                <dd>{detail.supplier || "—"}</dd>
               </div>
               <div>
                 <dt>Fecha de creación</dt>
                 <dd>{formatDateTime(detail.createdAt)}</dd>
               </div>
               <div>
+                <dt>Fecha estimada</dt>
+                <dd>—</dd>
+              </div>
+              <div>
                 <dt>Cantidad solicitada</dt>
                 <dd>{units(detail.quantityRequested)}</dd>
               </div>
               <div>
-                <dt>Recibido</dt>
-                <dd>{units(detailReceived ?? detail.quantityReceived)}</dd>
-              </div>
-              <div>
-                <dt>Stock actual del producto</dt>
-                <dd>
-                  {detailProduct ? units(detailProduct.availableStock) : "—"}
-                </dd>
+                <dt>Observaciones</dt>
+                <dd>—</dd>
               </div>
             </dl>
 
-            <h4 className="stock-management__detail-title">
-              Remitos de esta orden
-            </h4>
             {detail.receptions.length === 0 ? (
-              <p className="stock-management__detail-empty">
-                Todavía no se registró ningún remito para esta orden.
+              <p className="order-actions__banner">
+                <Icon name="info" size={16} />
+                <span>
+                  Esta orden aún no tiene un remito de recepción registrado. Si
+                  ya no es necesaria, podés cancelarla.
+                </span>
               </p>
             ) : (
-              <ul className="stock-management__receptions">
-                {detail.receptions.map((reception) => (
-                  <li key={reception.id}>
-                    <span>{formatDate(reception.createdAt)}</span>
-                    <span>{units(reception.quantityReceived)}</span>
-                    <span>
-                      {STORAGE_UNIT_LABEL[reception.deliveryUnit] ??
-                        reception.deliveryUnit}
-                    </span>
-                    <span>{reception.assignments.length} posición/es</span>
-                  </li>
-                ))}
-              </ul>
+              <>
+                <h4 className="stock-management__detail-title">
+                  Remitos de esta orden
+                </h4>
+                <ul className="stock-management__receptions">
+                  {detail.receptions.map((reception) => (
+                    <li key={reception.id}>
+                      <span>{formatDate(reception.createdAt)}</span>
+                      <span>{units(reception.quantityReceived)}</span>
+                      <span>
+                        {STORAGE_UNIT_LABEL[reception.deliveryUnit] ??
+                          reception.deliveryUnit}
+                      </span>
+                      <span>{reception.assignments.length} posición/es</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
             )}
           </>
         )}

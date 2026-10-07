@@ -43,8 +43,21 @@
 }
 
 .modal__header h2 {
+  margin: 0;
   font-size: 18px;
   font-weight: 600;
+}
+
+.modal__title-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.modal__subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-link-blue);
 }
 
 .modal__close {

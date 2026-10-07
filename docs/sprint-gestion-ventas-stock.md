@@ -234,10 +234,16 @@ Línea vertical sutil entre columnas.
 **Paleta/UX:** blanco base, grises secundarios, azul subtítulo/iconos, naranja pendiente, rojo destructivo. Nombre producto y valores prominentes. Outline (no sólido) para bajar riesgo clic accidental. Todo voseo.
 
 ### Tareas
-- [ ] Implementar con `BaseModal` + datos reales (`orderId`, `product`, `timestamps`).
-- [ ] Estado `Pendiente` naranja con dot; si `cancelled` pasar a rojo (punto 9).
-- [ ] `Observaciones: -` cuando vacío.
-- [ ] Conectar `Cancelar orden` con punto 4.
+- [x] Implementar con `BaseModal` + datos reales (`orderId`, `product`, `timestamps`).
+  - Hecho 2026-10-07 según spec literal de negocio: `Modal` extendido con `subtitle` + `ProductSummaryCard` compartida (thumb/imagen, nombre, SKU azul, categoría, métricas actual/mínimo/sugerida) + grilla `Información de la orden` 2×3 + banner rosa solo si no hay remito + footer derecha. Tamaño `md`.
+- [x] Estado `Pendiente` naranja con dot; si `cancelled` pasar a rojo (punto 9).
+  - Hecho: estado sin pill (punto + texto, `.order-status--pendiente/recibido/completado`). `cancelled` queda para cuando el backend tenga el estado (punto 4).
+- [x] `Observaciones: -` cuando vacío.
+  - Hecho: backend no tiene el campo → siempre `—` (igual que fecha estimada, que tampoco existe en `RestockOrder`). Sin inventar datos.
+- [x] Conectar `Cancelar orden` con punto 4.
+  - Hecho: abre el modal de confirmación con motivo del punto 4.
+
+Desvíos honestos del spec: la lista `Remitos de esta orden` se conserva cuando hay recepciones (el spec solo mostraba el caso sin remito); proveedor no se muestra (el spec no lo incluye en la grilla); iconos de métricas reutilizados del set existente (`box/alert/chart`, no existen manos/flechas en `Icon.jsx`); overlay gris 50% ya existente (coincide con el spec, no se tocó).
 
 ---
 
@@ -247,9 +253,15 @@ Línea vertical sutil entre columnas.
 Cuando se selecciona producto, mostrar imagen como en modal agregar remitos de recepción.
 
 ### Tareas
-- [ ] Reutilizar `ProductCard` / thumb 48-64px + nombre + SKU + stock actual/mínimo.
-- [ ] Si producto sin imagen, placeholder con icono caja gris.
+- [x] Reutilizar `ProductCard` / thumb 48-64px + nombre + SKU + stock actual/mínimo.
+  - Hecho 2026-10-07 por unificación con el modal de acciones: `Nueva orden` usa la misma `ProductSummaryCard` (thumb 84px con imagen o placeholder caja, nombre, SKU, categoría, métricas actual/mínimo/sugerida). Aplica tanto desde alerta como al elegir producto en modo libre.
+- [x] Si producto sin imagen, placeholder con icono caja gris.
+  - Hecho: la card lo trae (patrón existente: la imagen tapa al icono solo si carga).
 - [ ] Preview actualiza cantidad sugerida automáticamente.
+  - Pendiente: la card muestra la sugerida del backend cuando existe; edición de cantidad según punto 12 (congelado).
+
+### Unificación (2026-10-07, pedido directo de negocio)
+Ambos modales comparten base (`Modal` + `subtitle` azul), card y patrón de footer (secundario + primario/destructivo a derecha); solo cambia la info. Subtitles cortos nuevos en `Nueva orden` (el texto largo pasó al cuerpo como `note`). Se eliminó la grilla de stats duplicada y su CSS huérfano.
 
 ---
 
@@ -442,8 +454,8 @@ Calcular la sugerencia localmente con política de reposición por nivel: repone
 | 4 | Cancelar orden de restock | 🟡 front listo, ⛔ backend pendiente | Backend: campo `status` + endpoint cancel en `RestockOrder` (ver criterio punto 4) |
 | 5 | Datos de stock en ficha | ⬜ no iniciado | UI: disponible / reserva / físico / badge Reponer (datos ya expuestos en `productService.normalize`) |
 | 6 | BaseModal único | ⬜ no iniciado | Extender `Modal` + subcomponentes. Coordinar con `docs/futuro-unificacion-modales-css.md` (prioridad baja, no duplicar) |
-| 7 | Modal Acciones restock | ⬜ no iniciado | Depende de 6. Spec literal lista en este doc |
-| 8 | Nueva orden restock con imagen | ⬜ no iniciado | Depende de 6. Reutilizar thumb + preview |
+| 7 | Modal Acciones restock | ✅ completado (spec negocio) | Verificación visual en browser |
+| 8 | Nueva orden restock con imagen | 🟡 parcial (card unificada) | Preview auto de sugerida (depende punto 12, congelado) |
 | 9 | Gestión de Ventas | ⬜ no iniciado | Todo nuevo: ruta `/ventas`, nav, `orderService`, `SalesPage`, mocks. Lo más grande del sprint |
 | 10 | Inventario + ABM + ajuste manual | ⬜ no iniciado | Definir alcance con backend (sin endpoint de ajuste conocido) antes de codificar |
 | 11 | Mapeo estados órdenes | ⬜ no iniciado | Util `mapOrderStatus` + filtros + detalle. Conviene hacerlo junto con 9 |
