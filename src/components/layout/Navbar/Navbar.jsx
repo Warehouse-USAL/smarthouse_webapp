@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { to: "/productos", label: "Productos" },
   { to: "/asignacion-stock", label: "Asignación de stock", capability: "stock.assign" },
   { to: "/gestion-stock", label: "Gestión de stock", capability: "stock.assign" },
+  { to: "/ventas", label: "Gestión de ventas", capability: "order.read" },
   { to: "/configuracion", label: "Configuración del warehouse", capability: "warehouse.read" },
   { to: "/vehiculos", label: "Vehículos", capability: "vehicle.read" },
   { to: "/usuarios", label: "Usuarios", capability: "user.read" },

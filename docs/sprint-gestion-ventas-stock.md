@@ -319,11 +319,18 @@ Columnas 12px semibold: Orden compra, Fecha compra, Cliente, Producto (+thumb 28
 **Diferencias vs versión anterior:** 4→3 cards (fuera Clientes únicos), pendientes sin sublabel, título tabla corto, columna SKU separada (fuera chip +N), "Producto/Cantidad" (antes Productos/Total unidades).
 
 ### Tareas
-- [ ] Ruta `/ventas` en `AppRoutes.jsx` + item nav luego de Gestión Stock + capability `order.read` o `sales.read` (a definir con backend).
-- [ ] `SalesPage`, `saleService.js` (o reutilizar `orderService`), mocks con datos arriba.
-- [ ] Métricas, buscador (n° orden/cliente/producto/SKU), filtros (estado, fecha), paginación 8 por página.
-- [ ] `Marcar despachado` → confirma y descuenta reserva → disponible; `Ver detalle` → modal como punto 7 adaptado a venta.
-- [ ] Responsive tabla (scroll-x en mobile).
+- [x] Ruta `/ventas` en `AppRoutes.jsx` + item nav luego de Gestión Stock + capability `order.read` o `sales.read` (a definir con backend).
+  - Hecho 2026-10-07: ruta `/ventas` + item "Gestión de ventas" + `order.read` (todos los roles, espejo del backend §9.4) y `order.cancel` (SUPERADMIN/ADMIN_WAREHOUSE/ADMIN_SALES).
+- [x] `SalesPage`, `saleService.js` (o reutilizar `orderService`), mocks con datos arriba.
+  - Hecho: `orderService.js` (list/get/cancel + `mapOrderStatus` del §11 + códigos `OC-xxxxx`) + `orderMockService` (12 órdenes, test node OK). Se llamó `orderService` (no `saleService`): es el `Order` del backend.
+- [x] Métricas, buscador (n° orden/cliente/producto/SKU), filtros (estado, fecha), paginación 8 por página.
+  - Hecho: 3 cards (pendientes, despachadas 30d, total 30d), buscador full, filtros estado (con Falla agrupada) + fecha, 8 por página con selector. Cancelada en ROJO.
+- [x] `Marcar despachado` → confirma y descuenta reserva → disponible; `Ver detalle` → modal como punto 7 adaptado a venta.
+  - Parcial: `Ver detalle` hecho (rover, destino, timeline creada/iniciada/cerrada, motivo, productos, cancelar real con motivo). **Despacho manual bloqueado**: el backend no tiene endpoint (la orden la completa el rover vía Central); el botón abre la confirmación y ahí se informa. Sin inventar llamadas.
+- [x] Responsive tabla (scroll-x en mobile).
+  - Hecho: `overflow-x` en wrapper + apilado de métricas y grilla en mobile.
+
+Desvíos/gaps backend anotados: (1) `Order` no trae cliente — columna best-effort vía `userService` (requiere `admin_system`, si no "—"); (2) multi-item muestra primero + "+N"; (3) `En proceso` en gris neutro (el celeste quedó para Despachado según spec); (4) forma de `GET /orders` asumida como `{ orders, pagination }` (patrón restock) — confirmar contra backend real.
 
 ---
 
@@ -471,7 +478,7 @@ Calcular la sugerencia localmente con política de reposición por nivel: repone
 | 6 | BaseModal único | 🟡 parcial (patrón compartido, 4 modales) | Migrar RemitoModal, LocateReceptionModal, resto + manual de uso |
 | 7 | Modal Acciones restock | ✅ completado (spec negocio) | Verificación visual en browser |
 | 8 | Nueva orden restock con imagen | 🟡 parcial (card unificada) | Preview auto de sugerida (depende punto 12, congelado) |
-| 9 | Gestión de Ventas | ⬜ no iniciado | Todo nuevo: ruta `/ventas`, nav, `orderService`, `SalesPage`, mocks. Lo más grande del sprint |
+| 9 | Gestión de Ventas | 🟡 front listo (despacho manual bloqueado) | Backend: endpoint despacho manual + cliente en Order + confirmar forma GET /orders |
 | 10 | Inventario + ABM + ajuste manual | ⬜ no iniciado | Definir alcance con backend (sin endpoint de ajuste conocido) antes de codificar |
 | 11 | Mapeo estados órdenes | ⬜ no iniciado | Util `mapOrderStatus` + filtros + detalle. Conviene hacerlo junto con 9 |
 | 12 | Sugerencia local de restock | 🔒 no tocar (decisión 2026-10-07) | La UI muestra `—` a propósito hasta que el backend exponga la métrica real |
