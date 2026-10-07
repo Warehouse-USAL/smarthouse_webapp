@@ -19,13 +19,20 @@ Al abrir la app desde el servidor (Warehouse-USAL vía Caddy, prefijo `/app`) la
 5. Cache de `dist/` vieja en el servidor.
 
 ### Tareas
-- [ ] Auditar dónde se usa el logo: `grep -r "logo" src/ public/ index.html vite.config.js nginx.conf Dockerfile`.
-- [ ] Estandarizar: importar con `import logo from '@/assets/logo...'` o usar `${import.meta.env.BASE_URL}logo.png`.
-- [ ] Verificar `vite.config.js`: `base: '/app/'` para prod.
-- [ ] Verificar `BrowserRouter basename={import.meta.env.BASE_URL}` ya existe en `src/routes/AppRoutes.jsx` — replicar criterio para assets.
-- [ ] Probar `npm run build && npm run preview` local con base `/app/`.
+- [x] Auditar dónde se usa el logo: `grep -r "logo" src/ public/ index.html vite.config.js nginx.conf Dockerfile`.
+  - Resultado 2026-10-07: causa raíz en `src/components/ui/Logo/Logo.jsx:6` — `src="src\assets\logos\Logo_(sin fondo).png"` (backslashes estilo Windows, string sin procesar por Vite, archivo nunca emitido al `dist`). Las hipótesis 1-5 del doc quedaron descartadas salvo el mecanismo: `vite.config.js` ya tenía `base: '/app/'` y `AppRoutes.jsx:20` ya usaba `basename`.
+- [x] Estandarizar: importar con `import logo from '@/assets/logo...'` o usar `${import.meta.env.BASE_URL}logo.png`.
+  - Hecho 2026-10-07: `import logoUrl from "../../../assets/logos/Logo_(sin fondo).png"` (mismo patrón que `AuthIlustration.jsx:3`). Vite emite `dist/assets/Logo_(sin fondo)-<hash>.png` y el bundle referencia `/app/assets/...` automáticamente.
+- [x] Verificar `vite.config.js`: `base: '/app/'` para prod.
+  - Ya estaba correcto, sin cambios.
+- [x] Verificar `BrowserRouter basename={import.meta.env.BASE_URL}` ya existe en `src/routes/AppRoutes.jsx` — replicar criterio para assets.
+  - Ya existía; el import de Vite replica el criterio (respeta `base` en build, `/` en dev).
+- [x] Probar `npm run build && npm run preview` local con base `/app/`.
+  - Hecho 2026-10-07: build OK, `vite preview` responde 200 en `/app/`, `/app/Logo.png` (favicon) y `/app/assets/Logo_(sin fondo)-<hash>.png`.
 - [ ] Verificar en servidor: abrir DevTools → Network → ver 404 del logo, confirmar path pedido.
+  - Pendiente: solo verificable con acceso al servidor Warehouse-USAL.
 - [ ] Recargar imagen del logo en alta resolución (SVG preferido, fallback PNG 2x).
+  - Pendiente: no existe SVG en `src/assets/logos/`; requiere asset de diseño de negocio. El PNG actual pesa ~538 KB — candidato a optimizar cuando llegue el SVG.
 
 ### Criterio de aceptación
 Logo visible en `/app/inicio`, `/app/productos`, etc. sin 404 en Network, tanto en desktop como mobile.
@@ -363,3 +370,24 @@ Calcular la sugerencia localmente con política de reposición por nivel: repone
 3. Cancel restock (4) + modal acciones (7) + imagen nueva orden (8).
 4. Stock datos (5) + inventario/ajuste (10).
 5. Ventas (9) + mapeo estados (11).
+
+---
+
+## Anexo — Estado por punto (actualizado 2026-10-07)
+
+> Se actualiza a medida que se completa cada punto. Convención: ✅ completado (verificado en front) · 🟡 parcial / pendiente de servidor o backend · ⬜ no iniciado · ⛔ bloqueado por backend · 🔒 congelado por decisión.
+
+| # | Punto | Estado | Qué falta |
+|---|---|---|---|
+| 1 | Logo no carga en servidor | ✅ front verificado | Verificación en servidor (Network) + SVG alta resolución de negocio |
+| 2 | Gestión de Stock — igualar anchos | ⬜ no iniciado | Cambio `StockManagementPage.css:174` → `1fr 1fr` + capturas 1600/1366/768/375px |
+| 3 | Alta — ARS fijo | ⬜ no iniciado | Badge ARS fijo en `CreateProductForm`, hardcodear `currency: 'ARS'` en `productService`, quitar input editable |
+| 4 | Cancelar orden de restock | ⛔ bloqueado por backend | `RestockOrder` no tiene `status` ni cancelación (RFC §9). `POST /orders/:id/cancel` es de `Order`/ventas. Hacer front (botón + confirm con motivo) y dejar UI deshabilitada/oculta hasta definición de negocio |
+| 5 | Datos de stock en ficha | ⬜ no iniciado | UI: disponible / reserva / físico / badge Reponer (datos ya expuestos en `productService.normalize`) |
+| 6 | BaseModal único | ⬜ no iniciado | Extender `Modal` + subcomponentes. Coordinar con `docs/futuro-unificacion-modales-css.md` (prioridad baja, no duplicar) |
+| 7 | Modal Acciones restock | ⬜ no iniciado | Depende de 6. Spec literal lista en este doc |
+| 8 | Nueva orden restock con imagen | ⬜ no iniciado | Depende de 6. Reutilizar thumb + preview |
+| 9 | Gestión de Ventas | ⬜ no iniciado | Todo nuevo: ruta `/ventas`, nav, `orderService`, `SalesPage`, mocks. Lo más grande del sprint |
+| 10 | Inventario + ABM + ajuste manual | ⬜ no iniciado | Definir alcance con backend (sin endpoint de ajuste conocido) antes de codificar |
+| 11 | Mapeo estados órdenes | ⬜ no iniciado | Util `mapOrderStatus` + filtros + detalle. Conviene hacerlo junto con 9 |
+| 12 | Sugerencia local de restock | 🔒 no tocar (decisión 2026-10-07) | La UI muestra `—` a propósito hasta que el backend exponga la métrica real |
