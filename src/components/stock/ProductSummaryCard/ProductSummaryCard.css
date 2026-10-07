@@ -73,6 +73,11 @@
   flex-shrink: 0;
 }
 
+.product-summary-card__badge {
+  display: flex;
+  margin-top: var(--space-2);
+}
+
 .product-summary-card__metrics {
   display: flex;
   flex-direction: column;

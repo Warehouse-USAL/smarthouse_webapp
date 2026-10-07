@@ -1,14 +1,16 @@
 import Icon from "../../ui/Icon/Icon";
+import Badge from "../../ui/Badge/Badge";
 import "./ProductSummaryCard.css";
 
 /*
 | Tarjeta resumen de producto compartida por los modales de restock
 | (acciones de orden y nueva orden): misma estructura, distinta info.
 |
-|   thumb | Producto / nombre / SKU / categoría | divisor | métricas
+|   thumb | Producto / nombre / SKU / categoría [/ badge] | divisor | métricas
 |
 | `metrics`: [{ icon, label, value, title? }] — en acciones son
 | actual/mínimo/sugerida; en nueva orden los números del producto elegido.
+| `badge`: { variant, label } opcional (ej. "Sin ubicación").
 */
 export default function ProductSummaryCard({
   imageUrl,
@@ -16,6 +18,7 @@ export default function ProductSummaryCard({
   sku,
   category,
   metrics = [],
+  badge = null,
 }) {
   return (
     <div className="product-summary-card">
@@ -33,6 +36,13 @@ export default function ProductSummaryCard({
           <span className="product-summary-card__category">
             <Icon name="box" size={14} />
             Categoría: {category}
+          </span>
+        )}
+        {badge && (
+          <span className="product-summary-card__badge">
+            <Badge variant={badge.variant} dot>
+              {badge.label}
+            </Badge>
           </span>
         )}
       </div>

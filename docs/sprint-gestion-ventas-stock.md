@@ -200,10 +200,14 @@ Un único formato `BaseModal` que admita variaciones (con/sin gráficos, distint
 - Tipografía Inter/system sans, etiquetas 12px gris `#6B7280`, valores 14-15px `#111827`.
 
 ### Tareas
-- [ ] Crear `src/components/ui/BaseModal/BaseModal.jsx + .css`.
-- [ ] Crear subcomponentes: `ProductCard`, `InfoGrid`, `AlertBanner`, `ModalFooter`.
-- [ ] Migrar: Acciones restock, Nueva orden restock, Agregar remito, Ver detalle venta.
+- [x] Crear `src/components/ui/BaseModal/BaseModal.jsx + .css`.
+  - Resuelto 2026-10-07 sin archivo nuevo: se extendió el `Modal` existente con prop `subtitle` (decisión: no duplicar componentes). El overlay gris 50% y el subtítulo gris (`text-secondary`) se mantienen por decisión de negocio del 2026-10-07, contra el spec original (overlay azulado con blur, subtítulo azul).
+- [x] Crear subcomponentes: `ProductCard`, `InfoGrid`, `AlertBanner`, `ModalFooter`.
+  - Parcial: `ProductSummaryCard` (`src/components/stock/ProductSummaryCard/`) compartida por 4 modales (acciones restock, nueva orden, 2 de asignación). `InfoGrid`/banner quedaron como estilos locales del modal de acciones (solo él los usa); footer ya era patrón (secundario + primario/destructivo a derecha) en todos.
+- [x] Migrar: Acciones restock, Nueva orden restock, Agregar remito, Ver detalle venta.
+  - Parcial 2026-10-07: migrados acciones restock, nueva orden, `ProductLocationModal` y `LocationAssignmentModal` (card + `subtitle`; el resto de cada modal intacto). Pendientes: `RemitoModal`, `LocateReceptionModal`, resto (warehouse/usuarios, ver `docs/futuro-unificacion-modales-css.md`).
 - [ ] Storybook/manual de uso en este doc.
+  - Pendiente. Uso actual: `Modal` + `subtitle` + `ProductSummaryCard { imageUrl, name, sku, category?, metrics[]?, badge? }`.
 
 ---
 
@@ -457,7 +461,7 @@ Calcular la sugerencia localmente con política de reposición por nivel: repone
 | 3 | Alta — ARS fijo | ✅ completado | — |
 | 4 | Cancelar orden de restock | 🟡 front listo, ⛔ backend pendiente | Backend: campo `status` + endpoint cancel en `RestockOrder` (ver criterio punto 4) |
 | 5 | Datos de stock en ficha | ⬜ no iniciado | UI: disponible / reserva / físico / badge Reponer (datos ya expuestos en `productService.normalize`) |
-| 6 | BaseModal único | ⬜ no iniciado | Extender `Modal` + subcomponentes. Coordinar con `docs/futuro-unificacion-modales-css.md` (prioridad baja, no duplicar) |
+| 6 | BaseModal único | 🟡 parcial (patrón compartido, 4 modales) | Migrar RemitoModal, LocateReceptionModal, resto + manual de uso |
 | 7 | Modal Acciones restock | ✅ completado (spec negocio) | Verificación visual en browser |
 | 8 | Nueva orden restock con imagen | 🟡 parcial (card unificada) | Preview auto de sugerida (depende punto 12, congelado) |
 | 9 | Gestión de Ventas | ⬜ no iniciado | Todo nuevo: ruta `/ventas`, nav, `orderService`, `SalesPage`, mocks. Lo más grande del sprint |

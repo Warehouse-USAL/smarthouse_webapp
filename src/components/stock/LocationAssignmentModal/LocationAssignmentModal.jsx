@@ -4,6 +4,7 @@ import Button from "../../ui/Button/Button";
 import Badge from "../../ui/Badge/Badge";
 import ProgressBar from "../../ui/ProgressBar/ProgressBar";
 import Icon from "../../ui/Icon/Icon";
+import ProductSummaryCard from "../ProductSummaryCard/ProductSummaryCard";
 import "./LocationAssignmentModal.css";
 
 const CURRENT_LOCATIONS = [
@@ -48,6 +49,7 @@ export default function LocationAssignmentModal({ open, onClose, product }) {
       open={open}
       onClose={onClose}
       title="Asignar ubicación - Restock"
+      subtitle="Elegí una ubicación disponible para el material recibido."
       size="lg"
       footer={
         <div className="location-modal__footer">
@@ -60,31 +62,26 @@ export default function LocationAssignmentModal({ open, onClose, product }) {
         </div>
       }
     >
-      <p className="location-modal__subtitle">
-        Elegí una ubicación disponible para el material recibido.
-      </p>
-
       <div className="location-modal__form">
-        {/* ── Sección 1: Producto ──────────────────────────── */}
+        {/* ── Sección 1: Producto (card compartida) ────────── */}
         <section className="location-modal__section">
           <h4 className="location-modal__section-title">
             <span className="location-modal__section-num">1</span>
             Producto
           </h4>
-          <div className="location-modal__product-card">
-            <div className="location-modal__product-thumb">
-              <Icon name="box" size={24} />
-            </div>
-            <div className="location-modal__product-info">
-              <span className="location-modal__product-name">{product.name}</span>
-              <span className="location-modal__product-sku">SKU: {product.sku}</span>
-              <span className="location-modal__product-order">Orden: {product.orderId}</span>
-              <span className="location-modal__product-received">
-                Se recibieron <strong>{product.received} unidades</strong>
-              </span>
-              <Badge variant="warning" dot>Pendiente ubicación</Badge>
-            </div>
-          </div>
+          <ProductSummaryCard
+            name={product.name}
+            sku={product.sku}
+            badge={{ variant: "warning", label: "Pendiente ubicación" }}
+            metrics={[
+              { icon: "file", label: "Orden", value: product.orderId },
+              {
+                icon: "box",
+                label: "Recibidos",
+                value: `${product.received} unidades`,
+              },
+            ]}
+          />
         </section>
 
         {/* ── Sección 2: Ubicación actual ──────────────────── */}
