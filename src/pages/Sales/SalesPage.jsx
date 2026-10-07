@@ -395,7 +395,7 @@ export default function SalesPage() {
                       )}
                     </td>
                     <td className="sales-table__sku">{order.firstItem?.sku ?? "—"}</td>
-                    <td className="sales-table__num">{order.totalQty}</td>
+                    <td className="sales-table__num">{order.totalQty} unidades</td>
                     <td>
                       <Badge variant={order.uiVariant} dot>
                         {order.uiLabel}
