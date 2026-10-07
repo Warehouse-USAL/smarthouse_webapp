@@ -4,7 +4,7 @@ import Input from "../../components/ui/Input/Input";
 import Icon from "../../components/ui/Icon/Icon";
 import PendingLocationCard from "../../components/stock/PendingLocationCard/PendingLocationCard";
 import ProductLocationModal from "../../components/stock/ProductLocationModal/ProductLocationModal";
-import LocationAssignmentModal from "../../components/stock/LocationAssignmentModal/LocationAssignmentModal";
+import LocateReceptionModal from "../../components/stock/LocateReceptionModal/LocateReceptionModal";
 import { productService } from "../../services/productService";
 import { restockService } from "../../services/restockService";
 import "./StockAssignmentPage.css";
@@ -18,10 +18,10 @@ export default function StockAssignmentPage() {
   const [search, setSearch] = useState("");
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [restockModalOpen, setRestockModalOpen] = useState(false);
-  const [selectedRestock, setSelectedRestock] = useState(null);
+  const [locateReception, setLocateReception] = useState(null);
 
   const [products, setProducts] = useState([]);
+  const [allProducts, setAllProducts] = useState([]);
   const [pendingRestock, setPendingRestock] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [productsError, setProductsError] = useState(null);
@@ -44,6 +44,7 @@ export default function StockAssignmentPage() {
       ]);
       const byId = new Map(list.map((p) => [p.id, p]));
       const orderCode = new Map(orders.map((o) => [o.id, o.code]));
+      setAllProducts(list);
       const withLocations = await Promise.all(
         list.map(async (product) => ({
           product,
@@ -59,7 +60,9 @@ export default function StockAssignmentPage() {
         pending.map((reception) => {
           const product = byId.get(reception.productId);
           return {
-            id: reception.id,
+            // La recepción cruda va completa: LocateReceptionModal necesita
+            // productId, deliveryUnit, quantityPendingLocation, etc.
+            ...reception,
             name: product?.name ?? "Producto dado de baja",
             sku: product?.sku ?? reception.productId,
             // PendingLocationCard lee imageUrl del producto; sin este cruce la
@@ -113,16 +116,6 @@ export default function StockAssignmentPage() {
   const closeProductModal = () => {
     setSelectedProduct(null);
     setProductModalOpen(false);
-  };
-
-  const openRestockModal = (product) => {
-    setSelectedRestock(product);
-    setRestockModalOpen(true);
-  };
-
-  const closeRestockModal = () => {
-    setSelectedRestock(null);
-    setRestockModalOpen(false);
   };
 
   const renderProducts = () => {
@@ -209,7 +202,7 @@ export default function StockAssignmentPage() {
                   { icon: "box", text: `${product.received} unidades` },
                   { icon: "calendar", text: `Recepción: ${product.receivedAt}` },
                 ]}
-                onAssign={openRestockModal}
+                onAssign={setLocateReception}
               />
             ))
           )}
@@ -223,10 +216,12 @@ export default function StockAssignmentPage() {
         product={selectedProduct}
       />
 
-      <LocationAssignmentModal
-        open={restockModalOpen}
-        onClose={closeRestockModal}
-        product={selectedRestock}
+      <LocateReceptionModal
+        open={locateReception !== null}
+        receptions={locateReception ? [locateReception] : []}
+        products={allProducts}
+        onClose={() => setLocateReception(null)}
+        onLocated={load}
       />
     </div>
   );
