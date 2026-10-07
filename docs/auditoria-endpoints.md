@@ -36,3 +36,11 @@
 - Almacén: zonas/líneas/posiciones CRUD (alta, edición, `is_active`), `GET /warehouse/positions/{id}`, `/available`, `POST /warehouse/positions/validate-fit`, `unassign_product`.
 - Usuarios: `GET/POST/PATCH /users`, `POST /users/{id}/reset-password`.
 - Métricas / catálogo: `GET /metrics/catalog` → `POST /metrics/restock-suggestions`; `GET /query/catalog` (soporte de `status` en recepciones).
+
+## 4. Deuda de backend dentro del alcance del sprint (lo único que falta)
+
+Dejando de lado vehículos, archivos y perfil, para cerrar el sprint el backend debe:
+
+1. **Punto 4 — Cancelar orden de restock**: `POST /restock/orders/{id}/cancel` **y** el campo `status` en `RestockOrder` (el schema ni siquiera está declarado en el swagger). Solo el endpoint sin `status` no alcanza: no habría estado `cancelled` que mostrar. Efecto colateral hoy: esa llamada responde 401 → `apiClient` borra la sesión (usuario deslogueado).
+2. **Punto 9 — Ventas**: ya están `GET /orders` ✔ y `PATCH /internal/orders/{id}/status` (despacho manual) ✔. **Falta el cliente en `Order`**: solo trae `requested_by_user_id`; el nombre se resuelve cruzando con `userService`, pero requiere rol `admin_system` (si no, la UI muestra "—").
+3. **Punto 10 — Inventario/ajuste**: **auditoría del ajuste** (motivo + usuario + fecha — `UpdatePositionRequest` no los persiste) y **kardex / historial de movimientos por producto** (no existe endpoint).
