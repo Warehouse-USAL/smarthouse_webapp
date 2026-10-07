@@ -198,8 +198,8 @@
 }
 
 .stock-panel__count {
-  color: var(--color-text-secondary-alt);
-  font-weight: var(--weight-medium);
+  color: inherit;
+  font-weight: var(--weight-bold);
 }
 
 .stock-panel__hint {
@@ -210,8 +210,8 @@
 
 .stock-panel__desc {
   margin: var(--space-2) 0 0;
-  font-size: 13px;
-  color: var(--color-link-blue);
+  font-size: 14px;
+  color: var(--color-text-secondary);
 }
 
 /* ── Buscador + Filtros ────────────────────────────────────── */
@@ -274,24 +274,6 @@
   color: var(--color-text-secondary-alt);
 }
 
-/* Aviso de que una capacidad del backend todavía no está disponible. */
-.stock-panel__warning {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin: var(--space-3) 0 0;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-sm);
-  background: var(--color-warning-bg);
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--color-yellow-dark);
-}
-
-.stock-panel__warning svg {
-  flex-shrink: 0;
-}
-
 .stock-panel__loading {
   display: grid;
   place-items: center;
@@ -328,6 +310,8 @@
 .stock-table-wrap {
   width: 100%;
   overflow-x: auto;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
 }
 
 .stock-table {
@@ -342,8 +326,8 @@
   vertical-align: middle;
   padding: 0 var(--space-5);
   font-size: 13px;
-  font-weight: var(--weight-semibold);
-  color: var(--color-text-secondary-alt);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-secondary);
   border-bottom: 1px solid var(--color-border-soft);
   white-space: nowrap;
 }
@@ -352,7 +336,7 @@
    además del producto en dos líneas lleva el botón). Con las dos al mismo paso,
    la fila N de un panel queda a la altura de la fila N del otro. */
 .stock-table tbody tr {
-  height: 72px;
+  height: 60px;
 }
 
 .stock-table tbody td {

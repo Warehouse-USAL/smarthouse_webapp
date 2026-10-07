@@ -75,6 +75,15 @@ No tocado a propósito:
 - Regla de estados `deriveStatus` sin cambios: parcial → `recibido`, completo → `completado`.
 - Datos del mockup (mayo 2024): `RST-00020` figura "Completado" con 36/40 y `RST-00022` "Recibido" con 20/20 — ambos contradicen la regla vigente; son datos de ejemplo. Si negocio quiere admitir cierre con faltante o un paso intermedio manual, se define como regla nueva (punto 4/11).
 
+### Refinamiento visual de paneles (2026-10-07, pedido directo de negocio)
+- (a) Eliminado el cuadro amarillo "El cálculo de cantidad sugerida todavía no está disponible…" del panel de alertas (JSX + CSS huérfano). La columna Sugerencia sigue mostrando `—` con tooltip cuando el backend no la calcula.
+- (b) Descripción de ambos paneles igualada al subtítulo de página: `14px` + `var(--color-text-secondary)` (antes `13px` azul). Nota: se usó `text-secondary` que es el token real del subtítulo (`PageHeader.css:16-20`), no `text-secondary-alt`.
+- (c) Contador `(N)` de ambos títulos en bold y color del título (`color: inherit` + `var(--weight-bold)`).
+- (d) Headers de ambas tablas: `var(--color-text-secondary)` + `var(--weight-bold)` (misma clase `.stock-table`, aplica a las dos).
+- (d2) Tablas con borde propio igual a la Card madre: `1px solid var(--color-border-soft)` + `var(--radius-md)` sobre `.stock-table-wrap`.
+- (e) Altura de filas `72px` → `60px` en ambas tablas (misma clase, siguen alineadas entre paneles).
+- (f) Tabla de órdenes: celda de producto con solo foto (se quitó el nombre; el SKU ya tiene columna propia y el nombre sigue en filtros + modal detalle).
+
 ---
 
 ## 3. Alta — ARS fijo sin posibilidad de cambio

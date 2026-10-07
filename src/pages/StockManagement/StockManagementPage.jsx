@@ -427,13 +427,6 @@ export default function StockManagementPage() {
                 ? "Cantidades sugeridas por el backend según demanda, stock de seguridad y mercadería en tránsito."
                 : "Productos que necesitan ser reabastecidos según niveles mínimos de stock."}
             </p>
-            {!suggestionsFromBackend && !loading && alerts.length > 0 && (
-              <p className="stock-panel__warning">
-                <Icon name="info" size={14} />
-                El cálculo de cantidad sugerida todavía no está disponible en el
-                backend: al crear la orden, indicá vos la cantidad.
-              </p>
-            )}
           </header>
 
           <div className="stock-panel__toolbar">
@@ -667,14 +660,6 @@ export default function StockManagementPage() {
                             {order.imageUrl && (
                               <img src={order.imageUrl} alt="" loading="lazy" />
                             )}
-                          </span>
-                          <span className="stock-table__product-text">
-                            <span
-                              className="stock-table__product-name"
-                              title={order.productName}
-                            >
-                              {order.productName}
-                            </span>
                           </span>
                         </div>
                       </td>
