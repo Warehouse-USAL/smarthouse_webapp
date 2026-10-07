@@ -29,10 +29,165 @@
   font-weight: 600;
 }
 
-.products-page__grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-4);
+/* ── Tabla de inventario ─────────────────────────────────── */
+
+.products-table-wrap {
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+}
+
+.products-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.products-table thead th {
+  height: 48px;
+  padding: 0 var(--space-2);
+  text-align: center;
+  vertical-align: middle;
+  white-space: normal;
+  font-size: 13px;
+  font-weight: var(--weight-bold);
+  color: var(--color-text-secondary);
+  border-bottom: 1px solid var(--color-border-soft);
+}
+
+.products-table tbody tr {
+  height: 60px;
+}
+
+.products-table tbody td {
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--color-border-soft);
+  vertical-align: middle;
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.products-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.products-table tbody tr:hover {
+  background: var(--color-surface-muted);
+}
+
+.products-table__thumb {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
+}
+
+.products-table__thumb img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  font-size: 0;
+}
+
+.products-table__sku,
+.products-table__name {
+  font-weight: var(--weight-medium);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.products-table__name {
+  display: inline-block;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+.products-table__num {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+/* "unidades" al lado de cada valor de stock: acompañante chico y apagado para
+   no ensanchar las columnas. */
+.products-table__unit {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.products-table__loc {
+  white-space: nowrap;
+}
+
+.products-table__loc-more {
+  color: var(--color-text-secondary-alt);
+}
+
+.products-table__actions {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.products-table__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-soft);
+  background: var(--color-white);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    color 120ms ease,
+    background-color 120ms ease;
+}
+
+.products-table__action:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary-dark);
+}
+
+.products-table__action--danger:hover {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+
+/* ── Modal de ajuste de stock ────────────────────────────── */
+
+.products-page__adjust {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.products-page__adjust-product,
+.products-page__adjust-text,
+.products-page__adjust-preview {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.products-page__adjust-product strong,
+.products-page__adjust-preview strong {
+  color: var(--color-text-primary);
+}
+
+.products-page__adjust-preview {
+  font-variant-numeric: tabular-nums;
 }
 
 .products-page__footer {
@@ -98,16 +253,65 @@
 }
 
 @media (max-width: 1100px) {
-  .products-page__grid { grid-template-columns: repeat(2, 1fr); }
   .products-page__filters { grid-template-columns: repeat(2, 1fr); }
+
+  /* Sin scroll horizontal: la tabla se aprieta antes de romper el ancho. */
+  .products-table thead th,
+  .products-table tbody td {
+    padding-left: var(--space-1);
+    padding-right: var(--space-1);
+  }
+
+  .products-table__name { max-width: 120px; }
 }
 
-@media (max-width: 800px) {
-  .products-page__grid { grid-template-columns: 1fr; }
+/* Sin scroll horizontal en mobile: cada producto se apila como bloque con
+   sus etiquetas (data-label) en lugar de forzar la tabla de 12 columnas. */
+@media (max-width: 768px) {
+  .products-table thead { display: none; }
+
+  .products-table,
+  .products-table tbody,
+  .products-table tr,
+  .products-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .products-table tbody tr {
+    height: auto;
+    padding: var(--space-3);
+    border-bottom: 1px solid var(--color-border-soft);
+  }
+
+  .products-table tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  .products-table tbody td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-1) 0;
+    border: none;
+    text-align: right;
+  }
+
+  .products-table tbody td::before {
+    content: attr(data-label);
+    font-size: 12px;
+    font-weight: var(--weight-bold);
+    color: var(--color-text-secondary);
+    text-align: left;
+  }
+
+  .products-table__name {
+    max-width: 60%;
+  }
 }
 
 @media (max-width: 540px) {
-  .products-page__grid { grid-template-columns: 1fr; }
   .products-page__filters { grid-template-columns: 1fr; }
   .products-page__footer { flex-direction: column; align-items: stretch; }
 }

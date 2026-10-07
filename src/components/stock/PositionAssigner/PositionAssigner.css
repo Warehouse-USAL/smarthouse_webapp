@@ -117,6 +117,16 @@
   color: var(--color-text-secondary-alt);
 }
 
+.position-assigner__error {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-danger-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-danger-soft);
+  font-size: 13px;
+  color: var(--color-danger);
+}
+
 
 @media (max-width: 640px) {
   .position-assigner__grid {

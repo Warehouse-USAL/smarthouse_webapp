@@ -2,6 +2,9 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  /* Tope de las columnas numéricas de la tabla de alertas: un solo valor para
+     que todas las pantallas midan el mismo ancho. */
+  --stock-table-head-max: 88px;
 }
 
 /* ── Action cards grid ─────────────────────────────────────── */
@@ -171,7 +174,7 @@
   display: grid;
   /* minmax(0, …) para que las tablas anchas scrolleen dentro del panel en vez
      de estirar la columna de la grilla. */
-  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.28fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--space-4);
   align-items: stretch;
 }
@@ -198,8 +201,8 @@
 }
 
 .stock-panel__count {
-  color: var(--color-text-secondary-alt);
-  font-weight: var(--weight-medium);
+  color: inherit;
+  font-weight: var(--weight-bold);
 }
 
 .stock-panel__hint {
@@ -210,8 +213,8 @@
 
 .stock-panel__desc {
   margin: var(--space-2) 0 0;
-  font-size: 13px;
-  color: var(--color-link-blue);
+  font-size: 14px;
+  color: var(--color-text-secondary);
 }
 
 /* ── Buscador + Filtros ────────────────────────────────────── */
@@ -274,24 +277,6 @@
   color: var(--color-text-secondary-alt);
 }
 
-/* Aviso de que una capacidad del backend todavía no está disponible. */
-.stock-panel__warning {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin: var(--space-3) 0 0;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-sm);
-  background: var(--color-warning-bg);
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--color-yellow-dark);
-}
-
-.stock-panel__warning svg {
-  flex-shrink: 0;
-}
-
 .stock-panel__loading {
   display: grid;
   place-items: center;
@@ -326,8 +311,12 @@
 /* ── Tabla de órdenes ──────────────────────────────────────── */
 
 .stock-table-wrap {
-  width: 100%;
+  width: auto;
   overflow-x: auto;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  /* Respiro entre el borde de la tabla y el de la card madre. */
+  margin: 0 var(--space-3) var(--space-3);
 }
 
 .stock-table {
@@ -338,12 +327,12 @@
 
 .stock-table thead th {
   height: 56px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
   padding: 0 var(--space-5);
   font-size: 13px;
-  font-weight: var(--weight-semibold);
-  color: var(--color-text-secondary-alt);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-secondary);
   border-bottom: 1px solid var(--color-border-soft);
   white-space: nowrap;
 }
@@ -352,13 +341,14 @@
    además del producto en dos líneas lleva el botón). Con las dos al mismo paso,
    la fila N de un panel queda a la altura de la fila N del otro. */
 .stock-table tbody tr {
-  height: 72px;
+  height: 60px;
 }
 
 .stock-table tbody td {
   padding: var(--space-2) var(--space-5);
   border-bottom: 1px solid var(--color-border-soft);
   vertical-align: middle;
+  text-align: center;
   color: var(--color-text-secondary);
 }
 
@@ -388,6 +378,7 @@
 .stock-table__product {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--space-3);
   color: var(--color-text-primary);
 }
@@ -422,7 +413,15 @@
    texto desbordaba su celda y se pegaba al encabezado siguiente. */
 .stock-table--wrap-head thead th:not(:last-child) {
   white-space: normal;
-  max-width: 88px;
+  max-width: var(--stock-table-head-max);
+}
+
+/* La tabla de alertas es la más angosta: celdas y botón compactos para que
+   entre completa sin scroll horizontal. */
+.stock-table--wrap-head thead th,
+.stock-table--wrap-head tbody td {
+  padding-left: var(--space-2);
+  padding-right: var(--space-2);
 }
 
 .stock-table--wrap-head .stock-table__actions-col,
@@ -432,14 +431,54 @@
 
 .stock-table--wrap-head .button {
   white-space: nowrap;
+  height: 32px;
+  padding: 6px 10px;
+  font-size: 12px;
 }
 
-/* Nombre + SKU apilados: ahorra una columna en la tabla de órdenes. */
+/* Tabla de órdenes sin scroll horizontal: entra a presión en el panel con
+   celdas compactas. Debajo de 1500px de viewport el panel ya no la contiene y
+   vuelve el scroll como red de seguridad (si no, se recortaría Acciones). */
+.stock-table-wrap--fit {
+  overflow: hidden;
+}
+
+.stock-table-wrap--fit .stock-table thead th {
+  white-space: normal;
+}
+
+.stock-table-wrap--fit .stock-table thead th,
+.stock-table-wrap--fit .stock-table tbody td {
+  padding-left: var(--space-2);
+  padding-right: var(--space-2);
+}
+
+.stock-table-wrap--fit .stock-table__thumb {
+  width: 28px;
+  height: 28px;
+}
+
+.stock-table-wrap--fit .badge {
+  font-size: 12px;
+  padding: 3px 8px;
+}
+
+.stock-table-wrap--fit .stock-table__detail {
+  font-size: 13px;
+}
+
+@media (max-width: 1500px) {
+  .stock-table-wrap--fit {
+    overflow-x: auto;
+  }
+}
+
+/* Nombre del producto en la tabla de alertas (en órdenes va solo la foto). */
 .stock-table__product-text {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-width: 110px;
+  min-width: 96px;
 }
 
 .stock-table__product-name {
@@ -449,12 +488,6 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   line-height: 1.3;
-}
-
-.stock-table__product-sku {
-  font-size: 12px;
-  font-weight: var(--weight-regular);
-  color: var(--color-text-secondary-alt);
 }
 
 .stock-table__num {
@@ -490,7 +523,7 @@
 }
 
 .stock-table__actions-col {
-  text-align: left;
+  text-align: center;
 }
 
 .stock-table__detail {
@@ -502,40 +535,108 @@
   background: none;
   font-size: 14px;
   font-weight: var(--weight-medium);
-  color: var(--color-yellow-dark);
+  color: var(--color-yellow-primary);
   cursor: pointer;
   white-space: nowrap;
 }
 
 .stock-table__detail:hover {
-  color: var(--color-yellow-dark-alt);
+  color: var(--color-yellow-dark);
 }
 
 /* ── Modal de detalle ──────────────────────────────────────── */
 
-.stock-management__detail {
+.stock-management__detail-foot {
   display: flex;
-  flex-direction: column;
+  justify-content: flex-end;
   gap: var(--space-3);
 }
 
-.stock-management__detail > div {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
+.stock-management__detail-foot .button {
+  flex: 0 0 auto;
+  width: auto;
 }
 
-.stock-management__detail dt {
+.stock-management__cancel-text {
+  margin: 0 0 var(--space-4);
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.stock-management__cancel-label {
+  display: block;
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.stock-management__cancel-notes {
+  width: 100%;
+  min-height: 88px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-white);
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--color-text-primary);
+  resize: vertical;
+}
+
+.stock-management__cancel-notes:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.stock-management__cancel-error {
+  margin: var(--space-3) 0 0;
   font-size: 13px;
+  color: var(--color-danger);
+}
+
+/* Grilla 2×3 de datos de la orden: etiqueta gris arriba, valor abajo. */
+.stock-management__order-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4) var(--space-5);
+  margin: 0;
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+}
+
+.stock-management__order-grid dt {
+  font-size: 12px;
   color: var(--color-text-secondary-alt);
 }
 
-.stock-management__detail dd {
+.stock-management__order-grid dd {
+  margin: var(--space-1) 0 0;
   font-size: 14px;
   font-weight: var(--weight-medium);
   color: var(--color-text-primary);
-  text-align: right;
+}
+
+/* Aviso contextual: sin remito registrado se puede cancelar. */
+.order-actions__banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin: var(--space-4) 0 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-danger-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-danger-soft);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-danger);
+}
+
+.order-actions__banner svg {
+  flex-shrink: 0;
+  margin-top: 1px;
 }
 
 .stock-management__detail-title {
@@ -543,12 +644,6 @@
   font-size: 14px;
   font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
-}
-
-.stock-management__detail-empty {
-  margin: 0;
-  font-size: 13px;
-  color: var(--color-text-secondary-alt);
 }
 
 .stock-management__receptions {

@@ -41,6 +41,11 @@
   color: var(--color-link);
 }
 
+.badge--celeste {
+  background-color: var(--color-celeste-soft);
+  color: var(--color-celeste);
+}
+
 .badge--zone-a {
   background-color: var(--color-zone-a);
   color: var(--color-zone-a-text);

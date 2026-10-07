@@ -20,7 +20,6 @@ const EMPTY = {
   sku: "",
   category: "",
   description: "",
-  currency: "ARS",
   images: [],
   price: "",
   includesTaxes: false,
@@ -41,7 +40,6 @@ const buildInitial = (initial) => {
     name: initial.name ?? "",
     sku: initial.sku ?? "",
     category: initial.category ?? "",
-    currency: initial.price?.currency ?? "ARS",
     active: initial.active ?? true,
     description: initial.description ?? "",
     images: initial.images ?? [],
@@ -61,7 +59,11 @@ const buildInitial = (initial) => {
   };
 };
 
-const validate = (values) => {
+// La moneda es fija ARS (sin selector). Si el producto a editar trae otra
+// (dato legacy), se bloquea el submit hasta que el backend la normalice.
+const CURRENCY = "ARS";
+
+const validate = (values, initialCurrency) => {
   const errors = {};
 
   if (!values.name.trim())
@@ -80,6 +82,9 @@ const validate = (values) => {
 
   if (values.minimumStock === "" || Number(values.minimumStock) < 0)
     errors.minimumStock = "Debe ser ≥ 0";
+
+  if (initialCurrency && initialCurrency.toUpperCase() !== CURRENCY)
+    errors.currency = "Este producto tiene otra moneda. Solo se admite ARS.";
 
   // El backend exige height/width/length/weight no nulos y ≥ 0.
   DIMENSIONS.forEach(({ key, label }) => {
@@ -100,7 +105,7 @@ const buildSubmitValues = (values, coverImageIndex) => ({
   description: values.description.trim(),
   category: values.category.trim(),
   active: values.active,
-  currency: values.currency.trim().toUpperCase() || "ARS",
+  currency: CURRENCY,
   includesTaxes: values.includesTaxes,
   price: values.price,
   minimumStock: Number(values.minimumStock) || 0,
@@ -259,7 +264,7 @@ export default function CreateProductForm({
       setImageUrlError("Esperá a que termine de subir la imagen.");
       return;
     }
-    const errs = validate(values);
+    const errs = validate(values, initial?.price?.currency);
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
     onSubmit(buildSubmitValues(values, coverImageIndex));
@@ -333,29 +338,16 @@ export default function CreateProductForm({
               value={values.price} onChange={handleChange("price")}
               error={errors.price} required
             />
-            <div className="cpf-currency-field">
-              <label className="cpf-currency-field__label" htmlFor="currency">
-                Moneda
-              </label>
-              <input
-                id="currency"
-                name="currency"
-                className="cpf-currency-field__input"
-                value={values.currency}
-                onChange={(e) =>
-                  setValues((v) => ({
-                    ...v,
-                    currency: e.target.value.replace(/[^a-zA-Z]/g, "").slice(0, 3).toUpperCase(),
-                  }))
-                }
-                maxLength={3}
-                placeholder="ARS"
-              />
+            <div>
+              <span className="cpf-currency">ARS</span>
+              {errors.currency && (
+                <p className="cpf-currency-error">{errors.currency}</p>
+              )}
             </div>
           </div>
 
           <Input
-            name="minimumStock" label="Punto de reposición" type="number" min={0} step={1}
+            name="minimumStock" label="Stock mínimo" type="number" min={0} step={1}
             value={values.minimumStock} onChange={handleChange("minimumStock")}
             error={errors.minimumStock} required
           />

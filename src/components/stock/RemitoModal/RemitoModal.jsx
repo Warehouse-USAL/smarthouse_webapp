@@ -8,6 +8,7 @@ import Icon from "../../ui/Icon/Icon";
 import Spinner from "../../ui/Spinner/Spinner";
 import StatusBanner from "../../ui/StatusBanner/StatusBanner";
 import PositionAssigner from "../PositionAssigner/PositionAssigner";
+import ProductSummaryCard from "../ProductSummaryCard/ProductSummaryCard";
 import { restockService } from "../../../services/restockService";
 import { errorText } from "../../../lib/apiError";
 import { productService } from "../../../services/productService";
@@ -212,6 +213,9 @@ export default function RemitoModal({
           RECEPTION_ALREADY_COMPLETED:
             "Ese remito ya tiene toda su mercadería ubicada.",
           PRODUCT_NOT_FOUND: "El producto no existe o está inactivo.",
+          RESTOCK_ORDER_NOT_FOUND: "La orden de restock no existe.",
+          POSITION_NOT_FOUND: "Alguna de las posiciones elegidas no existe.",
+          POSITION_INACTIVE: "Alguna de las posiciones elegidas no está activa.",
         }, "No se pudo registrar el remito. Intentá de nuevo.")
       );
     } finally {
@@ -246,6 +250,7 @@ export default function RemitoModal({
       open={open}
       onClose={onClose}
       title="Nuevo remito de recepción"
+      subtitle="Completá la información para registrar la recepción de mercadería. Al confirmar, el stock de las posiciones elegidas se incrementa."
       size="lg"
       footer={
         <>
@@ -262,11 +267,6 @@ export default function RemitoModal({
         </>
       }
     >
-      <p className="remito-modal__subtitle">
-        Completá la información para registrar la recepción de mercadería. Al
-        confirmar, el stock de las posiciones elegidas se incrementa.
-      </p>
-
       <div className="remito-modal__form">
         {/* ── 1. Orden ─────────────────────────────────────── */}
         <section className="remito-modal__section">
@@ -310,23 +310,28 @@ export default function RemitoModal({
             Producto
           </h4>
           {selectedOrder ? (
-            <div className="remito-modal__product-card">
-              <div className="remito-modal__product-thumb">
-                {product?.imageUrl ? (
-                  <img src={product.imageUrl} alt={product.name} />
-                ) : (
-                  <Icon name="box" size={24} />
-                )}
-              </div>
-              <div className="remito-modal__product-info">
-                <span className="remito-modal__product-name">
-                  {product?.name || "Producto de la orden"}
-                </span>
-                <span className="remito-modal__product-sku">
-                  SKU: {product?.sku || productId}
-                </span>
-              </div>
-            </div>
+            <ProductSummaryCard
+              imageUrl={product?.imageUrl}
+              name={product?.name || "Producto de la orden"}
+              sku={product?.sku || productId}
+              category={product?.category}
+              metrics={
+                product
+                  ? [
+                      {
+                        icon: "box",
+                        label: "Stock actual",
+                        value: `${product.availableStock ?? 0} unidades`,
+                      },
+                      {
+                        icon: "alert",
+                        label: "Stock mínimo",
+                        value: `${product.minimumStock ?? 0} unidades`,
+                      },
+                    ]
+                  : []
+              }
+            />
           ) : (
             <Select
               options={productOptions}

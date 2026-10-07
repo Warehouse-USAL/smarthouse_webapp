@@ -4,6 +4,7 @@ import Input from "../../ui/Input/Input";
 import Select from "../../ui/Select/Select";
 import Button from "../../ui/Button/Button";
 import Icon from "../../ui/Icon/Icon";
+import ProductSummaryCard from "../ProductSummaryCard/ProductSummaryCard";
 import StatusBanner from "../../ui/StatusBanner/StatusBanner";
 import { restockService } from "../../../services/restockService";
 import { errorText } from "../../../lib/apiError";
@@ -78,6 +79,12 @@ export default function RestockOrderModal({
   // ¿El backend ya calculó cuánto pedir para este producto?
   const hasSuggestion = detail?.suggestedQuantity != null;
 
+  const subtitle = fromAlert
+    ? hasSuggestion
+      ? "Confirmá la orden con la cantidad sugerida por el sistema."
+      : "Indicá cuánto querés solicitar de este producto."
+    : "Elegí el producto y la cantidad a solicitar.";
+
   // El campo de cantidad aparece siempre que no haya una sugerencia que
   // confirmar: en el modo libre, y también desde una alerta sin cantidad.
   const asksQuantity = !fromAlert || !hasSuggestion;
@@ -109,6 +116,7 @@ export default function RestockOrderModal({
       open={open}
       onClose={onClose}
       title="Nueva orden de restock"
+      subtitle={subtitle}
       size="md"
       footer={
         <>
@@ -121,56 +129,52 @@ export default function RestockOrderModal({
         </>
       }
     >
-      <p className="restock-modal__subtitle">
-        {fromAlert && hasSuggestion ? (
-          <>
-            Se generará una orden de restock con el producto y{" "}
-            <strong>la cantidad sugerida por el sistema</strong>.
-          </>
-        ) : fromAlert ? (
-          <>
-            Indicá cuánto querés solicitar de este producto.{" "}
-            <strong>El sistema todavía no sugiere una cantidad.</strong>
-          </>
-        ) : (
-          <>Elegí el producto y la cantidad que querés solicitar al proveedor.</>
-        )}
-      </p>
-
-      {/* ── Producto ─────────────────────────────────────── */}
-      {fromAlert ? (
-        <div className="restock-modal__product">
-          <div className="restock-modal__thumb">
-            <Icon name="box" size={28} />
-            {detail.imageUrl && <img src={detail.imageUrl} alt="" />}
-          </div>
-          <div className="restock-modal__product-info">
-            <span className="restock-modal__product-label">Producto</span>
-            <h4 className="restock-modal__product-name">{detail.name}</h4>
-            <span className="restock-modal__product-sku">SKU: {detail.sku}</span>
-            {detail.category && (
-              <span className="restock-modal__product-category">
-                <Icon name="box" size={14} />
-                Categoría: {detail.category}
-              </span>
-            )}
-          </div>
+      {/* ── Selector (modo libre): la card aparece debajo al elegir ─ */}
+      {!fromAlert && (
+        <div className="restock-modal__form restock-modal__form--select">
+          <Select
+            label="Producto"
+            placeholder="Seleccioná un producto"
+            value={productId}
+            onChange={(e) => setProductId(e.target.value)}
+            options={productOptions}
+            required
+          />
         </div>
-      ) : null}
+      )}
+
+      {/* ── Producto (misma card que el modal de acciones) ─── */}
+      {detail && (
+        <ProductSummaryCard
+          imageUrl={detail.imageUrl}
+          name={detail.name}
+          sku={detail.sku}
+          category={detail.category}
+          metrics={[
+            {
+              icon: "box",
+              label: "Stock actual",
+              value: units(detail.availableStock),
+            },
+            {
+              icon: "alert",
+              label: detail.thresholdLabel,
+              value: units(detail.threshold),
+            },
+            {
+              icon: "chart",
+              label: "Cantidad sugerida",
+              value: hasSuggestion ? units(detail.suggestedQuantity) : "Sin dato",
+              title: hasSuggestion
+                ? `Stock objetivo ${detail.targetStock} menos la posición de inventario ${detail.inventoryPosition} (disponible ${detail.availableStock} + en tránsito ${detail.onOrderStock}). Lo calcula el backend.`
+                : "La calcula el backend en POST /metrics/restock-suggestions. Todavía no está disponible.",
+            },
+          ]}
+        />
+      )}
 
       {asksQuantity && (
         <div className="restock-modal__form">
-          {!fromAlert && (
-            <Select
-              label="Producto"
-              placeholder="Seleccioná un producto"
-              value={productId}
-              onChange={(e) => setProductId(e.target.value)}
-              options={productOptions}
-              required
-            />
-          )}
-
           <Input
             label="Cantidad solicitada"
             type="number"
@@ -200,48 +204,7 @@ export default function RestockOrderModal({
         </div>
       )}
 
-      {/* ── Números del producto ─────────────────────────── */}
-      {detail && (
-        <div className="restock-modal__stats">
-          <div className="restock-modal__stat">
-            <span className="restock-modal__stat-head">
-              <Icon name="box" size={14} />
-              Stock actual
-            </span>
-            <strong className="restock-modal__stat-value">
-              {units(detail.availableStock)}
-            </strong>
-          </div>
-
-          <div className="restock-modal__stat">
-            <span className="restock-modal__stat-head">
-              <Icon name="alert" size={14} />
-              {detail.thresholdLabel}
-            </span>
-            <strong className="restock-modal__stat-value">
-              {units(detail.threshold)}
-            </strong>
-          </div>
-
-          <div className="restock-modal__stat restock-modal__stat--suggested">
-            <span className="restock-modal__stat-head">
-              <Icon name="chart" size={14} />
-              Cantidad sugerida
-            </span>
-            <strong
-              className="restock-modal__stat-value"
-              title={
-                hasSuggestion
-                  ? `Stock objetivo ${detail.targetStock} menos la posición de inventario ${detail.inventoryPosition} (disponible ${detail.availableStock} + en tránsito ${detail.onOrderStock}). Lo calcula el backend.`
-                  : "La calcula el backend en POST /metrics/restock-suggestions. Todavía no está disponible."
-              }
-            >
-              {hasSuggestion ? units(detail.suggestedQuantity) : "Sin dato"}
-              <Icon name="info" size={14} />
-            </strong>
-          </div>
-        </div>
-      )}
+      {/* ── Números del producto: ya van en la card ────────── */}
 
       {fromAlert && hasSuggestion && (
         <div className="restock-modal__note">
@@ -249,6 +212,16 @@ export default function RestockOrderModal({
           <span>
             Se generará la orden con la cantidad sugerida para alcanzar el stock
             óptimo.
+          </span>
+        </div>
+      )}
+
+      {fromAlert && !hasSuggestion && (
+        <div className="restock-modal__note">
+          <Icon name="info" size={16} />
+          <span>
+            El sistema todavía no sugiere una cantidad: indicala vos en el
+            campo de abajo.
           </span>
         </div>
       )}

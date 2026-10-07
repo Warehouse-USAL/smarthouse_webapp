@@ -57,8 +57,8 @@ export const PRODUCT_CATALOG_LIMIT = PRODUCT_PAGE_SIZE * MAX_PRODUCT_PAGES;
 const normalizeLocation = (raw) => {
   if (!raw) return null;
 
-  // Se exponen ambas convenciones: camelCase para lógica nueva y snake_case
-  // porque ProductCard.formatLocation lee zone_code/number_line/position_name.
+  // camelCase para los consumidores (ProductsPage, RemitoModal,
+  // StockAssignmentPage); el backend expone snake_case.
   return {
     idPosition: raw.id_position,
     idLine: raw.id_line,
@@ -67,12 +67,6 @@ const normalizeLocation = (raw) => {
     zoneCode: raw.zone_code,
     numberLine: raw.number_line,
     currentStock: raw.current_stock ?? 0,
-    id_position: raw.id_position,
-    id_line: raw.id_line,
-    id_zone: raw.id_zone,
-    position_name: raw.position_name,
-    zone_code: raw.zone_code,
-    number_line: raw.number_line,
   };
 };
 
@@ -151,6 +145,10 @@ const normalize = (raw) => {
     specs: raw.specs ?? [],
     price: raw.price ?? null,
     stock,
+    // Recomendación guardada por la corrida diaria (POST /metrics/apply).
+    // null hasta la primera corrida; la pantalla la usa como fuente de
+    // sugerencias sin request extra.
+    restock: raw.restock ?? null,
     order_constraints: orderConstraints,
   };
 };
@@ -176,7 +174,8 @@ const toImagesPayload = (images = []) =>
 
 const toPricePayload = (input) => ({
   amount_cents: Math.round(Number(input.price ?? 0) * 100),
-  currency: (input.currency ?? "ARS").toUpperCase() || "ARS",
+  // Moneda fija ARS: el front no ofrece otra y el payload tampoco la acepta.
+  currency: "ARS",
   tax_included: input.includesTaxes ?? false,
 });
 
