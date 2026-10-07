@@ -2,6 +2,9 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  /* Tope de las columnas numéricas de la tabla de alertas: un solo valor para
+     que todas las pantallas midan el mismo ancho. */
+  --stock-table-head-max: 88px;
 }
 
 /* ── Action cards grid ─────────────────────────────────────── */
@@ -308,10 +311,12 @@
 /* ── Tabla de órdenes ──────────────────────────────────────── */
 
 .stock-table-wrap {
-  width: 100%;
+  width: auto;
   overflow-x: auto;
   border: 1px solid var(--color-border-soft);
   border-radius: var(--radius-md);
+  /* Respiro entre el borde de la tabla y el de la card madre. */
+  margin: 0 var(--space-3) var(--space-3);
 }
 
 .stock-table {
@@ -406,7 +411,15 @@
    texto desbordaba su celda y se pegaba al encabezado siguiente. */
 .stock-table--wrap-head thead th:not(:last-child) {
   white-space: normal;
-  max-width: 88px;
+  max-width: var(--stock-table-head-max);
+}
+
+/* La tabla de alertas es la más angosta: celdas y botón compactos para que
+   entre completa sin scroll horizontal. */
+.stock-table--wrap-head thead th,
+.stock-table--wrap-head tbody td {
+  padding-left: var(--space-2);
+  padding-right: var(--space-2);
 }
 
 .stock-table--wrap-head .stock-table__actions-col,
@@ -416,14 +429,16 @@
 
 .stock-table--wrap-head .button {
   white-space: nowrap;
+  padding: 6px 10px;
+  font-size: 12px;
 }
 
-/* Nombre + SKU apilados: ahorra una columna en la tabla de órdenes. */
+/* Nombre del producto en la tabla de alertas (en órdenes va solo la foto). */
 .stock-table__product-text {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-width: 110px;
+  min-width: 96px;
 }
 
 .stock-table__product-name {
@@ -480,13 +495,13 @@
   background: none;
   font-size: 14px;
   font-weight: var(--weight-medium);
-  color: var(--color-yellow-dark);
+  color: var(--color-yellow-primary);
   cursor: pointer;
   white-space: nowrap;
 }
 
 .stock-table__detail:hover {
-  color: var(--color-yellow-dark-alt);
+  color: var(--color-yellow-dark);
 }
 
 /* ── Modal de detalle ──────────────────────────────────────── */

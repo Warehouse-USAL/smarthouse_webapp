@@ -84,6 +84,14 @@ No tocado a propósito:
 - (e) Altura de filas `72px` → `60px` en ambas tablas (misma clase, siguen alineadas entre paneles).
 - (f) Tabla de órdenes: celda de producto con solo foto (se quitó el nombre; el SKU ya tiene columna propia y el nombre sigue en filtros + modal detalle).
 
+### Segunda ronda de refinamiento (2026-10-07, pedido directo de negocio)
+- (1) Respiro entre tabla y card madre: `.stock-table-wrap` con `margin: 0 var(--space-3) var(--space-3)` (y `width: auto` para no desbordar con el margen).
+- (2) Altura de filas: ya era la misma en ambas tablas (una sola regla `tbody tr 60px`) — sin cambios.
+- (3) Botón `Orden de Restock` más chico (padding `6px 10px`, `12px`, solo en tabla de alertas) y con variante existente `warning-outline`: borde + texto + icono en `var(--color-yellow-primary)` (antes `secondary` gris). Sin variante nueva.
+- (4) `Ver acción` / `Ver detalle` en amarillo `var(--color-yellow-primary)` (hover `yellow-dark`). Se mantiene el icono chevron (renderiza `>`) en vez de caracter literal.
+- (5) Placeholder del buscador de alertas → `Buscar por producto o SKU`.
+- (6) `max-width: 88px` de headers numéricos pasado a variable `--stock-table-head-max` (definida en `.stock-management`, mismo valor en todas las pantallas). Aclaración: el scroll lo causaba el ancho del contenido, no ese tope — se achicó el contenido (botón, padding de celdas `space-3` → `space-2`, nombre `110px` → `96px`) para que entre sin scroll en desktop. En mobile el scroll-x sigue como fallback.
+
 ---
 
 ## 3. Alta — ARS fijo sin posibilidad de cambio

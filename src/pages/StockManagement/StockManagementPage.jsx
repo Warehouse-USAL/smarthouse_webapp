@@ -431,7 +431,7 @@ export default function StockManagementPage() {
 
           <div className="stock-panel__toolbar">
             <Input
-              placeholder="Buscar por nombre o SKU"
+              placeholder="Buscar por producto o SKU"
               value={alertSearch}
               onChange={(e) => {
                 setAlertSearch(e.target.value);
@@ -526,7 +526,7 @@ export default function StockManagementPage() {
                       </td>
                       <td>
                         <Button
-                          variant="secondary"
+                          variant="warning-outline"
                           size="sm"
                           iconLeft={<Icon name="cart" size={15} />}
                           onClick={() => setOrderModal({ alert })}
