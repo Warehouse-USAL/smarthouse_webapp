@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
 import Card from "../../components/ui/Card/Card";
 import Input from "../../components/ui/Input/Input";
@@ -13,6 +13,7 @@ import Spinner from "../../components/ui/Spinner/Spinner";
 import StatusBanner from "../../components/ui/StatusBanner/StatusBanner";
 import Icon from "../../components/ui/Icon/Icon";
 import RestockOrderModal from "../../components/stock/RestockOrderModal/RestockOrderModal";
+import ProductSummaryCard from "../../components/stock/ProductSummaryCard/ProductSummaryCard";
 import RemitoModal from "../../components/stock/RemitoModal/RemitoModal";
 import LocateReceptionModal from "../../components/stock/LocateReceptionModal/LocateReceptionModal";
 import {
@@ -21,17 +22,19 @@ import {
 } from "../../services/productService";
 import { restockService } from "../../services/restockService";
 import { buildRestockAlerts } from "../../lib/restockSuggestion";
+import { errorText } from "../../lib/apiError";
 import { STORAGE_UNIT_LABEL } from "../../lib/storageCompatibility";
 import "./StockManagementPage.css";
 
 /*
 | La pantalla tiene dos mitades que se alimentan de fuentes distintas:
 |
-|   · Izquierda — "Productos con alerta de reestock": sale de
-|     POST /metrics/restock-suggestions (rama feature/metrics-endpoints). Si ese
-|     endpoint todavía no está desplegado, se cae a derivar la alerta de
-|     GET /products con el mismo umbral que usa el backend (stock < mínimo) y la
-|     columna de sugerencia queda vacía — no se inventa la cantidad.
+|   · Izquierda — "Productos con alerta de reestock": cadena de fuentes en
+|     listAlerts — `restock` guardado por la corrida diaria (viene en
+|     GET /products), si no POST /metrics/restock-suggestions, si no alerta
+|     derivada de GET /products con el mismo umbral que usa el backend
+|     (stock < mínimo) y la columna de sugerencia queda vacía — no se
+|     inventa la cantidad.
 |
 |   · Derecha — "Órdenes de restock": GET /restock/orders + GET /restock/receptions,
 |     compuestos en restockService.listOrdersWithProgress (el listado de órdenes
@@ -76,6 +79,14 @@ const STATUS_OPTIONS = [
   })),
 ];
 
+const CANCEL_REASONS = [
+  { value: "", label: "Seleccioná un motivo" },
+  { value: "no_necesaria", label: "Ya no es necesaria" },
+  { value: "stock_incorrecto", label: "Stock incorrecto" },
+  { value: "duplicada", label: "Duplicada" },
+  { value: "otro", label: "Otro" },
+];
+
 const PAGE_SIZE_OPTIONS = [
   { value: "5", label: "5 por página" },
   { value: "10", label: "10 por página" },
@@ -106,9 +117,9 @@ export default function StockManagementPage() {
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [alerts, setAlerts] = useState([]);
-  // false = el endpoint de sugerencias no está disponible todavía y la lista se
-  // derivó localmente, sin cantidad sugerida.
-  const [suggestionsFromBackend, setSuggestionsFromBackend] = useState(false);
+  // false = no hay fuente de sugerencias (ni restock guardado ni endpoint)
+  // y la lista se derivó localmente, sin cantidad sugerida.
+  const [hasSuggestions, setHasSuggestions] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   // El catálogo llegó al tope que listAll trae de una: los cruces con órdenes y
@@ -124,10 +135,12 @@ export default function StockManagementPage() {
   // backend soporta PENDING_LOCATION (rama feature/117).
   const [pendingLocation, setPendingLocation] = useState([]);
   const [detail, setDetail] = useState(null);
-  // GET /restock/orders/:id devuelve quantity_received_so_far calculado por el
-  // backend. El listado no lo trae, así que en la tabla se agrega desde los
-  // remitos; al abrir el detalle se pide el número autoritativo.
-  const [detailReceived, setDetailReceived] = useState(null);
+  // null = cerrado. Flujo en dos pasos: detalle → confirmación con motivo.
+  const [cancelTarget, setCancelTarget] = useState(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelNotes, setCancelNotes] = useState("");
+  const [cancelError, setCancelError] = useState(null);
+  const [cancelSending, setCancelSending] = useState(false);
 
   // Panel de alertas
   const [alertSearch, setAlertSearch] = useState("");
@@ -156,11 +169,11 @@ export default function StockManagementPage() {
       setProducts(productList);
       setCatalogTruncated(productList.length >= PRODUCT_CATALOG_LIMIT);
 
-      // Las sugerencias las calcula el backend. `null` significa que el
-      // endpoint todavía no existe: ahí se listan las alertas por el umbral de
-      // stock mínimo y la cantidad queda a cargo del operador.
+      // Cadena: restock guardado (corrida diaria) → simulación en vivo →
+      // `null` (sin fuente: alertas por umbral mínimo, cantidad a cargo del
+      // operador).
       const suggested = await restockService.listAlerts(productList);
-      setSuggestionsFromBackend(suggested !== null);
+      setHasSuggestions(suggested !== null);
       setAlerts(suggested ?? buildRestockAlerts(productList));
 
       setPendingLocation(await restockService.listPendingLocation());
@@ -294,29 +307,62 @@ export default function StockManagementPage() {
     await load();
   };
 
-  // Qué orden está abierta ahora mismo: una respuesta que llega tarde, después
-  // de que el usuario abrió otra orden o cerró el modal, se descarta.
-  const openDetailId = useRef(null);
-
   const openDetail = (order) => {
     setDetail(order);
-    setDetailReceived(null);
-    openDetailId.current = order.id;
-    restockService
-      .getOrder(order.id)
-      .then((full) => {
-        if (openDetailId.current !== order.id) return;
-        setDetailReceived(full?.quantityReceivedSoFar ?? null);
-      })
-      .catch(() => {
-        /* se sigue mostrando lo agregado desde los remitos */
-      });
   };
 
   const closeDetail = () => {
-    openDetailId.current = null;
     setDetail(null);
-    setDetailReceived(null);
+  };
+
+  const openCancel = (order) => {
+    setCancelTarget(order);
+    setCancelReason("");
+    setCancelNotes("");
+    setCancelError(null);
+  };
+
+  const closeCancel = () => {
+    if (cancelSending) return;
+    setCancelTarget(null);
+    setCancelReason("");
+    setCancelNotes("");
+    setCancelError(null);
+  };
+
+  const confirmCancel = async () => {
+    if (!cancelTarget) return;
+    const reason = CANCEL_REASONS.find((r) => r.value === cancelReason);
+    if (!reason?.value) {
+      setCancelError("Elegí un motivo para cancelar la orden.");
+      return;
+    }
+    if (reason.value === "otro" && !cancelNotes.trim()) {
+      setCancelError("Contanos el motivo en el detalle.");
+      return;
+    }
+    setCancelSending(true);
+    setCancelError(null);
+    try {
+      const text = cancelNotes.trim()
+        ? `${reason.label} — ${cancelNotes.trim()}`
+        : reason.label;
+      await restockService.cancelOrder(cancelTarget.id, text);
+      setCancelTarget(null);
+      closeDetail();
+      setFeedback({ type: "ok", text: "Orden de restock cancelada." });
+      await load();
+    } catch (e) {
+      setCancelError(
+        errorText(
+          e,
+          {},
+          "El backend todavía no soporta la cancelación de órdenes de restock."
+        )
+      );
+    } finally {
+      setCancelSending(false);
+    }
   };
 
   const detailProduct = detail ? productById.get(detail.productId) : null;
@@ -414,7 +460,7 @@ export default function StockManagementPage() {
               <span
                 className="stock-panel__hint"
                 title={
-                  suggestionsFromBackend
+                  hasSuggestions
                     ? "El backend compara la posición de inventario (disponible + en tránsito) contra el punto de reposición calculado sobre la demanda."
                     : "Un producto entra en alerta cuando su stock disponible queda por debajo del mínimo configurado."
                 }
@@ -423,22 +469,15 @@ export default function StockManagementPage() {
               </span>
             </h3>
             <p className="stock-panel__desc">
-              {suggestionsFromBackend
+              {hasSuggestions
                 ? "Cantidades sugeridas por el backend según demanda, stock de seguridad y mercadería en tránsito."
                 : "Productos que necesitan ser reabastecidos según niveles mínimos de stock."}
             </p>
-            {!suggestionsFromBackend && !loading && alerts.length > 0 && (
-              <p className="stock-panel__warning">
-                <Icon name="info" size={14} />
-                El cálculo de cantidad sugerida todavía no está disponible en el
-                backend: al crear la orden, indicá vos la cantidad.
-              </p>
-            )}
           </header>
 
           <div className="stock-panel__toolbar">
             <Input
-              placeholder="Buscar por nombre o SKU"
+              placeholder="Buscar por producto o SKU"
               value={alertSearch}
               onChange={(e) => {
                 setAlertSearch(e.target.value);
@@ -488,9 +527,10 @@ export default function StockManagementPage() {
                 <thead>
                   <tr>
                     <th>Producto</th>
+                    <th>SKU</th>
                     <th>Stock actual</th>
                     <th>{alertItems[0]?.thresholdLabel ?? "Stock mínimo"}</th>
-                    <th>Sugerencia</th>
+                    <th>Sugerencia de reestock</th>
                     <th className="stock-table__actions-col">Acciones</th>
                   </tr>
                 </thead>
@@ -512,12 +552,10 @@ export default function StockManagementPage() {
                             >
                               {alert.name}
                             </span>
-                            <span className="stock-table__product-sku">
-                              {alert.sku}
-                            </span>
                           </span>
                         </div>
                       </td>
+                      <td className="stock-table__sku">{alert.sku}</td>
                       <td className="stock-table__num stock-table__num--low">
                         {alert.availableStock}
                       </td>
@@ -534,7 +572,7 @@ export default function StockManagementPage() {
                       </td>
                       <td>
                         <Button
-                          variant="secondary"
+                          variant="warning-outline"
                           size="sm"
                           iconLeft={<Icon name="cart" size={15} />}
                           onClick={() => setOrderModal({ alert })}
@@ -639,13 +677,14 @@ export default function StockManagementPage() {
               description="No encontramos órdenes de restock con los filtros seleccionados."
             />
           ) : (
-            <div className="stock-table-wrap">
+            <div className="stock-table-wrap stock-table-wrap--fit">
               <table className="stock-table">
                 <thead>
                   <tr>
                     <th>Orden (RST)</th>
                     <th>Fecha</th>
                     <th>Producto</th>
+                    <th>SKU</th>
                     <th>Solicitado</th>
                     <th>Recibido</th>
                     <th>Unidad</th>
@@ -668,19 +707,9 @@ export default function StockManagementPage() {
                               <img src={order.imageUrl} alt="" loading="lazy" />
                             )}
                           </span>
-                          <span className="stock-table__product-text">
-                            <span
-                              className="stock-table__product-name"
-                              title={order.productName}
-                            >
-                              {order.productName}
-                            </span>
-                            <span className="stock-table__product-sku">
-                              {order.sku}
-                            </span>
-                          </span>
                         </div>
                       </td>
+                      <td className="stock-table__sku">{order.sku}</td>
                       <td className="stock-table__num">{order.quantityRequested}</td>
                       <td className="stock-table__num">{order.quantityReceived}</td>
                       <td>
@@ -699,8 +728,8 @@ export default function StockManagementPage() {
                           className="stock-table__detail"
                           onClick={() => openDetail(order)}
                         >
-                          Ver detalle
-                          <Icon name="chevronRight" size={14} />
+                          {order.status === "pendiente" ? "Ver acción" : "Ver detalle"}
+                          <span aria-hidden="true">&gt;</span>
                         </button>
                       </td>
                     </tr>
@@ -762,17 +791,65 @@ export default function StockManagementPage() {
       <Modal
         open={detail !== null}
         onClose={closeDetail}
-        title={detail ? `Orden ${detail.code}` : ""}
-        size="sm"
+        title="Acciones de orden de restock"
+        subtitle="Visualizá los detalles de la orden y podés cancelarla si ya no es necesaria."
+        size="md"
         footer={
-          <Button variant="secondary" onClick={closeDetail}>
-            Cerrar
-          </Button>
+          <div className="stock-management__detail-foot">
+            <Button variant="secondary" onClick={closeDetail}>
+              Cerrar
+            </Button>
+            {detail?.status === "pendiente" && (
+              <Button
+                variant="danger-outline"
+                iconLeft={<Icon name="trash" size={15} />}
+                onClick={() => openCancel(detail)}
+              >
+                Cancelar orden
+              </Button>
+            )}
+          </div>
         }
       >
         {detail && (
           <>
-            <dl className="stock-management__detail">
+            <ProductSummaryCard
+              imageUrl={detail.imageUrl}
+              name={detail.productName}
+              sku={detail.sku}
+              category={detailProduct?.category}
+              metrics={[
+                {
+                  icon: "box",
+                  label: "Stock actual",
+                  value: units(detailProduct?.availableStock ?? 0),
+                },
+                {
+                  icon: "alert",
+                  label: "Stock mínimo",
+                  value: units(detailProduct?.minimumStock ?? 0),
+                },
+                {
+                  icon: "chart",
+                  label: "Cantidad sugerida",
+                  value: (() => {
+                    const suggested = alerts.find(
+                      (a) => a.productId === detail.productId
+                    )?.suggestedQuantity;
+                    return suggested != null ? units(suggested) : "—";
+                  })(),
+                },
+              ]}
+            />
+
+            <h4 className="stock-management__detail-title">
+              Información de la orden
+            </h4>
+            <dl className="stock-management__order-grid">
+              <div>
+                <dt>Número de orden</dt>
+                <dd>{detail.code}</dd>
+              </div>
               <div>
                 <dt>Estado</dt>
                 <dd>
@@ -782,58 +859,110 @@ export default function StockManagementPage() {
                 </dd>
               </div>
               <div>
-                <dt>Producto</dt>
-                <dd>{detail.productName}</dd>
-              </div>
-              <div>
-                <dt>SKU</dt>
-                <dd>{detail.sku}</dd>
-              </div>
-              <div>
-                <dt>Proveedor</dt>
-                <dd>{detail.supplier || "—"}</dd>
-              </div>
-              <div>
                 <dt>Fecha de creación</dt>
                 <dd>{formatDateTime(detail.createdAt)}</dd>
+              </div>
+              <div>
+                <dt>Fecha estimada</dt>
+                <dd>—</dd>
               </div>
               <div>
                 <dt>Cantidad solicitada</dt>
                 <dd>{units(detail.quantityRequested)}</dd>
               </div>
               <div>
-                <dt>Recibido</dt>
-                <dd>{units(detailReceived ?? detail.quantityReceived)}</dd>
-              </div>
-              <div>
-                <dt>Stock actual del producto</dt>
-                <dd>
-                  {detailProduct ? units(detailProduct.availableStock) : "—"}
-                </dd>
+                <dt>Observaciones</dt>
+                <dd>—</dd>
               </div>
             </dl>
 
-            <h4 className="stock-management__detail-title">
-              Remitos de esta orden
-            </h4>
             {detail.receptions.length === 0 ? (
-              <p className="stock-management__detail-empty">
-                Todavía no se registró ningún remito para esta orden.
+              <p className="order-actions__banner">
+                <Icon name="info" size={16} />
+                <span>
+                  Esta orden aún no tiene un remito de recepción registrado. Si
+                  ya no es necesaria, podés cancelarla.
+                </span>
               </p>
             ) : (
-              <ul className="stock-management__receptions">
-                {detail.receptions.map((reception) => (
-                  <li key={reception.id}>
-                    <span>{formatDate(reception.createdAt)}</span>
-                    <span>{units(reception.quantityReceived)}</span>
-                    <span>
-                      {STORAGE_UNIT_LABEL[reception.deliveryUnit] ??
-                        reception.deliveryUnit}
-                    </span>
-                    <span>{reception.assignments.length} posición/es</span>
-                  </li>
-                ))}
-              </ul>
+              <>
+                <h4 className="stock-management__detail-title">
+                  Remitos de esta orden
+                </h4>
+                <ul className="stock-management__receptions">
+                  {detail.receptions.map((reception) => (
+                    <li key={reception.id}>
+                      <span>{formatDate(reception.createdAt)}</span>
+                      <span>{units(reception.quantityReceived)}</span>
+                      <span>
+                        {STORAGE_UNIT_LABEL[reception.deliveryUnit] ??
+                          reception.deliveryUnit}
+                      </span>
+                      <span>{reception.assignments.length} posición/es</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </>
+        )}
+      </Modal>
+
+      <Modal
+        open={cancelTarget !== null}
+        onClose={closeCancel}
+        title={cancelTarget ? `Cancelar orden ${cancelTarget.code}` : ""}
+        size="sm"
+        footer={
+          <div className="stock-management__detail-foot">
+            <Button
+              variant="secondary"
+              onClick={closeCancel}
+              disabled={cancelSending}
+            >
+              Volver
+            </Button>
+            <Button
+              variant="danger"
+              onClick={confirmCancel}
+              disabled={cancelSending}
+            >
+              {cancelSending ? "Cancelando…" : "Confirmar cancelación"}
+            </Button>
+          </div>
+        }
+      >
+        {cancelTarget && (
+          <>
+            <p className="stock-management__cancel-text">
+              Esta acción no se puede deshacer. Contanos por qué se cancela la
+              orden de {cancelTarget.productName}.
+            </p>
+            <Select
+              label="Motivo"
+              value={cancelReason}
+              onChange={(e) => {
+                setCancelReason(e.target.value);
+                setCancelError(null);
+              }}
+              options={CANCEL_REASONS}
+            />
+            <label
+              className="stock-management__cancel-label"
+              htmlFor="cancel-notes"
+            >
+              Detalle {cancelReason === "otro" ? "(obligatorio)" : "(opcional)"}
+            </label>
+            <textarea
+              id="cancel-notes"
+              className="stock-management__cancel-notes"
+              rows={3}
+              placeholder="Agregá un comentario…"
+              value={cancelNotes}
+              onChange={(e) => setCancelNotes(e.target.value)}
+            />
+            {cancelError && (
+              <p className="stock-management__cancel-error">{cancelError}</p>
             )}
           </>
         )}

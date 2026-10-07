@@ -1,0 +1,132 @@
+.product-summary-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+}
+
+.product-summary-card__thumb {
+  position: relative;
+  flex: 0 0 auto;
+  width: 84px;
+  height: 88px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
+}
+
+/* La imagen tapa al ícono solo si carga; si falla queda el ícono. */
+.product-summary-card__thumb img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  font-size: 0;
+}
+
+.product-summary-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.product-summary-card__label {
+  font-size: 12px;
+  color: var(--color-text-secondary-alt);
+}
+
+.product-summary-card__name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.product-summary-card__sku {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.product-summary-card__category {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--space-1);
+  font-size: 13px;
+  color: var(--color-text-primary);
+  /* Categorías largas (ej. "HERRAMIENTAS ..."): una línea con puntos
+     suspensivos en vez de corte a mitad de palabra. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.product-summary-card__category svg {
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+.product-summary-card__badge {
+  display: flex;
+  margin-top: var(--space-2);
+}
+
+.product-summary-card__metrics {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding-left: var(--space-4);
+  border-left: 1px solid var(--color-border-soft);
+  flex-shrink: 0;
+}
+
+.product-summary-card__metric {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.product-summary-card__metric dt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.product-summary-card__metric dd {
+  margin: 0;
+  font-weight: var(--weight-medium);
+  color: var(--color-text-primary);
+}
+
+@media (max-width: 560px) {
+  .product-summary-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .product-summary-card__metrics {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid var(--color-border-soft);
+    padding-top: var(--space-3);
+    width: 100%;
+  }
+}

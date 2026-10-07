@@ -68,12 +68,46 @@ export const toRestockAlert = (product) => {
     // pidas nada".
     suggestedQuantity: null,
     criticality: criticality(product),
+    source: "local",
   };
 };
 
-// products → filas de la tabla, ordenadas de más crítica a menos.
+  // products → filas de la tabla, ordenadas de más crítica a menos.
 export const buildRestockAlerts = (products = []) =>
   products.filter(needsRestock).map(toRestockAlert).sort((a, b) => a.criticality - b.criticality);
+
+/*
+| Fuente guardada: `product.restock` que escribe la corrida diaria
+| (POST /metrics/restock-suggestions/apply). No cuesta ningún request porque
+| ya viene en GET /products. Solo trae el resultado (sin desglose de demanda);
+| lo en pedido se deriva como posición − disponible (RFC §4.2).
+*/
+export const fromStoredRestock = (product) => {
+  const stored = product?.restock;
+  if (!stored || stored.should_restock !== true) return null;
+  const reorderPoint = Math.round(Number(stored.reorder_point) || 0);
+  const inventoryPosition = Number(stored.inventory_position) || 0;
+  const availableStock = Number(product.availableStock) || 0;
+  return {
+    product,
+    productId: product.id,
+    name: product.name,
+    sku: product.sku,
+    category: product.category,
+    imageUrl: product.imageUrl,
+    availableStock,
+    minimumStock: Number(product.minimumStock) || 0,
+    threshold: reorderPoint,
+    thresholdLabel: "Punto de reposición",
+    suggestedQuantity: Number(stored.suggested_quantity) || 0,
+    targetStock: Math.round(Number(stored.target_stock) || 0),
+    onOrderStock: Math.max(0, inventoryPosition - availableStock),
+    inventoryPosition,
+    criticality:
+      reorderPoint > 0 ? Math.min(1, Math.max(0, inventoryPosition / reorderPoint)) : 0,
+    source: "stored",
+  };
+};
 
 /*
 | Fuente buena: una fila de POST /metrics/restock-suggestions. El backend ya
@@ -107,5 +141,6 @@ export const fromSuggestionRow = (row, product) => {
     inventoryPosition,
     criticality:
       reorderPoint > 0 ? Math.min(1, Math.max(0, inventoryPosition / reorderPoint)) : 0,
+    source: "backend",
   };
 };

@@ -40,6 +40,11 @@ export const CAPABILITIES = {
   // Asignación de stock (PATCH posiciones)
   "stock.assign": ["SUPERADMIN", "ADMIN_WAREHOUSE"],
 
+  // Ventas: órdenes de despacho al cliente (OrderController).
+  // GET /orders lo ve cualquier rol; POST /orders y cancel, solo ventas/warehouse.
+  "order.read": null,
+  "order.cancel": ["SUPERADMIN", "ADMIN_WAREHOUSE", "ADMIN_SALES"],
+
   // Vehículos
   "vehicle.read": ["SUPERADMIN", "ADMIN_SYSTEM", "ADMIN_WAREHOUSE"],
   "vehicle.create": ["SUPERADMIN", "ADMIN_SYSTEM"],

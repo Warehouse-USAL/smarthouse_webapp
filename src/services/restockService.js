@@ -13,15 +13,18 @@
 |   GET    /restock/receptions      params: productId, restockOrderId, from, to, page, size
 |   GET    /restock/receptions/:id
 |
-| EN RAMAS TODAVÍA SIN MERGEAR (los clientes ya están escritos acá):
+| Dos fuentes de sugerencia (RFC Métricas, ya mergeado — verificado en Swagger):
 |
-|   POST   /metrics/restock-suggestions        feature/metrics-endpoints
-|          cuánto reponer por producto, con demanda ponderada y punto de
-|          reposición. Hasta que exista, la columna "Sugerencia" queda vacía y
-|          la cantidad se escribe a mano — no se inventa ningún número.
+|   product.restock (corrida diaria)     sin request extra, primera opción
+|   POST   /metrics/restock-suggestions  simulación en vivo con RESTOCK_PARAMS
 |
-|   POST   /restock/receptions con assignments opcional   feature/117-...
-|   PATCH  /restock/receptions/:id                        feature/117-...
+| Sin ninguna de las dos, la columna "Sugerencia" queda vacía y la cantidad se
+| escribe a mano — no se inventa ningún número.
+|
+| PENDIENTE DE UBICACIÓN (verificado en Swagger):
+
+|   POST   /restock/receptions con assignments opcional
+|   PATCH  /restock/receptions/:id
 |          remito guardado sin ubicar (status PENDING_LOCATION) y asignación
 |          de posiciones posterior.
 |
@@ -57,7 +60,7 @@
 */
 
 import { apiClient } from "../lib/apiClient";
-import { fromSuggestionRow } from "../lib/restockSuggestion";
+import { fromStoredRestock, fromSuggestionRow } from "../lib/restockSuggestion";
 import { warehouseConfigService } from "./warehouseConfigService";
 import { restockMockService } from "./mocks/restockMockService";
 
@@ -337,6 +340,20 @@ export const restockService = {
     return normalizeOrder(data?.restock_order ?? data);
   },
 
+  // Cancela una orden de restock pendiente.
+  // CONTRATO FUTURO: el backend todavía no tiene lifecycle en RestockOrder
+  // (RFC §9: sin campo `status`, sin endpoint de cancelación). Este método
+  // apunta al contrato esperado `POST /restock/orders/:id/cancel { reason }`
+  // para dejar el front listo; contra el backend actual responde 404 y la
+  // pantalla muestra el error sin romper. Sin rama de mock a propósito: no hay
+  // contrato que mockear todavía.
+  async cancelOrder(id, reason) {
+    const { data } = await apiClient.post(`/restock/orders/${id}/cancel`, {
+      reason,
+    });
+    return normalizeOrder(data?.restock_order ?? data);
+  },
+
   /* ---------- Remitos de recepción ---------- */
 
   // filters admite `status` (PENDING_LOCATION | COMPLETED) desde la rama
@@ -401,9 +418,17 @@ export const restockService = {
   },
 
   // Cruza las sugerencias con los productos ya cargados y devuelve las filas de
-  // alerta, en el orden de urgencia que definió el backend. null si el endpoint
-  // no está disponible.
+  // alerta, en el orden de urgencia que definió el backend. Cadena de fuentes:
+  // 1) `restock` guardado por la corrida diaria (viene en GET /products, sin
+  //    request extra); 2) simulación en vivo (POST); 3) null si no hay ninguna.
+  // null ≠ [] a propósito: vacío es "no hay nada que reponer", null es "no lo
+  // sabemos". La UI muestra cosas distintas.
   async listAlerts(products = []) {
+    const stored = products
+      .map((product) => fromStoredRestock(product))
+      .filter(Boolean)
+      .sort((a, b) => a.criticality - b.criticality);
+    if (stored.length > 0) return stored;
     const rows = await this.listSuggestions();
     if (rows === null) return null;
     const byId = new Map(products.map((p) => [p.id, p]));

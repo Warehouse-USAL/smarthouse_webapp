@@ -3,8 +3,8 @@ import Modal from "../../ui/Modal/Modal";
 import Input from "../../ui/Input/Input";
 import Select from "../../ui/Select/Select";
 import Button from "../../ui/Button/Button";
-import Badge from "../../ui/Badge/Badge";
 import Icon from "../../ui/Icon/Icon";
+import ProductSummaryCard from "../ProductSummaryCard/ProductSummaryCard";
 import { restockService } from "../../../services/restockService";
 import { warehouseConfigService } from "../../../services/warehouseConfigService";
 import "./ProductLocationModal.css";
@@ -127,6 +127,7 @@ export default function ProductLocationModal({ open, onClose, onAssigned, produc
       open={open}
       onClose={onClose}
       title="Asignar ubicación"
+      subtitle="Completá la información y seleccioná una ubicación disponible para este producto."
       size="lg"
       footer={
         <div className="product-location-modal__footer">
@@ -143,40 +144,32 @@ export default function ProductLocationModal({ open, onClose, onAssigned, produc
         </div>
       }
     >
-      <p className="product-location-modal__subtitle">
-        Completá la información y seleccioná una ubicación disponible para este producto.
-      </p>
-
       <div className="product-location-modal__form">
-        {/* ── Sección 1: Producto ──────────────────────────── */}
+        {/* ── Sección 1: Producto (card compartida) ────────── */}
         <section className="product-location-modal__section">
           <h4 className="product-location-modal__section-title">
             <span className="product-location-modal__section-num">1</span>
             Producto
           </h4>
-          <div className="product-location-modal__product-card">
-            <div className="product-location-modal__product-thumb">
-              {product.imageUrl ? (
-                <img
-                  className="product-location-modal__product-thumb-img"
-                  src={product.imageUrl}
-                  alt={product.name}
-                />
-              ) : (
-                <Icon name="box" size={32} />
-              )}
-            </div>
-            <div className="product-location-modal__product-info">
-              <span className="product-location-modal__product-tag">Producto</span>
-              <span className="product-location-modal__product-name">{product.name}</span>
-              <span className="product-location-modal__product-sku">SKU: {product.sku}</span>
-              <span className="product-location-modal__product-meta">
-                <Icon name="box" size={14} />
-                Stock: {stock} unidades
-              </span>
-              <Badge variant="danger" dot>Sin ubicación</Badge>
-            </div>
-          </div>
+          <ProductSummaryCard
+            imageUrl={product.imageUrl}
+            name={product.name}
+            sku={product.sku}
+            category={product.category}
+            badge={{ variant: "danger", label: "Sin ubicación" }}
+            metrics={[
+              {
+                icon: "box",
+                label: "Stock actual",
+                value: `${stock} unidades`,
+              },
+              {
+                icon: "alert",
+                label: "Stock mínimo",
+                value: `${product.minimumStock ?? 0} unidades`,
+              },
+            ]}
+          />
         </section>
 
         {/* ── Sección 2: Cantidad y unidad ─────────────────── */}
@@ -227,7 +220,7 @@ export default function ProductLocationModal({ open, onClose, onAssigned, produc
           </p>
 
           <div className="product-location-modal__info-box">
-            <Icon name="info" size={20} color="var(--color-info-blue)" />
+            <Icon name="info" size={20} />
             <p>
               Se muestran solo ubicaciones con espacio suficiente para la cantidad solicitada.
             </p>
