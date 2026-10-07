@@ -116,13 +116,17 @@ Mantener ARS como aparece ahora pero **sin permitir cambiarlo**. No es selector,
 Aplica al alta de producto y a la creación de orden de restock / remito (todo lo que hoy muestre moneda).
 
 ### Tareas
-- [ ] Reemplazar `<select moneda>` por texto fijo `ARS` o select `disabled` con único option `ARS`.
-- [ ] Hardcodear `currency: 'ARS'` en payload (`productService.js`, `restockService.js`).
-- [ ] Validación frontend: si llega otra moneda, bloquear submit.
-- [ ] Quitar opciones USD / otras del UI y de mocks (`src/services/mocks/`).
+- [x] Reemplazar `<select moneda>` por texto fijo `ARS` o select `disabled` con único option `ARS`.
+  - Hecho 2026-10-07: en la práctica era un `<input>` editable, no un select (`CreateProductForm.jsx`). Reemplazado por badge fijo `ARS` (se reutilizó la clase `.cpf-currency`, que existía huérfana). En restock/remito no hay ningún campo de moneda en UI.
+- [x] Hardcodear `currency: 'ARS'` en payload (`productService.js`, `restockService.js`).
+  - Hecho: `toPricePayload` en `productService.js` manda siempre `"ARS"`. En `restockService.js` no hay moneda en ningún payload (órdenes y remitos no la usan).
+- [x] Validación frontend: si llega otra moneda, bloquear submit.
+  - Hecho: `validate(values, initial?.price?.currency)` bloquea la edición de un producto legacy con otra moneda (error bajo el badge). En alta no hay forma de ingresar otra.
+- [x] Quitar opciones USD / otras del UI y de mocks (`src/services/mocks/`).
+  - Verificado: no existe `USD` ni otra moneda en `src/`; todos los mocks ya eran `ARS`.
 
 ### Criterio de aceptación
-No existe forma por UI de cargar otra moneda que no sea ARS.
+No existe forma por UI de cargar otra moneda que no sea ARS. ✅ (verificado: sin input de moneda, payload fijo, mocks ARS)
 
 ---
 
@@ -140,14 +144,20 @@ Agregar opción de cancelar una orden de restock en estado pendiente.
 4. UI actualiza a `cancelled`, muestra badge rojo, registra `cancel_reason` y fecha.
 
 ### Tareas
-- [ ] Botón `Cancelar orden` outline rojo + icono tacho (coherente con alerta).
-- [ ] Modal confirm: motivo obligatorio (select: `Ya no es necesaria / Stock incorrecto / Duplicada / Otro` + textarea).
-- [ ] Integrar `restockService.cancelOrder(id, reason)` / `orderService`.
-- [ ] Manejar errores: ya `in_progress` con rover asignado, sin permiso `admin_warehouse/admin_sales`.
-- [ ] Refrescar lista + métricas.
+- [x] Botón `Cancelar orden` outline rojo + icono tacho (coherente con alerta).
+  - Hecho 2026-10-07 (front): en el footer del modal detalle, solo para órdenes `pendiente` (`variant="danger-outline"` + icono `trash` existente). De paso se achicó el ancho de los botones del footer (el `width: 100%` base los estiraba).
+- [x] Modal confirm: motivo obligatorio (select: `Ya no es necesaria / Stock incorrecto / Duplicada / Otro` + textarea).
+  - Hecho (front): segundo modal con `Select` + textarea (detalle obligatorio solo si motivo = `Otro`, opcional en el resto). Doble paso como pide el flujo.
+- [x] Integrar `restockService.cancelOrder(id, reason)` / `orderService`.
+  - Hecho (front): `restockService.cancelOrder` apunta al contrato esperado `POST /restock/orders/:id/cancel { reason }`. Sin rama de mock (no hay contrato que mockear todavía).
+- [x] Manejar errores: ya `in_progress` con rover asignado, sin permiso `admin_warehouse/admin_sales`.
+  - Parcial (front): errores se muestran en el modal vía `errorText` con fallback propio ("El backend todavía no soporta la cancelación…"). Sin gating de permisos en front (el backend autoriza); `Order`/rover aplica a ventas (punto 9), no a restock.
+- [x] Refrescar lista + métricas.
+  - Hecho (front): al confirmar OK cierra ambos modales, muestra feedback y recarga (`load()`).
 
 ### Criterio de aceptación
 Orden pendiente se puede cancelar con motivo, cambia a cancelada y queda trazabilidad.
+- 🟡 Front completo y verificado (lint + build). **Bloqueado por backend**: sin `status` en `RestockOrder` no hay badge `cancelled` posible y sin endpoint el POST responde 404. Para cerrar el punto falta en backend: campo `status` + transición a `cancelled` + `POST /restock/orders/:id/cancel` (o definición de negocio si la cancelación va por otro flujo).
 
 ---
 
@@ -428,8 +438,8 @@ Calcular la sugerencia localmente con política de reposición por nivel: repone
 |---|---|---|---|
 | 1 | Logo no carga en servidor | ✅ front verificado | Verificación en servidor (Network) + SVG alta resolución de negocio |
 | 2 | Gestión de Stock — igualar anchos + ajuste UI spec negocio | ✅ front verificado | Captura visual lado a lado pixel-perfect (1600/1366/768/375px). Decisiones abiertas: nombre "Asignación de Ubicación" y semántica de cierre parcial |
-| 3 | Alta — ARS fijo | ⬜ no iniciado | Badge ARS fijo en `CreateProductForm`, hardcodear `currency: 'ARS'` en `productService`, quitar input editable |
-| 4 | Cancelar orden de restock | ⛔ bloqueado por backend | `RestockOrder` no tiene `status` ni cancelación (RFC §9). `POST /orders/:id/cancel` es de `Order`/ventas. Hacer front (botón + confirm con motivo) y dejar UI deshabilitada/oculta hasta definición de negocio |
+| 3 | Alta — ARS fijo | ✅ completado | — |
+| 4 | Cancelar orden de restock | 🟡 front listo, ⛔ backend pendiente | Backend: campo `status` + endpoint cancel en `RestockOrder` (ver criterio punto 4) |
 | 5 | Datos de stock en ficha | ⬜ no iniciado | UI: disponible / reserva / físico / badge Reponer (datos ya expuestos en `productService.normalize`) |
 | 6 | BaseModal único | ⬜ no iniciado | Extender `Modal` + subcomponentes. Coordinar con `docs/futuro-unificacion-modales-css.md` (prioridad baja, no duplicar) |
 | 7 | Modal Acciones restock | ⬜ no iniciado | Depende de 6. Spec literal lista en este doc |

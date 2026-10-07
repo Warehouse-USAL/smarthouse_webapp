@@ -176,7 +176,8 @@ const toImagesPayload = (images = []) =>
 
 const toPricePayload = (input) => ({
   amount_cents: Math.round(Number(input.price ?? 0) * 100),
-  currency: (input.currency ?? "ARS").toUpperCase() || "ARS",
+  // Moneda fija ARS: el front no ofrece otra y el payload tampoco la acepta.
+  currency: "ARS",
   tax_included: input.includesTaxes ?? false,
 });
 

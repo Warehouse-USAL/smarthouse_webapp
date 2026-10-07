@@ -21,6 +21,7 @@ import {
 } from "../../services/productService";
 import { restockService } from "../../services/restockService";
 import { buildRestockAlerts } from "../../lib/restockSuggestion";
+import { errorText } from "../../lib/apiError";
 import { STORAGE_UNIT_LABEL } from "../../lib/storageCompatibility";
 import "./StockManagementPage.css";
 
@@ -76,6 +77,14 @@ const STATUS_OPTIONS = [
   })),
 ];
 
+const CANCEL_REASONS = [
+  { value: "", label: "Seleccioná un motivo" },
+  { value: "no_necesaria", label: "Ya no es necesaria" },
+  { value: "stock_incorrecto", label: "Stock incorrecto" },
+  { value: "duplicada", label: "Duplicada" },
+  { value: "otro", label: "Otro" },
+];
+
 const PAGE_SIZE_OPTIONS = [
   { value: "5", label: "5 por página" },
   { value: "10", label: "10 por página" },
@@ -124,6 +133,12 @@ export default function StockManagementPage() {
   // backend soporta PENDING_LOCATION (rama feature/117).
   const [pendingLocation, setPendingLocation] = useState([]);
   const [detail, setDetail] = useState(null);
+  // null = cerrado. Flujo en dos pasos: detalle → confirmación con motivo.
+  const [cancelTarget, setCancelTarget] = useState(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelNotes, setCancelNotes] = useState("");
+  const [cancelError, setCancelError] = useState(null);
+  const [cancelSending, setCancelSending] = useState(false);
   // GET /restock/orders/:id devuelve quantity_received_so_far calculado por el
   // backend. El listado no lo trae, así que en la tabla se agrega desde los
   // remitos; al abrir el detalle se pide el número autoritativo.
@@ -317,6 +332,56 @@ export default function StockManagementPage() {
     openDetailId.current = null;
     setDetail(null);
     setDetailReceived(null);
+  };
+
+  const openCancel = (order) => {
+    setCancelTarget(order);
+    setCancelReason("");
+    setCancelNotes("");
+    setCancelError(null);
+  };
+
+  const closeCancel = () => {
+    if (cancelSending) return;
+    setCancelTarget(null);
+    setCancelReason("");
+    setCancelNotes("");
+    setCancelError(null);
+  };
+
+  const confirmCancel = async () => {
+    if (!cancelTarget) return;
+    const reason = CANCEL_REASONS.find((r) => r.value === cancelReason);
+    if (!reason?.value) {
+      setCancelError("Elegí un motivo para cancelar la orden.");
+      return;
+    }
+    if (reason.value === "otro" && !cancelNotes.trim()) {
+      setCancelError("Contanos el motivo en el detalle.");
+      return;
+    }
+    setCancelSending(true);
+    setCancelError(null);
+    try {
+      const text = cancelNotes.trim()
+        ? `${reason.label} — ${cancelNotes.trim()}`
+        : reason.label;
+      await restockService.cancelOrder(cancelTarget.id, text);
+      setCancelTarget(null);
+      closeDetail();
+      setFeedback({ type: "ok", text: "Orden de restock cancelada." });
+      await load();
+    } catch (e) {
+      setCancelError(
+        errorText(
+          e,
+          {},
+          "El backend todavía no soporta la cancelación de órdenes de restock."
+        )
+      );
+    } finally {
+      setCancelSending(false);
+    }
   };
 
   const detailProduct = detail ? productById.get(detail.productId) : null;
@@ -748,9 +813,20 @@ export default function StockManagementPage() {
         title={detail ? `Orden ${detail.code}` : ""}
         size="sm"
         footer={
-          <Button variant="secondary" onClick={closeDetail}>
-            Cerrar
-          </Button>
+          <div className="stock-management__detail-foot">
+            <Button variant="secondary" onClick={closeDetail}>
+              Cerrar
+            </Button>
+            {detail?.status === "pendiente" && (
+              <Button
+                variant="danger-outline"
+                iconLeft={<Icon name="trash" size={15} />}
+                onClick={() => openCancel(detail)}
+              >
+                Cancelar orden
+              </Button>
+            )}
+          </div>
         }
       >
         {detail && (
@@ -817,6 +893,66 @@ export default function StockManagementPage() {
                   </li>
                 ))}
               </ul>
+            )}
+          </>
+        )}
+      </Modal>
+
+      <Modal
+        open={cancelTarget !== null}
+        onClose={closeCancel}
+        title={cancelTarget ? `Cancelar orden ${cancelTarget.code}` : ""}
+        size="sm"
+        footer={
+          <div className="stock-management__detail-foot">
+            <Button
+              variant="secondary"
+              onClick={closeCancel}
+              disabled={cancelSending}
+            >
+              Volver
+            </Button>
+            <Button
+              variant="danger"
+              onClick={confirmCancel}
+              disabled={cancelSending}
+            >
+              {cancelSending ? "Cancelando…" : "Confirmar cancelación"}
+            </Button>
+          </div>
+        }
+      >
+        {cancelTarget && (
+          <>
+            <p className="stock-management__cancel-text">
+              Esta acción no se puede deshacer. Contanos por qué se cancela la
+              orden de {cancelTarget.productName}.
+            </p>
+            <Select
+              label="Motivo"
+              value={cancelReason}
+              onChange={(e) => {
+                setCancelReason(e.target.value);
+                setCancelError(null);
+              }}
+              options={CANCEL_REASONS}
+            />
+            <label
+              className="stock-management__cancel-label"
+              htmlFor="cancel-notes"
+            >
+              Detalle {cancelReason === "otro" ? "(obligatorio)" : "(opcional)"}
+            </label>
+            <textarea
+              id="cancel-notes"
+              className="stock-management__cancel-notes"
+              rows={3}
+              placeholder="Agregá un comentario…"
+              value={cancelNotes}
+              onChange={(e) => setCancelNotes(e.target.value)}
+            />
+            {cancelError && (
+              <p className="stock-management__cancel-error">{cancelError}</p>
             )}
           </>
         )}

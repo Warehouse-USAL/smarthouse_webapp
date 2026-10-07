@@ -546,6 +546,55 @@
 
 /* ── Modal de detalle ──────────────────────────────────────── */
 
+.stock-management__detail-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+.stock-management__detail-foot .button {
+  flex: 0 0 auto;
+  width: auto;
+}
+
+.stock-management__cancel-text {
+  margin: 0 0 var(--space-4);
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.stock-management__cancel-label {
+  display: block;
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.stock-management__cancel-notes {
+  width: 100%;
+  min-height: 88px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-white);
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--color-text-primary);
+  resize: vertical;
+}
+
+.stock-management__cancel-notes:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.stock-management__cancel-error {
+  margin: var(--space-3) 0 0;
+  font-size: 13px;
+  color: var(--color-danger);
+}
+
 .stock-management__detail {
   display: flex;
   flex-direction: column;

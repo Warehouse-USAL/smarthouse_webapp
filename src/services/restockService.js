@@ -337,6 +337,20 @@ export const restockService = {
     return normalizeOrder(data?.restock_order ?? data);
   },
 
+  // Cancela una orden de restock pendiente.
+  // CONTRATO FUTURO: el backend todavía no tiene lifecycle en RestockOrder
+  // (RFC §9: sin campo `status`, sin endpoint de cancelación). Este método
+  // apunta al contrato esperado `POST /restock/orders/:id/cancel { reason }`
+  // para dejar el front listo; contra el backend actual responde 404 y la
+  // pantalla muestra el error sin romper. Sin rama de mock a propósito: no hay
+  // contrato que mockear todavía.
+  async cancelOrder(id, reason) {
+    const { data } = await apiClient.post(`/restock/orders/${id}/cancel`, {
+      reason,
+    });
+    return normalizeOrder(data?.restock_order ?? data);
+  },
+
   /* ---------- Remitos de recepción ---------- */
 
   // filters admite `status` (PENDING_LOCATION | COMPLETED) desde la rama
