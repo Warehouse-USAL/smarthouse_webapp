@@ -151,6 +151,10 @@ const normalize = (raw) => {
     specs: raw.specs ?? [],
     price: raw.price ?? null,
     stock,
+    // Recomendación guardada por la corrida diaria (POST /metrics/apply).
+    // null hasta la primera corrida; la pantalla la usa como fuente de
+    // sugerencias sin request extra.
+    restock: raw.restock ?? null,
     order_constraints: orderConstraints,
   };
 };

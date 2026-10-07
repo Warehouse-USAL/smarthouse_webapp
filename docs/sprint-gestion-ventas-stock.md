@@ -426,32 +426,19 @@ Errores `POST /orders`:
 
 ---
 
-## 12. Cantidad sugerida de restock en front (PR #39 no mergeado — pendiente)
+## 12. Cantidad sugerida de restock (RESUELTO por backend — RFC Métricas)
 
-> Origen: PR #39 "Calcula la cantidad sugerida de restock en el front". No se mergeó, queda como tarea.
+> Actualización 2026-10-07: el backend SÍ tiene la métrica (RFC Métricas + Swagger verificado: `POST /metrics/restock-suggestions`, `/apply`, `/metrics/catalog` con `computed_metrics`, campo `restock` en producto). El cálculo local del PR #39 no se rescata: la fórmula por demanda del backend lo reemplaza.
 
-### Contexto
-El cálculo vivía en `POST /metrics/restock-suggestions` (rama `feature/metrics-endpoints`). Backend confirmó que no la va a mergear, ese endpoint no va a existir: la columna "Sugerencia" mostraba "Sin dato" y el operador ponía la cantidad a mano siempre.
+### Conexión en el front (2026-10-07)
+Cadena en `listAlerts`: `product.restock` guardado (corrida diaria, sin request) → `POST` en vivo → `null` (aviso + cantidad a mano). `normalize` lee `restock`; `fromStoredRestock` arma la fila (umbral = punto de reposición, en pedido = posición − disponible); cada fila lleva `source` (`stored`/`backend`/`local`). Lint + build + test node OK.
 
-### Requerimiento (tal cual el PR)
-Calcular la sugerencia localmente con política de reposición por nivel: reponer hasta el doble del stock mínimo, descontando lo ya pedido a proveedores y sin pasarse del máximo por orden del producto. Todo lo que entra al cálculo es dato real del backend (`GET /products` + órdenes abiertas que la pantalla ya tenía cargadas); lo único propio es el multiplicador, con nombre en `LOCAL_RESTOCK_POLICY`.
-
-### Reglas
-- NO es proyección de demanda y no se presenta como tal: no reproducible porque la Query API marca `items.quantity` e `items.product_id` como `selectable:false`, sin serie de consumo.
-- Cada fila lleva `suggestionSource` y la UI aclara de dónde salió el número.
-- NO cambia la condición de alerta: sigue siendo stock disponible < mínimo (igual que `StockDrainService`). El stock en tránsito solo afecta la cantidad, nunca esconde un faltante.
-- Si el backend algún día expone la métrica, gana: `listAlerts` la consulta primero y este cálculo queda de fallback.
-- Modal deja editar la cantidad sugerida cuando es local (la del backend se confirma tal cual).
-- Mostrar "Ya pedido" en modal y "(+N en camino)" en tabla.
-- Sacar el aviso permanente de "el backend todavía no calcula esto" y su CSS.
-
-### Tareas
-- [ ] Rescatar/rehacer cálculo local (`src/lib/restockSuggestion.js`, `LOCAL_RESTOCK_POLICY`).
-- [ ] `suggestionSource` por fila + aclaración UI del origen.
-- [ ] Columna "Ya pedido" / "(+N en camino)".
-- [ ] Cantidad editable si es local.
-- [ ] `listAlerts`: primero backend, fallback local.
-- [ ] Eliminar aviso permanente + CSS.
+### Tareas originales (estado)
+- [x] `listAlerts`: primero backend, fallback local.
+- [x] `suggestionSource` por fila (`source` en cada row).
+- [ ] Columna "Ya pedido" / "(+N en camino)" — pendiente, dato disponible (`onOrderStock`).
+- [ ] Cantidad editable si es local — no aplica (no hay cálculo local).
+- [ ] Eliminar aviso permanente + CSS — el aviso ya se había quitado; el actual solo sale sin ninguna fuente.
 
 ---
 
@@ -481,4 +468,4 @@ Calcular la sugerencia localmente con política de reposición por nivel: repone
 | 9 | Gestión de Ventas | 🟡 front listo (despacho manual bloqueado) | Backend: endpoint despacho manual + cliente en Order + confirmar forma GET /orders |
 | 10 | Inventario + ABM + ajuste manual | ⬜ no iniciado | Definir alcance con backend (sin endpoint de ajuste conocido) antes de codificar |
 | 11 | Mapeo estados órdenes | ⬜ no iniciado | Util `mapOrderStatus` + filtros + detalle. Conviene hacerlo junto con 9 |
-| 12 | Sugerencia local de restock | 🔒 no tocar (decisión 2026-10-07) | La UI muestra `—` a propósito hasta que el backend exponga la métrica real |
+| 12 | Sugerencia de restock | ✅ conectado (restock → POST → —) | Columna "Ya pedido" con onOrderStock (dato ya disponible) |

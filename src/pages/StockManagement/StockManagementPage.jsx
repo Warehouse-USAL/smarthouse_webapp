@@ -29,11 +29,12 @@ import "./StockManagementPage.css";
 /*
 | La pantalla tiene dos mitades que se alimentan de fuentes distintas:
 |
-|   · Izquierda — "Productos con alerta de reestock": sale de
-|     POST /metrics/restock-suggestions (rama feature/metrics-endpoints). Si ese
-|     endpoint todavía no está desplegado, se cae a derivar la alerta de
-|     GET /products con el mismo umbral que usa el backend (stock < mínimo) y la
-|     columna de sugerencia queda vacía — no se inventa la cantidad.
+|   · Izquierda — "Productos con alerta de reestock": cadena de fuentes en
+|     listAlerts — `restock` guardado por la corrida diaria (viene en
+|     GET /products), si no POST /metrics/restock-suggestions, si no alerta
+|     derivada de GET /products con el mismo umbral que usa el backend
+|     (stock < mínimo) y la columna de sugerencia queda vacía — no se
+|     inventa la cantidad.
 |
 |   · Derecha — "Órdenes de restock": GET /restock/orders + GET /restock/receptions,
 |     compuestos en restockService.listOrdersWithProgress (el listado de órdenes
@@ -116,9 +117,9 @@ export default function StockManagementPage() {
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [alerts, setAlerts] = useState([]);
-  // false = el endpoint de sugerencias no está disponible todavía y la lista se
-  // derivó localmente, sin cantidad sugerida.
-  const [suggestionsFromBackend, setSuggestionsFromBackend] = useState(false);
+  // false = no hay fuente de sugerencias (ni restock guardado ni endpoint)
+  // y la lista se derivó localmente, sin cantidad sugerida.
+  const [hasSuggestions, setHasSuggestions] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   // El catálogo llegó al tope que listAll trae de una: los cruces con órdenes y
@@ -168,11 +169,11 @@ export default function StockManagementPage() {
       setProducts(productList);
       setCatalogTruncated(productList.length >= PRODUCT_CATALOG_LIMIT);
 
-      // Las sugerencias las calcula el backend. `null` significa que el
-      // endpoint todavía no existe: ahí se listan las alertas por el umbral de
-      // stock mínimo y la cantidad queda a cargo del operador.
+      // Cadena: restock guardado (corrida diaria) → simulación en vivo →
+      // `null` (sin fuente: alertas por umbral mínimo, cantidad a cargo del
+      // operador).
       const suggested = await restockService.listAlerts(productList);
-      setSuggestionsFromBackend(suggested !== null);
+      setHasSuggestions(suggested !== null);
       setAlerts(suggested ?? buildRestockAlerts(productList));
 
       setPendingLocation(await restockService.listPendingLocation());
@@ -459,7 +460,7 @@ export default function StockManagementPage() {
               <span
                 className="stock-panel__hint"
                 title={
-                  suggestionsFromBackend
+                  hasSuggestions
                     ? "El backend compara la posición de inventario (disponible + en tránsito) contra el punto de reposición calculado sobre la demanda."
                     : "Un producto entra en alerta cuando su stock disponible queda por debajo del mínimo configurado."
                 }
@@ -468,7 +469,7 @@ export default function StockManagementPage() {
               </span>
             </h3>
             <p className="stock-panel__desc">
-              {suggestionsFromBackend
+              {hasSuggestions
                 ? "Cantidades sugeridas por el backend según demanda, stock de seguridad y mercadería en tránsito."
                 : "Productos que necesitan ser reabastecidos según niveles mínimos de stock."}
             </p>
