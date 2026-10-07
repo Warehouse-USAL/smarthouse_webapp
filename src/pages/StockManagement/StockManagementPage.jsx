@@ -852,12 +852,9 @@ export default function StockManagementPage() {
               <div>
                 <dt>Estado</dt>
                 <dd>
-                  <span
-                    className={`order-status order-status--${detail.status}`}
-                  >
-                    <span className="order-status__dot" aria-hidden="true" />
+                  <Badge variant={STATUS_META[detail.status].variant} dot>
                     {STATUS_META[detail.status].label}
-                  </span>
+                  </Badge>
                 </dd>
               </div>
               <div>

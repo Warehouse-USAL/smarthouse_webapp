@@ -245,6 +245,10 @@ Línea vertical sutil entre columnas.
 
 Desvíos honestos del spec: la lista `Remitos de esta orden` se conserva cuando hay recepciones (el spec solo mostraba el caso sin remito); proveedor no se muestra (el spec no lo incluye en la grilla); iconos de métricas reutilizados del set existente (`box/alert/chart`, no existen manos/flechas en `Icon.jsx`); overlay gris 50% ya existente (coincide con el spec, no se tocó).
 
+### Sexta ronda (2026-10-07, pedido directo de negocio)
+- Estados siempre con fondo: el modal de acciones usa el mismo `Badge` con pill que la tabla (se eliminó el estilo dot-only sin fondo).
+- SKU de la card, subtítulo del modal e icono de categoría en `var(--color-text-secondary)` (color de "Gestioná tus órdenes…"), no azul. Aplica a ambos modales por ser componentes compartidos.
+
 ---
 
 ## 8. Modal nueva orden restock — incluir imagen al seleccionar producto

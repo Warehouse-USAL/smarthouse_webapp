@@ -619,36 +619,6 @@
   color: var(--color-text-primary);
 }
 
-/* Estado sin pill: solo punto + texto de color. */
-.order-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: var(--weight-medium);
-  white-space: nowrap;
-}
-
-.order-status__dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: currentColor;
-  flex-shrink: 0;
-}
-
-.order-status--pendiente {
-  color: var(--color-warning);
-}
-
-.order-status--recibido {
-  color: var(--color-link);
-}
-
-.order-status--completado {
-  color: var(--color-success);
-}
-
 /* Aviso contextual: sin remito registrado se puede cancelar. */
 .order-actions__banner {
   display: flex;

@@ -57,7 +57,7 @@
   margin: 4px 0 0;
   font-size: 13px;
   line-height: 1.5;
-  color: var(--color-link-blue);
+  color: var(--color-text-secondary);
 }
 
 .modal__close {

@@ -56,7 +56,7 @@
 
 .product-summary-card__sku {
   font-size: 13px;
-  color: var(--color-link-blue);
+  color: var(--color-text-secondary);
 }
 
 .product-summary-card__category {
@@ -69,7 +69,7 @@
 }
 
 .product-summary-card__category svg {
-  color: var(--color-link-blue);
+  color: var(--color-text-secondary);
   flex-shrink: 0;
 }
 
