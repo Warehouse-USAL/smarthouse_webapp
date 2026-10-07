@@ -77,7 +77,7 @@ export default function LocationAssignmentModal({ open, onClose, product }) {
               { icon: "file", label: "Orden", value: product.orderId },
               {
                 icon: "box",
-                label: "Recibidos",
+                label: "Por ubicar",
                 value: `${product.received} unidades`,
               },
             ]}

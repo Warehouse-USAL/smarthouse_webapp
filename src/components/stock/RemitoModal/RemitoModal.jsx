@@ -213,6 +213,9 @@ export default function RemitoModal({
           RECEPTION_ALREADY_COMPLETED:
             "Ese remito ya tiene toda su mercadería ubicada.",
           PRODUCT_NOT_FOUND: "El producto no existe o está inactivo.",
+          RESTOCK_ORDER_NOT_FOUND: "La orden de restock no existe.",
+          POSITION_NOT_FOUND: "Alguna de las posiciones elegidas no existe.",
+          POSITION_INACTIVE: "Alguna de las posiciones elegidas no está activa.",
         }, "No se pudo registrar el remito. Intentá de nuevo.")
       );
     } finally {

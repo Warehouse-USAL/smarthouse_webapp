@@ -24,6 +24,29 @@
 
 ---
 
+## Recepción sin ubicación — contraste 2026-10-07 (sprint pasado vs RFC actual)
+
+El RFC pegado arriba (base) **no incluye** ninguno de los 3 ítems: `assignments` es `@NotEmpty` con suma exacta (RN-07), el alta es atómica "sin draft/confirm" (§7) y la edición de remitos está explícitamente fuera del milestone (§2). El front los tiene implementados desde el sprint pasado contra el contrato esperado de la rama `feature/117`. Estado por ítem:
+
+| # | Ítem | Front | Evidencia | Backend (RFC actual) |
+|---|---|---|---|---|
+| 1 | Aceptar remito sin ubicar (assignments vacío/incompleto + `PENDING_LOCATION`) | ✅ listo y probado | `RemitoModal` "Guardar sin ubicar" (solo si `supportsPendingLocation()`), `normalizeReception` deriva `quantityLocated/quantityPendingLocation`, mock completo | ❌ No incluido: RN-07 exige suma exacta; §7 descarta draft |
+| 2 | Ubicar después (`PATCH /restock/receptions/:id`) | ✅ listo | `restockService.assignReceptionPositions` + `LocateReceptionModal` (incremental, por partes) + mock | ❌ Fuera de alcance explícito (§2: sin edición/reversión de remito) |
+| 3 | Listar pendientes de ubicación | ✅ listo, puente completo 2026-10-07 | `listPendingLocation()` (filtro `status` + filtro local) + aviso en `StockManagementPage` + mock | ❌ `GET /restock/receptions` no acepta filtro `status` (§6.2) |
+
+Seguridad: si el backend no tiene la capacidad, la UI exige reparto completo (comportamiento RFC base) — nunca se envía un payload que el backend actual rechace. El filtro `status` por query param lo ignora un backend que no lo conozca.
+
+Puente completo 2026-10-07: la sección "Productos de restock pendientes de ubicación" de `StockAssignmentPage` dejó de usar el mock fijo (`PENDING_RESTOCK` hardcodeado) y lista remitos reales vía `listPendingLocation()` con join al catálogo (nombre/SKU) y a las órdenes (código `RST-xxxxx`); estado vacío cuando no hay. Al aceptar un remito sin ubicar, aparece en esa sección al entrar (sin redirección, por decisión de negocio).
+
+Agregado 2026-10-07 en esta verificación (faltantes del front, no del RFC):
+- `PositionAssigner` mostraba "no hay posiciones" también cuando fallaba la consulta — ahora distingue error (`PRODUCT_NOT_FOUND`, `INVALID_QUANTITY` del RFC §6.4 + fallback).
+- `RemitoModal` ahora tiene texto propio para los 8 códigos del RFC (faltaban `RESTOCK_ORDER_NOT_FOUND`, `POSITION_NOT_FOUND`, `POSITION_INACTIVE`).
+- Pruebas: `eslint` limpio, `vite build` OK, test node de `restockSuggestion` (umbral estricto, orden por criticidad, traducción de fila backend) OK.
+
+No se tocó: `GET /products/:id/location` sigue ignorando `total_stock` (el front lo suma igual desde `locations[]` — equivalente, sin cambio de forma).
+
+---
+
 ## RFC original (copia textual)
 
 # RFC — Restock Orders & Reception de Mercadería

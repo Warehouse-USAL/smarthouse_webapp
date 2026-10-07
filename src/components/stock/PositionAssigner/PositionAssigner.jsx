@@ -3,6 +3,7 @@ import Button from "../../ui/Button/Button";
 import Icon from "../../ui/Icon/Icon";
 import Spinner from "../../ui/Spinner/Spinner";
 import { warehouseConfigService } from "../../../services/warehouseConfigService";
+import { errorText } from "../../../lib/apiError";
 import { STORAGE_UNIT_LABEL } from "../../../lib/storageCompatibility";
 import "./PositionAssigner.css";
 
@@ -32,6 +33,7 @@ export default function PositionAssigner({
 }) {
   const [available, setAvailable] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const ready = Boolean(productId) && Boolean(deliveryUnit) && quantity > 0;
 
@@ -43,6 +45,7 @@ export default function PositionAssigner({
     }
     let cancelled = false;
     setLoading(true);
+    setError(null);
     // Un respiro mientras se tipea la cantidad.
     const timer = setTimeout(() => {
       warehouseConfigService
@@ -59,8 +62,20 @@ export default function PositionAssigner({
             onChange(filtered);
           }
         })
-        .catch(() => {
-          if (!cancelled) setAvailable([]);
+        .catch((err) => {
+          if (cancelled) return;
+          setAvailable([]);
+          // Sin esto el fallo se veía igual que "no hay posiciones".
+          setError(
+            errorText(
+              err,
+              {
+                PRODUCT_NOT_FOUND: "El producto no existe o está inactivo.",
+                INVALID_QUANTITY: "La cantidad tiene que ser mayor a cero.",
+              },
+              "No pudimos consultar las posiciones disponibles."
+            )
+          );
         })
         .finally(() => {
           if (!cancelled) setLoading(false);
@@ -122,6 +137,10 @@ export default function PositionAssigner({
   if (!ready) return <p className="position-assigner__placeholder">{emptyHint}</p>;
 
   if (loading) return <Spinner size={20} label="Buscando posiciones compatibles…" />;
+
+  if (error) {
+    return <p className="position-assigner__error">{error}</p>;
+  }
 
   if (available.length === 0) {
     return (
