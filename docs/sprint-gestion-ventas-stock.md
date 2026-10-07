@@ -102,6 +102,9 @@ No tocado a propósito:
 - Para que entre a presión se compactó solo esa tabla: celdas con padding lateral `space-2`, headers con wrap permitido, thumb `34px` → `28px`, badge `13px` → `12px`, link de acción `14px` → `13px`.
 - Red de seguridad: debajo de 1500px de viewport el panel ya no contiene las 9 columnas y vuelve `overflow-x: auto` (si no, se recortaría la columna Acciones justo la que se quería mostrar). En mobile (<1180px) los paneles ya apilan a ancho completo.
 
+### Quinta ronda (2026-10-07, pedido directo de negocio)
+- Títulos (`thead th`) y contenido (`tbody td`) de ambas tablas centrados (`text-align: center`), incluida la celda de producto (`justify-content: center`) y la columna de acciones.
+
 ---
 
 ## 3. Alta — ARS fijo sin posibilidad de cambio
