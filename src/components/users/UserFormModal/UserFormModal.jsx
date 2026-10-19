@@ -12,8 +12,8 @@ import "./UserFormModal.css";
 | USER FORM MODAL — alta y modificación de usuario
 |--------------------------------------------------------------------------
 |
-| mode = "create"  → POST /users   { email, name, role, initial_password }
-| mode = "edit"    → PATCH /users/:id { name?, role?, active? }
+| mode = "create"  → POST /users   { email, name, role, initial_password, supplier? }
+| mode = "edit"    → PATCH /users/:id { name?, role?, active?, supplier? }
 |
 | En edición el email NO se puede modificar (el backend no expone ese campo en
 | UpdateUserRequest), así que se muestra de solo lectura. El form sube SOLO los
@@ -25,6 +25,7 @@ const buildInitialState = (mode, user) => ({
   email: user?.email ?? "",
   name: user?.name ?? "",
   role: normalizeRole(user?.role) || "",
+  supplier: user?.supplier ?? "",
   active: user?.active ?? true,
   initialPassword: "",
 });
@@ -62,6 +63,8 @@ export default function UserFormModal({
     const errs = {};
     if (!values.name.trim()) errs.name = "El nombre es obligatorio";
     if (!values.role) errs.role = "Elegí un rol";
+    if (values.role === "PROVIDER" && !values.supplier.trim())
+      errs.supplier = "El proveedor asociado es obligatorio";
     if (!isEdit) {
       if (!values.email.trim()) errs.email = "El email es obligatorio";
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim()))
@@ -79,6 +82,12 @@ export default function UserFormModal({
     const patch = {};
     if (values.name.trim() !== (user?.name ?? "")) patch.name = values.name.trim();
     if (values.role !== normalizeRole(user?.role)) patch.role = values.role;
+    if (
+      values.role === "PROVIDER" &&
+      values.supplier.trim() !== (user?.supplier ?? "").trim()
+    ) {
+      patch.supplier = values.supplier.trim();
+    }
     if (values.active !== (user?.active ?? true)) patch.active = values.active;
     return patch;
   }, [isEdit, values, user]);
@@ -99,6 +108,8 @@ export default function UserFormModal({
         name: values.name.trim(),
         role: values.role,
         initialPassword: values.initialPassword,
+        supplier:
+          values.role === "PROVIDER" ? values.supplier.trim() : undefined,
       });
     }
   };
@@ -165,6 +176,19 @@ export default function UserFormModal({
           required
           error={errors.role}
         />
+
+        {values.role === "PROVIDER" && (
+          <Input
+            label="Proveedor asociado"
+            name="supplier"
+            value={values.supplier}
+            onChange={set("supplier")}
+            placeholder="Nombre del proveedor"
+            required
+            error={errors.supplier}
+            hint="Vincula esta cuenta con los pedidos de ese proveedor"
+          />
+        )}
 
         {!isEdit && (
           <Input

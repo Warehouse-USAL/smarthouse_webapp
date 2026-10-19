@@ -9,7 +9,7 @@
 |
 | Reglas que copia del UserService real:
 |   - createUser: email único → si ya existe tira EMAIL_ALREADY_EXISTS (409).
-|   - updateUser: parcial (name/role/active), USER_NOT_FOUND si no existe.
+|   - updateUser: parcial (name/role/active/supplier), USER_NOT_FOUND si no existe.
 |   - resetPassword / changeMyPassword: acá no hay hashing real, solo validamos
 |     el flujo (WRONG_CURRENT_PASSWORD / SAME_PASSWORD) sobre un password plano
 |     guardado solo en el mock.
@@ -136,7 +136,7 @@ export const userMockService = {
     return strip(user);
   },
 
-  async create({ email, name, role, initialPassword }) {
+  async create({ email, name, role, initialPassword, supplier }) {
     await delay();
     const all = readAll();
     if (all.some((u) => u.email.toLowerCase() === String(email).toLowerCase()))
@@ -146,6 +146,7 @@ export const userMockService = {
       email,
       name,
       role,
+      ...(supplier !== undefined ? { supplier } : {}),
       active: true,
       created_at: new Date().toISOString(),
       address: null,
@@ -164,6 +165,8 @@ export const userMockService = {
     if (patch.name !== undefined && patch.name !== null) next.name = patch.name;
     if (patch.role !== undefined && patch.role !== null) next.role = patch.role;
     if (patch.active !== undefined && patch.active !== null) next.active = patch.active;
+    if (patch.supplier !== undefined && patch.supplier !== null)
+      next.supplier = patch.supplier;
     all[idx] = next;
     writeAll(all);
     return strip(next);
