@@ -36,9 +36,12 @@ import "./StockManagementPage.css";
 |     (stock < mínimo) y la columna de sugerencia queda vacía — no se
 |     inventa la cantidad.
 |
-|   · Derecha — "Órdenes de restock": GET /restock/orders + GET /restock/receptions,
-|     compuestos en restockService.listOrdersWithProgress (el listado de órdenes
-|     no trae ni lo recibido ni el estado; se derivan de las recepciones).
+|   · Derecha — "Órdenes de restock": una página de GET /restock/orders con las
+|     recepciones de cada orden, compuestas en restockService.listOrdersPage (el
+|     listado no trae ni lo recibido ni el estado; se derivan de las
+|     recepciones). Pagina en el backend: con dos años de historial el listado
+|     completo no entra. El estado es derivado, así que ese filtro y el buscador
+|     actúan sobre la página visible; las fechas viajan al backend.
 |
 | El flujo completo es: alerta → orden de restock → remito de recepción → stock.
 */
@@ -109,13 +112,17 @@ const formatDateTime = (iso) =>
       })
     : "—";
 
-const isoDay = (iso) => (iso ? new Date(iso).toISOString().slice(0, 10) : "");
-
 const units = (n) => `${n} unidad${n === 1 ? "" : "es"}`;
 
 export default function StockManagementPage() {
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [orderTotal, setOrderTotal] = useState(0);
+  const [orderTotalPages, setOrderTotalPages] = useState(1);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [ordersError, setOrdersError] = useState(null);
+  // Se incrementa para volver a pedir la página de órdenes.
+  const [ordersReloadKey, setOrdersReloadKey] = useState(0);
   const [alerts, setAlerts] = useState([]);
   // false = no hay fuente de sugerencias (ni restock guardado ni endpoint)
   // y la lista se derivó localmente, sin cantidad sugerida.
@@ -160,12 +167,9 @@ export default function StockManagementPage() {
     setLoading(true);
     setLoadError(null);
     try {
-      const [productList, orderList] = await Promise.all([
-        // listAll, no list: `list` trae una sola página de 50 y el cruce con
-        // órdenes y alertas necesita el catálogo entero.
-        productService.listAll({ isActive: true }),
-        restockService.listOrdersWithProgress(),
-      ]);
+      // listAll, no list: `list` trae una sola página de 50 y el cruce con
+      // órdenes y alertas necesita el catálogo entero.
+      const productList = await productService.listAll({ isActive: true });
       setProducts(productList);
       setCatalogTruncated(productList.length >= PRODUCT_CATALOG_LIMIT);
 
@@ -177,13 +181,6 @@ export default function StockManagementPage() {
       setAlerts(suggested ?? buildRestockAlerts(productList));
 
       setPendingLocation(await restockService.listPendingLocation());
-
-      // Más reciente primero, como en el diseño.
-      setOrders(
-        [...orderList].sort(
-          (a, b) => new Date(b.createdAt ?? 0) - new Date(a.createdAt ?? 0)
-        )
-      );
     } catch {
       setLoadError(
         "No se pudo cargar la gestión de stock. Revisá la conexión con el backend."
@@ -197,6 +194,45 @@ export default function StockManagementPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- carga inicial contra el backend
     load();
   }, [load]);
+
+  useEffect(() => {
+    let stale = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- carga de la página pedida
+    setOrdersLoading(true);
+    setOrdersError(null);
+    restockService
+      .listOrdersPage({
+        page: orderPage,
+        size: orderPageSize,
+        from: orderRange.from,
+        to: orderRange.to,
+      })
+      .then((result) => {
+        if (stale) return;
+        setOrders(result.items);
+        setOrderTotal(result.totalElements);
+        setOrderTotalPages(Math.max(1, result.totalPages));
+      })
+      .catch(() => {
+        if (stale) return;
+        setOrders([]);
+        setOrderTotal(0);
+        setOrdersError(
+          "No se pudieron cargar las órdenes de restock. Revisá la conexión con el backend."
+        );
+      })
+      .finally(() => {
+        if (!stale) setOrdersLoading(false);
+      });
+    return () => {
+      stale = true;
+    };
+  }, [orderPage, orderPageSize, orderRange, ordersReloadKey]);
+
+  const reload = async () => {
+    setOrdersReloadKey((key) => key + 1);
+    await load();
+  };
 
   const productById = useMemo(
     () => new Map(products.map((product) => [product.id, product])),
@@ -251,13 +287,10 @@ export default function StockManagementPage() {
     [orders, productById]
   );
 
-  const filteredOrders = useMemo(() => {
+  const orderItems = useMemo(() => {
     const q = orderSearch.trim().toLowerCase();
     return decoratedOrders.filter((order) => {
       if (orderStatus && order.status !== orderStatus) return false;
-      const day = isoDay(order.createdAt);
-      if (orderRange.from && day < orderRange.from) return false;
-      if (orderRange.to && day > orderRange.to) return false;
       if (!q) return true;
       return (
         order.productName.toLowerCase().includes(q) ||
@@ -265,14 +298,9 @@ export default function StockManagementPage() {
         (order.code || "").toLowerCase().includes(q)
       );
     });
-  }, [decoratedOrders, orderSearch, orderStatus, orderRange]);
+  }, [decoratedOrders, orderSearch, orderStatus]);
 
-  const orderTotalPages = Math.max(
-    1,
-    Math.ceil(filteredOrders.length / orderPageSize)
-  );
-  const orderStart = (Math.min(orderPage, orderTotalPages) - 1) * orderPageSize;
-  const orderItems = filteredOrders.slice(orderStart, orderStart + orderPageSize);
+  const orderStart = (orderPage - 1) * orderPageSize;
 
   /* ---------- Acciones ---------- */
 
@@ -285,7 +313,7 @@ export default function StockManagementPage() {
 
   const handleOrderCreated = async () => {
     setFeedback({ type: "ok", text: "Orden de restock creada correctamente." });
-    await load();
+    await reload();
   };
 
   const handleReceptionCreated = async (reception) => {
@@ -296,7 +324,7 @@ export default function StockManagementPage() {
           ? `Remito registrado con ${reception.quantityPendingLocation} unidades sin ubicar. Asignales posición cuando quieras.`
           : "Remito registrado. El stock de las posiciones se actualizó.",
     });
-    await load();
+    await reload();
   };
 
   const handleLocated = async () => {
@@ -304,7 +332,7 @@ export default function StockManagementPage() {
       type: "ok",
       text: "Posiciones asignadas. El stock del warehouse se actualizó.",
     });
-    await load();
+    await reload();
   };
 
   const openDetail = (order) => {
@@ -351,7 +379,7 @@ export default function StockManagementPage() {
       setCancelTarget(null);
       closeDetail();
       setFeedback({ type: "ok", text: "Orden de restock cancelada." });
-      await load();
+      await reload();
     } catch (e) {
       setCancelError(
         errorText(
@@ -389,6 +417,14 @@ export default function StockManagementPage() {
           statusBannerState="status-banner-error"
           icon={<Icon name="alert" size={16} />}
           text={loadError}
+        />
+      )}
+
+      {ordersError && (
+        <StatusBanner
+          statusBannerState="status-banner-error"
+          icon={<Icon name="alert" size={16} />}
+          text={ordersError}
         />
       )}
 
@@ -608,7 +644,7 @@ export default function StockManagementPage() {
           <header className="stock-panel__head">
             <h3 className="stock-panel__title">
               Órdenes de restock
-              <span className="stock-panel__count">({filteredOrders.length})</span>
+              <span className="stock-panel__count">({orderTotal.toLocaleString("es-AR")})</span>
               <span
                 className="stock-panel__hint"
                 title="El estado se deriva de las recepciones registradas: sin recibir (pendiente), parcial (recibido) o completo."
@@ -624,11 +660,10 @@ export default function StockManagementPage() {
 
           <div className="stock-panel__toolbar">
             <Input
-              placeholder="Buscar por producto, SKU u orden"
+              placeholder="Buscar en esta página por producto, SKU u orden"
               value={orderSearch}
               onChange={(e) => {
                 setOrderSearch(e.target.value);
-                setOrderPage(1);
               }}
               iconLeft={<Icon name="search" size={16} />}
             />
@@ -647,12 +682,9 @@ export default function StockManagementPage() {
           {orderFiltersOpen && (
             <div className="stock-panel__filters stock-panel__filters--wide">
               <Select
-                label="Estado"
+                label="Estado (en esta página)"
                 value={orderStatus}
-                onChange={(e) => {
-                  setOrderStatus(e.target.value);
-                  setOrderPage(1);
-                }}
+                onChange={(e) => setOrderStatus(e.target.value)}
                 options={STATUS_OPTIONS}
               />
               <DateRangeFilter
@@ -666,7 +698,7 @@ export default function StockManagementPage() {
             </div>
           )}
 
-          {loading ? (
+          {ordersLoading ? (
             <div className="stock-panel__loading">
               <Spinner size={28} label="Cargando órdenes…" />
             </div>
@@ -739,15 +771,14 @@ export default function StockManagementPage() {
             </div>
           )}
 
-          {filteredOrders.length > 0 && (
+          {orderTotal > 0 && (
             <footer className="stock-panel__foot">
               <span className="stock-panel__showing">
-                Mostrando {orderStart + 1} a{" "}
-                {Math.min(orderStart + orderPageSize, filteredOrders.length)} de{" "}
-                {filteredOrders.length} órdenes
+                Mostrando {orderStart + 1} a {orderStart + orders.length} de{" "}
+                {orderTotal.toLocaleString("es-AR")} órdenes
               </span>
               <Pagination
-                current={Math.min(orderPage, orderTotalPages)}
+                current={orderPage}
                 total={orderTotalPages}
                 onChange={setOrderPage}
               />
@@ -782,7 +813,6 @@ export default function StockManagementPage() {
 
       <RemitoModal
         open={receivingOpen}
-        orders={decoratedOrders}
         products={products}
         onClose={() => setReceivingOpen(false)}
         onCreated={handleReceptionCreated}

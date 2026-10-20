@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
 import Card from "../../components/ui/Card/Card";
 import Input from "../../components/ui/Input/Input";
@@ -15,6 +15,7 @@ import Icon from "../../components/ui/Icon/Icon";
 import { orderService, mapOrderStatus } from "../../services/orderService";
 import { productService } from "../../services/productService";
 import { userService } from "../../services/userService";
+import { daysAgo } from "../../lib/pagination";
 import "./SalesPage.css";
 
 /*
@@ -27,6 +28,10 @@ import "./SalesPage.css";
 |
 | Cliente: Order solo trae requested_by_user_id. Se cruza con userService
 | cuando el rol lo permite (requiere admin_system); si no, "—".
+|
+| Con dos años de historial (~57k órdenes) la tabla pagina en el backend:
+| estado y fechas viajan como filtros; el buscador no tiene endpoint y filtra
+| solo la página visible.
 */
 
 const PAGE_SIZE_OPTIONS = [
@@ -35,26 +40,18 @@ const PAGE_SIZE_OPTIONS = [
   { value: "32", label: "32 por página" },
 ];
 
+// Valores del backend. "Falla" no es un estado propio (es cancelled + motivo),
+// así que no se puede pedir por separado.
 const STATUS_FILTERS = [
   { value: "", label: "Todos los estados" },
-  { value: "pendiente", label: "Pendiente" },
-  { value: "en_proceso", label: "En proceso" },
-  { value: "despachado", label: "Despachado" },
-  { value: "falla", label: "Falla" },
-  { value: "cancelada", label: "Cancelada" },
+  { value: "pending", label: "Pendiente" },
+  { value: "in_progress", label: "En proceso" },
+  { value: "completed", label: "Despachado" },
+  { value: "cancelled", label: "Cancelada / falla" },
 ];
 
-// falla agrupa los dos motivos (stock y robot).
-const matchesStatusFilter = (uiKey, filter) => {
-  if (!filter) return true;
-  if (filter === "falla") return uiKey === "falla_stock" || uiKey === "falla_robot";
-  return uiKey === filter;
-};
-
-const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
-
-// Ventana fija por sesión: evita recalcular en cada render.
-const LAST_30_DAYS_SINCE = Date.now() - THIRTY_DAYS_MS;
+// Arranca acotado: sin rango, la primera carga recorre dos años de órdenes.
+const DEFAULT_RANGE_DAYS = 90;
 
 const formatDate = (iso) =>
   iso ? new Date(iso).toLocaleDateString("es-AR") : "—";
@@ -70,19 +67,22 @@ const formatDateTime = (iso) =>
       })
     : "—";
 
-const isoDay = (iso) => (iso ? new Date(iso).toISOString().slice(0, 10) : "");
-
 export default function SalesPage() {
   const [orders, setOrders] = useState([]);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [metrics, setMetrics] = useState(null);
   const [products, setProducts] = useState([]);
   const [userNames, setUserNames] = useState(new Map());
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [feedback, setFeedback] = useState(null);
+  // Se incrementa para volver a pedir la página y las métricas (p. ej. tras cancelar).
+  const [reloadKey, setReloadKey] = useState(0);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [range, setRange] = useState({ from: "", to: "" });
+  const [range, setRange] = useState(() => ({ from: daysAgo(DEFAULT_RANGE_DAYS), to: "" }));
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
@@ -94,38 +94,63 @@ export default function SalesPage() {
   const [cancelError, setCancelError] = useState(null);
   const [cancelSending, setCancelSending] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setLoadError(null);
-    try {
-      const [orderList, productList] = await Promise.all([
-        orderService.list(),
-        productService.listAll({ isActive: true }).catch(() => []),
-      ]);
-      setOrders(
-        [...orderList].sort(
-          (a, b) => new Date(b.createdAt ?? 0) - new Date(a.createdAt ?? 0)
-        )
-      );
-      setProducts(productList);
-      // El cruce de cliente es best-effort: requiere admin_system.
-      userService
-        .list({ size: 200 })
-        .then(({ users }) => setUserNames(new Map(users.map((u) => [u.id, u.name]))))
-        .catch(() => setUserNames(new Map()));
-    } catch {
-      setLoadError(
-        "No se pudo cargar la gestión de ventas. Revisá la conexión con el backend."
-      );
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    productService
+      .listAll({ isActive: true })
+      .then(setProducts)
+      .catch(() => setProducts([]));
+    // El cruce de cliente es best-effort: requiere admin_system.
+    userService
+      .list({ size: 200 })
+      .then(({ users }) => setUserNames(new Map(users.map((u) => [u.id, u.name]))))
+      .catch(() => setUserNames(new Map()));
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- carga inicial
-    load();
-  }, [load]);
+    let stale = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- carga de la página pedida
+    setLoading(true);
+    setLoadError(null);
+    orderService
+      .listPage({
+        page,
+        size: pageSize,
+        status: statusFilter || undefined,
+        from: range.from,
+        to: range.to,
+      })
+      .then((result) => {
+        if (stale) return;
+        setOrders(result.items);
+        setTotalElements(result.totalElements);
+        setTotalPages(Math.max(1, result.totalPages));
+      })
+      .catch(() => {
+        if (stale) return;
+        setOrders([]);
+        setTotalElements(0);
+        setLoadError(
+          "No se pudo cargar la gestión de ventas. Revisá la conexión con el backend."
+        );
+      })
+      .finally(() => {
+        if (!stale) setLoading(false);
+      });
+    return () => {
+      stale = true;
+    };
+  }, [page, pageSize, statusFilter, range, reloadKey]);
+
+  useEffect(() => {
+    const last30 = { from: daysAgo(30) };
+    Promise.all([
+      orderService.count({ status: "pending" }),
+      orderService.count({ ...last30, status: "completed" }),
+      orderService.count(last30),
+    ])
+      .then(([pending, dispatched, total]) => setMetrics({ pending, dispatched, total }))
+      .catch(() => setMetrics(null));
+  }, [reloadKey]);
 
   const productById = useMemo(
     () => new Map(products.map((product) => [product.id, product])),
@@ -159,15 +184,11 @@ export default function SalesPage() {
     [orders, productById, userNames]
   );
 
-  const filtered = useMemo(() => {
+  const items = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return decorated.filter((order) => {
-      if (!matchesStatusFilter(order.uiKey, statusFilter)) return false;
-      const day = isoDay(order.createdAt);
-      if (range.from && day < range.from) return false;
-      if (range.to && day > range.to) return false;
-      if (!q) return true;
-      return (
+    if (!q) return decorated;
+    return decorated.filter(
+      (order) =>
         (order.code || "").toLowerCase().includes(q) ||
         order.client.toLowerCase().includes(q) ||
         order.items.some(
@@ -175,24 +196,10 @@ export default function SalesPage() {
             (i.name || "").toLowerCase().includes(q) ||
             (i.sku || "").toLowerCase().includes(q)
         )
-      );
-    });
-  }, [decorated, search, statusFilter, range]);
-
-  const metrics = useMemo(() => {
-    const last30 = decorated.filter(
-      (o) => o.createdAt && new Date(o.createdAt).getTime() >= LAST_30_DAYS_SINCE
     );
-    return {
-      pending: decorated.filter((o) => o.uiKey === "pendiente").length,
-      dispatched: last30.filter((o) => o.uiKey === "despachado").length,
-      total: last30.length,
-    };
-  }, [decorated]);
+  }, [decorated, search]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const start = (Math.min(page, totalPages) - 1) * pageSize;
-  const items = filtered.slice(start, start + pageSize);
+  const start = (page - 1) * pageSize;
 
   const openCancel = (order) => {
     setCancelTarget(order);
@@ -220,7 +227,7 @@ export default function SalesPage() {
       setCancelTarget(null);
       setDetail(null);
       setFeedback({ type: "ok", text: "Orden cancelada correctamente." });
-      await load();
+      setReloadKey((key) => key + 1);
     } catch {
       setCancelError("No se pudo cancelar la orden. Intentá de nuevo.");
     } finally {
@@ -265,7 +272,7 @@ export default function SalesPage() {
           </span>
           <span className="sales__metric-text">
             <span className="sales__metric-label">Órdenes pendientes de despacho</span>
-            <span className="sales__metric-value">{loading ? "…" : metrics.pending}</span>
+            <span className="sales__metric-value">{metrics ? metrics.pending : "…"}</span>
           </span>
         </div>
         <div className="sales__metric sales__metric--dispatched">
@@ -274,7 +281,7 @@ export default function SalesPage() {
           </span>
           <span className="sales__metric-text">
             <span className="sales__metric-label">Órdenes despachadas</span>
-            <span className="sales__metric-value">{loading ? "…" : metrics.dispatched}</span>
+            <span className="sales__metric-value">{metrics ? metrics.dispatched : "…"}</span>
             <span className="sales__metric-sub">Últimos 30 días</span>
           </span>
         </div>
@@ -284,7 +291,7 @@ export default function SalesPage() {
           </span>
           <span className="sales__metric-text">
             <span className="sales__metric-label">Total de órdenes</span>
-            <span className="sales__metric-value">{loading ? "…" : metrics.total}</span>
+            <span className="sales__metric-value">{metrics ? metrics.total : "…"}</span>
             <span className="sales__metric-sub">Últimos 30 días</span>
           </span>
         </div>
@@ -298,12 +305,9 @@ export default function SalesPage() {
 
         <div className="sales-panel__toolbar">
           <Input
-            placeholder="Buscar por número de orden, cliente o producto..."
+            placeholder="Buscar en esta página por orden, cliente o producto..."
             value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => setSearch(e.target.value)}
             iconLeft={<Icon name="search" size={16} />}
           />
           <button
@@ -430,14 +434,14 @@ export default function SalesPage() {
           </div>
         )}
 
-        {filtered.length > 0 && (
+        {totalElements > 0 && (
           <footer className="sales-panel__foot">
             <span className="sales-panel__showing">
-              Mostrando {start + 1} a {Math.min(start + pageSize, filtered.length)} de{" "}
-              {filtered.length} órdenes
+              Mostrando {start + 1} a {start + orders.length} de{" "}
+              {totalElements.toLocaleString("es-AR")} órdenes
             </span>
             <Pagination
-              current={Math.min(page, totalPages)}
+              current={page}
               total={totalPages}
               onChange={setPage}
             />
