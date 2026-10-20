@@ -116,11 +116,6 @@ const units = (n) => `${n} unidad${n === 1 ? "" : "es"}`;
 
 export default function StockManagementPage() {
   const [products, setProducts] = useState([]);
-  const [orders, setOrders] = useState([]);
-  const [orderTotal, setOrderTotal] = useState(0);
-  const [orderTotalPages, setOrderTotalPages] = useState(1);
-  const [ordersLoading, setOrdersLoading] = useState(true);
-  const [ordersError, setOrdersError] = useState(null);
   // Se incrementa para volver a pedir la página de órdenes.
   const [ordersReloadKey, setOrdersReloadKey] = useState(0);
   const [alerts, setAlerts] = useState([]);
@@ -195,39 +190,50 @@ export default function StockManagementPage() {
     load();
   }, [load]);
 
-  useEffect(() => {
-    let stale = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- carga de la página pedida
-    setOrdersLoading(true);
-    setOrdersError(null);
-    restockService
-      .listOrdersPage({
+  // ordersReloadKey no viaja al backend: solo hace que la query sea otra.
+  const ordersQuery = useMemo(
+    () => ({
+      params: {
         page: orderPage,
         size: orderPageSize,
         from: orderRange.from,
         to: orderRange.to,
-      })
+      },
+      reloadKey: ordersReloadKey,
+    }),
+    [orderPage, orderPageSize, orderRange, ordersReloadKey]
+  );
+
+  // { query, items, totalElements, totalPages, error } de la última respuesta.
+  // Mientras no corresponda a la query actual, la página está cargando; se
+  // conserva la anterior para que el paginador no parpadee.
+  const [ordersResult, setOrdersResult] = useState(null);
+
+  useEffect(() => {
+    let stale = false;
+    restockService
+      .listOrdersPage(ordersQuery.params)
+      .then((result) => ({ ...result, error: null }))
+      .catch(() => ({
+        items: [],
+        totalElements: 0,
+        totalPages: 1,
+        error:
+          "No se pudieron cargar las órdenes de restock. Revisá la conexión con el backend.",
+      }))
       .then((result) => {
-        if (stale) return;
-        setOrders(result.items);
-        setOrderTotal(result.totalElements);
-        setOrderTotalPages(Math.max(1, result.totalPages));
-      })
-      .catch(() => {
-        if (stale) return;
-        setOrders([]);
-        setOrderTotal(0);
-        setOrdersError(
-          "No se pudieron cargar las órdenes de restock. Revisá la conexión con el backend."
-        );
-      })
-      .finally(() => {
-        if (!stale) setOrdersLoading(false);
+        if (!stale) setOrdersResult({ ...result, query: ordersQuery });
       });
     return () => {
       stale = true;
     };
-  }, [orderPage, orderPageSize, orderRange, ordersReloadKey]);
+  }, [ordersQuery]);
+
+  const ordersLoading = ordersResult?.query !== ordersQuery;
+  const orders = useMemo(() => ordersResult?.items ?? [], [ordersResult]);
+  const orderTotal = ordersResult?.totalElements ?? 0;
+  const orderTotalPages = Math.max(1, ordersResult?.totalPages ?? 1);
+  const ordersError = ordersResult?.error ?? null;
 
   const reload = async () => {
     setOrdersReloadKey((key) => key + 1);

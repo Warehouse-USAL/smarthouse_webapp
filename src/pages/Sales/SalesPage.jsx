@@ -68,14 +68,9 @@ const formatDateTime = (iso) =>
     : "—";
 
 export default function SalesPage() {
-  const [orders, setOrders] = useState([]);
-  const [totalElements, setTotalElements] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
   const [metrics, setMetrics] = useState(null);
   const [products, setProducts] = useState([]);
   const [userNames, setUserNames] = useState(new Map());
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(null);
   const [feedback, setFeedback] = useState(null);
   // Se incrementa para volver a pedir la página y las métricas (p. ej. tras cancelar).
   const [reloadKey, setReloadKey] = useState(0);
@@ -106,40 +101,50 @@ export default function SalesPage() {
       .catch(() => setUserNames(new Map()));
   }, []);
 
-  useEffect(() => {
-    let stale = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- carga de la página pedida
-    setLoading(true);
-    setLoadError(null);
-    orderService
-      .listPage({
+  // reloadKey no viaja al backend: solo hace que la query sea otra.
+  const query = useMemo(
+    () => ({
+      params: {
         page,
         size: pageSize,
         status: statusFilter || undefined,
         from: range.from,
         to: range.to,
-      })
+      },
+      reloadKey,
+    }),
+    [page, pageSize, statusFilter, range, reloadKey]
+  );
+
+  // { query, items, totalElements, totalPages, error } de la última respuesta.
+  // Mientras no corresponda a la query actual, la página está cargando.
+  const [pageResult, setPageResult] = useState(null);
+
+  useEffect(() => {
+    let stale = false;
+    orderService
+      .listPage(query.params)
+      .then((result) => ({ ...result, error: null }))
+      .catch(() => ({
+        items: [],
+        totalElements: 0,
+        totalPages: 1,
+        error: "No se pudo cargar la gestión de ventas. Revisá la conexión con el backend.",
+      }))
       .then((result) => {
-        if (stale) return;
-        setOrders(result.items);
-        setTotalElements(result.totalElements);
-        setTotalPages(Math.max(1, result.totalPages));
-      })
-      .catch(() => {
-        if (stale) return;
-        setOrders([]);
-        setTotalElements(0);
-        setLoadError(
-          "No se pudo cargar la gestión de ventas. Revisá la conexión con el backend."
-        );
-      })
-      .finally(() => {
-        if (!stale) setLoading(false);
+        if (!stale) setPageResult({ ...result, query });
       });
     return () => {
       stale = true;
     };
-  }, [page, pageSize, statusFilter, range, reloadKey]);
+  }, [query]);
+
+  // Mientras carga se conserva la respuesta anterior: el paginador no parpadea.
+  const loading = pageResult?.query !== query;
+  const orders = useMemo(() => pageResult?.items ?? [], [pageResult]);
+  const totalElements = pageResult?.totalElements ?? 0;
+  const totalPages = Math.max(1, pageResult?.totalPages ?? 1);
+  const loadError = pageResult?.error ?? null;
 
   useEffect(() => {
     const last30 = { from: daysAgo(30) };
