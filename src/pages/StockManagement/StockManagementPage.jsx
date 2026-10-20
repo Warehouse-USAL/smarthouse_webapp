@@ -222,7 +222,12 @@ export default function StockManagementPage() {
           "No se pudieron cargar las órdenes de restock. Revisá la conexión con el backend.",
       }))
       .then((result) => {
-        if (!stale) setOrdersResult({ ...result, query: ordersQuery });
+        if (stale) return;
+        if (result.totalPages > 0 && ordersQuery.params.page > result.totalPages) {
+          setOrderPage(result.totalPages);
+          return;
+        }
+        setOrdersResult({ ...result, query: ordersQuery });
       });
     return () => {
       stale = true;

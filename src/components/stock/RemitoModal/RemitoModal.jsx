@@ -73,7 +73,9 @@ export default function RemitoModal({
   const [error, setError] = useState(null);
 
   // Solo tiene sentido recibir contra órdenes que todavía esperan mercadería.
-  const [openOrders, setOpenOrders] = useState([]);
+  // null = cargando o sin abrir; { orders, error } = respuesta de la última apertura.
+  const [openOrdersResult, setOpenOrdersResult] = useState(null);
+  const openOrders = useMemo(() => openOrdersResult?.orders ?? [], [openOrdersResult]);
 
   const productById = useMemo(
     () => new Map(products.map((product) => [product.id, product])),
@@ -108,12 +110,21 @@ export default function RemitoModal({
     let stale = false;
     restockService
       .listOpenOrders()
-      .catch(() => [])
-      .then((orders) => {
-        if (!stale) setOpenOrders(orders);
+      .then((orders) => ({ orders, error: null }))
+      .catch((e) => ({
+        orders: [],
+        error: errorText(
+          e,
+          {},
+          "No se pudieron cargar las órdenes abiertas. Podés registrar el remito sin orden asociada."
+        ),
+      }))
+      .then((result) => {
+        if (!stale) setOpenOrdersResult(result);
       });
     return () => {
       stale = true;
+      setOpenOrdersResult(null);
     };
   }, [open]);
 
@@ -289,7 +300,15 @@ export default function RemitoModal({
             options={orderOptions}
             value={orderId}
             onChange={(e) => handleOrderChange(e.target.value)}
+            disabled={openOrdersResult === null}
           />
+          {openOrdersResult?.error && (
+            <StatusBanner
+              statusBannerState="status-banner"
+              icon={<Icon name="info" size={16} />}
+              text={openOrdersResult.error}
+            />
+          )}
           {selectedOrder && (
             <div className="remito-modal__info">
               <Badge

@@ -132,7 +132,13 @@ export default function SalesPage() {
         error: "No se pudo cargar la gestión de ventas. Revisá la conexión con el backend.",
       }))
       .then((result) => {
-        if (!stale) setPageResult({ ...result, query });
+        if (stale) return;
+        // Tras cancelar puede quedar una página menos: se vuelve a la última.
+        if (result.totalPages > 0 && query.params.page > result.totalPages) {
+          setPage(result.totalPages);
+          return;
+        }
+        setPageResult({ ...result, query });
       });
     return () => {
       stale = true;
@@ -154,7 +160,7 @@ export default function SalesPage() {
       orderService.count(last30),
     ])
       .then(([pending, dispatched, total]) => setMetrics({ pending, dispatched, total }))
-      .catch(() => setMetrics(null));
+      .catch(() => setMetrics({ pending: "—", dispatched: "—", total: "—" }));
   }, [reloadKey]);
 
   const productById = useMemo(
