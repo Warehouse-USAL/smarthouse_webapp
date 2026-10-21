@@ -4,7 +4,7 @@
 |--------------------------------------------------------------------------
 |
 | Contrato REAL del backend (wh-backend, OrderController, RFC §9.4):
-|   GET    /orders            params: status, from, to, vehicleId
+|   GET    /orders            params: status, from, to, vehicleId, page, size
 |   GET    /orders/:id
 |   POST   /orders            { items: [{ product_id, quantity }], destination_area }
 |   POST   /orders/:id/cancel { reason }  (pending o in_progress → cancelled)
@@ -15,10 +15,9 @@
 | LO QUE EL BACKEND NO TIENE:
 |   · Despacho manual usado por el front: swagger SÍ declara
 |     PATCH /internal/orders/{id}/status (ChangeOrderStatusRequest:
-|     status + completed_at), pero la UI no lo invoca — la orden la
-|     completan los rovers vía Central y el modal de despacho solo
-|     informa. Pendiente de decisión de negocio (auditoría en
-|     docs/auditoria-endpoints.md).
+|     status + completed_at), pero la UI no lo invoca: el estado lo
+|     cambian los otros equipos (los rovers la completan vía Central) y
+|     esta app solo lo muestra.
 |   · Nombre de cliente: Order solo trae requested_by_user_id. La página lo
 |     cruza con userService cuando el rol lo permite (requiere admin_system);
 |     si no, muestra "—".
@@ -26,12 +25,10 @@
 */
 
 import { apiClient } from "../lib/apiClient";
+import { displayCode, fetchAllPages, fetchPage, paginate, toInstantRange } from "../lib/pagination";
 import { orderMockService } from "./mocks/orderMockService";
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
-
-const MAX_PAGE_SIZE = 50;
-const MAX_PAGES = 20;
 
 /*
 | Mapeo UI de estados (sprint §11, sin cambiar backend).
@@ -54,7 +51,7 @@ export const mapOrderStatus = (order) => {
   if (status === ORDER_STATUS.CANCELADO) {
     const reason = order?.cancelReason ?? "";
     if (reason.includes("INSUFFICIENT_STOCK") || reason.includes("Stock insuficiente"))
-      return { key: "falla_stock", label: "Falla · stock", variant: "danger" };
+      return { key: "falla_stock", label: "Falla por stock", variant: "danger" };
     if (reason.includes("NO_VEHICLES_AVAILABLE") || reason.includes("robot"))
       return { key: "falla_robot", label: "Falla · robot", variant: "danger" };
     return { key: "cancelada", label: "Cancelada", variant: "danger" };
@@ -81,47 +78,77 @@ const normalize = (raw) => {
     startedAt: raw.timestamps?.started_at ?? raw.timestamps?.startedAt ?? null,
     completedAt: raw.timestamps?.completed_at ?? raw.timestamps?.completedAt ?? null,
     cancelReason: raw.cancel_reason ?? raw.cancelReason ?? null,
+    code: displayCode("OC", raw.id),
   };
 };
 
-// Trae todas las páginas de un listado paginado del backend.
-const fetchAllPages = async (url, params, key, normalizer) => {
-  const out = [];
-  for (let page = 0; page < MAX_PAGES; page += 1) {
-    const { data } = await apiClient.get(url, {
-      params: { ...params, page, size: MAX_PAGE_SIZE },
-    });
-    const items = (data?.[key] || []).map(normalizer);
-    out.push(...items);
-    const total = data?.pagination?.total_pages ?? data?.pagination?.totalPages;
-    if (items.length < MAX_PAGE_SIZE) return out;
-    if (total !== undefined && page >= total - 1) return out;
-  }
-  throw new Error(
-    `El listado ${url} supera los ${MAX_PAGES * MAX_PAGE_SIZE} registros; hay que paginar la pantalla.`
-  );
+const createdAtMs = (order) => new Date(order.createdAt ?? 0).getTime();
+
+const listByStatus = async (status) => {
+  if (USE_MOCK) return (await orderMockService.list({ status })).map(normalize);
+  return fetchAllPages("/orders", { status }, "orders", normalize);
 };
 
-// OC-00001, OC-00002… por orden cronológico de creación (la más vieja es la 1).
-const withDisplayCodes = (orders) => {
-  const chronological = [...orders].sort(
-    (a, b) => new Date(a.createdAt ?? 0) - new Date(b.createdAt ?? 0)
+const quantityOf = (order, productId) =>
+  order.items
+    .filter((item) => item.productId === productId)
+    .reduce((sum, item) => sum + item.quantity, 0);
+
+const newestFirst = (orders) =>
+  [...orders].sort((a, b) => createdAtMs(b) - createdAtMs(a));
+
+const fetchOrdersPage = (params, page, size) =>
+  fetchPage("/orders", { ...params, page, size }, "orders", normalize);
+
+/*
+| GET /orders no ordena (OrderRepository.findByFilters sin Sort): el orden lo
+| decide el índice que elige Mongo. Medido con el seed de 2 años: filtrando por
+| `status` llega de la más nueva a la más vieja; sin `status`, en orden de
+| inserción (de la más vieja a la más nueva). En el segundo caso la página N
+| "más nuevas primero" se arma leyendo el listado desde el final.
+*/
+const fetchNewestPage = async (params, page, size) => {
+  const first = await fetchOrdersPage(params, 1, size);
+  const [head] = first.items;
+  const tail = first.items[first.items.length - 1];
+  const oldestFirst = first.items.length > 1 && createdAtMs(head) < createdAtMs(tail);
+  if (!oldestFirst) {
+    const result = page === 1 ? first : await fetchOrdersPage(params, page, size);
+    return { ...result, items: newestFirst(result.items) };
+  }
+
+  const total = first.totalElements;
+  const start = Math.max(0, total - page * size);
+  const end = total - (page - 1) * size;
+  if (end <= 0) return { ...first, items: [] };
+  const firstChunk = Math.floor(start / size) + 1;
+  const lastChunk = Math.floor((end - 1) / size) + 1;
+  const chunks = await Promise.all(
+    Array.from({ length: lastChunk - firstChunk + 1 }, (_, i) =>
+      fetchOrdersPage(params, firstChunk + i, size)
+    )
   );
-  const codes = new Map();
-  chronological.forEach((order, index) => {
-    codes.set(order.id, `OC-${String(index + 1).padStart(5, "0")}`);
-  });
-  return orders.map((order) => ({ ...order, code: codes.get(order.id) }));
+  const offset = (firstChunk - 1) * size;
+  const rows = chunks.flatMap((chunk) => chunk.items).slice(start - offset, end - offset);
+  return { ...first, items: newestFirst(rows) };
 };
 
 export const orderService = {
-  async list(filters = {}) {
+  // Una página de órdenes, de la más nueva a la más vieja.
+  // filters: { status, from, to, vehicleId } con from/to en yyyy-mm-dd.
+  async listPage({ page = 1, size = 10, ...filters } = {}) {
     if (USE_MOCK) {
-      const rows = await orderMockService.list(filters);
-      return withDisplayCodes(rows.map(normalize));
+      const rows = (await orderMockService.list(filters)).map(normalize);
+      return paginate(newestFirst(rows), { page, size });
     }
-    const rows = await fetchAllPages("/orders", filters, "orders", normalize);
-    return withDisplayCodes(rows);
+    return fetchNewestPage(toInstantRange(filters), page, size);
+  },
+
+  // Cuántas órdenes cumplen los filtros, sin traerlas (size=1).
+  async count(filters = {}) {
+    if (USE_MOCK) return (await orderMockService.list(filters)).length;
+    const { totalElements } = await fetchOrdersPage(toInstantRange(filters), 1, 1);
+    return totalElements;
   },
 
   async get(id) {
@@ -135,5 +162,35 @@ export const orderService = {
     if (USE_MOCK) return normalize(await orderMockService.cancel(id, reason));
     const { data } = await apiClient.post(`/orders/${id}/cancel`, { reason });
     return normalize(data?.order ?? data);
+  },
+
+  // Tras una reducción manual: las in_progress consumen stock primero y se
+  // respetan; las pending se recorren de la más vieja a la más nueva y la que
+  // no entra completa con lo que queda se cancela con `reason`, que debe
+  // empezar con INSUFFICIENT_STOCK para que mapOrderStatus la muestre como
+  // falla por stock. Devuelve las canceladas y las que el backend rechazó
+  // (p. ej. 409 si se completaron entre el listado y la cancelación).
+  async failShortOfStock({ productId, physicalStock, reason }) {
+    const [inProgress, pending] = await Promise.all([
+      listByStatus(ORDER_STATUS.EN_PROCESO),
+      listByStatus(ORDER_STATUS.PENDIENTE),
+    ]);
+    let remaining =
+      physicalStock -
+      inProgress.reduce((sum, order) => sum + quantityOf(order, productId), 0);
+    const toFail = [];
+    for (const order of [...pending].sort((a, b) => createdAtMs(a) - createdAtMs(b))) {
+      const quantity = quantityOf(order, productId);
+      if (quantity === 0) continue;
+      if (quantity <= remaining) remaining -= quantity;
+      else toFail.push(order);
+    }
+    const results = await Promise.allSettled(
+      toFail.map((order) => orderService.cancel(order.id, reason))
+    );
+    return {
+      cancelled: results.filter((r) => r.status === "fulfilled").map((r) => r.value),
+      notCancelled: toFail.filter((_, i) => results[i].status === "rejected"),
+    };
   },
 };

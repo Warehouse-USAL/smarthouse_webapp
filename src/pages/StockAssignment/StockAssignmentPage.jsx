@@ -6,7 +6,7 @@ import PendingLocationCard from "../../components/stock/PendingLocationCard/Pend
 import ProductLocationModal from "../../components/stock/ProductLocationModal/ProductLocationModal";
 import LocateReceptionModal from "../../components/stock/LocateReceptionModal/LocateReceptionModal";
 import { productService } from "../../services/productService";
-import { restockService } from "../../services/restockService";
+import { restockService, restockOrderCode } from "../../services/restockService";
 import "./StockAssignmentPage.css";
 
 const matchesSearch = (item, q) =>
@@ -37,13 +37,11 @@ export default function StockAssignmentPage() {
     try {
       // listAll pagina de verdad: list({size:200}) lo clampea el backend a 50
       // y los productos fuera de esa página no se cruzaban con las recepciones.
-      const [list, pending, orders] = await Promise.all([
+      const [list, pending] = await Promise.all([
         productService.listAll(),
         restockService.listPendingLocation(),
-        restockService.listOrdersWithProgress().catch(() => []),
       ]);
       const byId = new Map(list.map((p) => [p.id, p]));
-      const orderCode = new Map(orders.map((o) => [o.id, o.code]));
       setAllProducts(list);
       const withLocations = await Promise.all(
         list.map(async (product) => ({
@@ -68,10 +66,9 @@ export default function StockAssignmentPage() {
             // PendingLocationCard lee imageUrl del producto; sin este cruce la
             // card mostraba el placeholder en lugar de la foto.
             imageUrl: product?.imageUrl ?? "",
-            orderId:
-              orderCode.get(reception.restockOrderId) ??
-              reception.restockOrderId ??
-              "Sin orden",
+            orderId: reception.restockOrderId
+              ? restockOrderCode(reception.restockOrderId)
+              : "Sin orden",
             received: reception.quantityPendingLocation,
             receivedAt: reception.createdAt
               ? new Date(reception.createdAt).toLocaleDateString("es-AR")

@@ -55,7 +55,6 @@ const STATUS_LABEL = {
 export default function RemitoModal({
   open,
   onClose,
-  orders = [],
   products = [],
   onCreated,
 }) {
@@ -74,10 +73,9 @@ export default function RemitoModal({
   const [error, setError] = useState(null);
 
   // Solo tiene sentido recibir contra órdenes que todavía esperan mercadería.
-  const openOrders = useMemo(
-    () => orders.filter((order) => order.status !== "completado"),
-    [orders]
-  );
+  // null = cargando o sin abrir; { orders, error } = respuesta de la última apertura.
+  const [openOrdersResult, setOpenOrdersResult] = useState(null);
+  const openOrders = useMemo(() => openOrdersResult?.orders ?? [], [openOrdersResult]);
 
   const productById = useMemo(
     () => new Map(products.map((product) => [product.id, product])),
@@ -105,6 +103,30 @@ export default function RemitoModal({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (open) reset();
   }, [open, reset]);
+
+  // Si no cargan, el remito se puede registrar igual sin orden asociada.
+  useEffect(() => {
+    if (!open) return;
+    let stale = false;
+    restockService
+      .listOpenOrders()
+      .then((orders) => ({ orders, error: null }))
+      .catch((e) => ({
+        orders: [],
+        error: errorText(
+          e,
+          {},
+          "No se pudieron cargar las órdenes abiertas. Podés registrar el remito sin orden asociada."
+        ),
+      }))
+      .then((result) => {
+        if (!stale) setOpenOrdersResult(result);
+      });
+    return () => {
+      stale = true;
+      setOpenOrdersResult(null);
+    };
+  }, [open]);
 
   // Elegir una orden fija producto y proveedor, y propone recibir lo que falta.
   const handleOrderChange = (value) => {
@@ -230,7 +252,7 @@ export default function RemitoModal({
       // Identificar la orden por su producto es más útil que por el proveedor,
       // que hoy casi siempre es el marcador.
       label: `${order.code} · ${formatDate(order.createdAt)} · ${
-        order.productName ?? order.supplier
+        productById.get(order.productId)?.name ?? order.supplier
       }`,
     })),
   ];
@@ -278,7 +300,15 @@ export default function RemitoModal({
             options={orderOptions}
             value={orderId}
             onChange={(e) => handleOrderChange(e.target.value)}
+            disabled={openOrdersResult === null}
           />
+          {openOrdersResult?.error && (
+            <StatusBanner
+              statusBannerState="status-banner"
+              icon={<Icon name="info" size={16} />}
+              text={openOrdersResult.error}
+            />
+          )}
           {selectedOrder && (
             <div className="remito-modal__info">
               <Badge
@@ -325,8 +355,11 @@ export default function RemitoModal({
                       },
                       {
                         icon: "alert",
-                        label: "Stock mínimo",
-                        value: `${product.minimumStock ?? 0} unidades`,
+                        label: "Punto de reposición",
+                        value:
+                          product.reorderPoint != null
+                            ? `${product.reorderPoint} unidades`
+                            : "Sin calcular",
                       },
                     ]
                   : []

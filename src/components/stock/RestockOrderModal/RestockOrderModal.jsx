@@ -14,10 +14,12 @@ import "./RestockOrderModal.css";
 /*
 | El modal tiene dos modos:
 |
-|   · Desde una alerta (`alert`): el producto ya está decidido. La cantidad la
-|     trae el backend (POST /metrics/restock-suggestions); si ese endpoint
-|     todavía no está desplegado la alerta llega sin cantidad y el campo se pide
-|     igual que en el modo libre — nunca se rellena con un número inventado.
+|   · Desde una alerta (`alert`): el producto ya está decidido. El campo de
+|     cantidad llega precargado con la sugerida por el backend
+|     (POST /metrics/restock-suggestions) y el operador la puede editar antes
+|     de crear la orden; si el endpoint todavía no está desplegado la alerta
+|     llega sin cantidad y el campo arranca vacío — nunca se rellena con un
+|     número inventado.
 |   · En blanco (sin `alert`, entrando por la tarjeta "Agregar órdenes de
 |     restock"): el formulario arranca vacío y el operador elige producto y
 |     cantidad. Al elegir producto se muestran sus números para que la decisión
@@ -81,13 +83,9 @@ export default function RestockOrderModal({
 
   const subtitle = fromAlert
     ? hasSuggestion
-      ? "Confirmá la orden con la cantidad sugerida por el sistema."
+      ? "Revisá la cantidad sugerida por el sistema y ajustala si hace falta."
       : "Indicá cuánto querés solicitar de este producto."
     : "Elegí el producto y la cantidad a solicitar.";
-
-  // El campo de cantidad aparece siempre que no haya una sugerencia que
-  // confirmar: en el modo libre, y también desde una alerta sin cantidad.
-  const asksQuantity = !fromAlert || !hasSuggestion;
 
   const handleCreate = async () => {
     setSubmitting(true);
@@ -173,48 +171,36 @@ export default function RestockOrderModal({
         />
       )}
 
-      {asksQuantity && (
-        <div className="restock-modal__form">
-          <Input
-            label="Cantidad solicitada"
-            type="number"
-            min={1}
-            step={1}
-            placeholder="Ej. 50"
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
-            hint={
-              hasSuggestion
-                ? `El sistema sugiere ${units(detail.suggestedQuantity)}.`
-                : "Unidades a solicitar al proveedor."
-            }
-            required
-          />
+      <div className="restock-modal__form">
+        <Input
+          label="Cantidad solicitada"
+          type="number"
+          min={1}
+          step={1}
+          placeholder="Ej. 50"
+          value={quantity}
+          onChange={(e) => setQuantity(e.target.value)}
+          hint={
+            hasSuggestion
+              ? `El sistema sugiere ${units(detail.suggestedQuantity)}.`
+              : "Unidades a solicitar al proveedor."
+          }
+          required
+        />
 
-          {hasSuggestion && detail.suggestedQuantity > 0 && (
-            <button
-              type="button"
-              className="restock-modal__use-suggested"
-              onClick={() => setQuantity(String(detail.suggestedQuantity))}
-            >
-              <Icon name="chart" size={14} />
-              Usar la cantidad sugerida ({detail.suggestedQuantity})
-            </button>
-          )}
-        </div>
-      )}
+        {hasSuggestion && detail.suggestedQuantity > 0 && (
+          <button
+            type="button"
+            className="restock-modal__use-suggested"
+            onClick={() => setQuantity(String(detail.suggestedQuantity))}
+          >
+            <Icon name="chart" size={14} />
+            Usar la cantidad sugerida ({detail.suggestedQuantity})
+          </button>
+        )}
+      </div>
 
       {/* ── Números del producto: ya van en la card ────────── */}
-
-      {fromAlert && hasSuggestion && (
-        <div className="restock-modal__note">
-          <Icon name="info" size={16} />
-          <span>
-            Se generará la orden con la cantidad sugerida para alcanzar el stock
-            óptimo.
-          </span>
-        </div>
-      )}
 
       {fromAlert && !hasSuggestion && (
         <div className="restock-modal__note">
