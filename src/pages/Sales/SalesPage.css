@@ -378,13 +378,6 @@
   color: var(--color-text-secondary-alt);
 }
 
-.sales__dispatch-note {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--color-text-secondary);
-}
-
 .sales__cancel-error {
   margin: var(--space-3) 0 0;
   font-size: 13px;

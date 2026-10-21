@@ -21,10 +21,9 @@ import "./SalesPage.css";
 /*
 | Gestión de Ventas (Order = despacho al cliente, NO confundir con restock).
 |
-| El backend NO tiene despacho manual: la orden la completan los rovers vía
-| Central (in_progress → completed). "Marcar como despachado" abre la
-| confirmación y ahí se informa que todavía no se puede hacer a mano.
-| Cancelar sí existe (POST /orders/:id/cancel) y funciona de verdad.
+| El estado de la orden no se maneja acá: lo van cambiando los otros equipos
+| (los rovers la completan vía Central, in_progress → completed) y esta
+| pantalla solo lo muestra. Cancelar sí existe (POST /orders/:id/cancel).
 |
 | Cliente: Order solo trae requested_by_user_id. Se cruza con userService
 | cuando el rol lo permite (requiere admin_system); si no, "—".
@@ -83,7 +82,6 @@ export default function SalesPage() {
   const [pageSize, setPageSize] = useState(8);
 
   const [detail, setDetail] = useState(null);
-  const [dispatchTarget, setDispatchTarget] = useState(null);
   const [cancelTarget, setCancelTarget] = useState(null);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelError, setCancelError] = useState(null);
@@ -254,7 +252,7 @@ export default function SalesPage() {
     <div className="sales">
       <PageHeader
         title="Gestión de Ventas"
-        subtitle="Visualizá y gestioná las órdenes de compra realizadas por tus clientes. Marcá como despachadas las órdenes para actualizar el stock de reserva."
+        subtitle="Visualizá y gestioná las órdenes de compra realizadas por tus clientes."
       />
 
       {feedback && (
@@ -418,25 +416,14 @@ export default function SalesPage() {
                     </td>
                     <td className="sales-table__date">{formatDate(order.completedAt)}</td>
                     <td>
-                      {order.uiKey === "pendiente" ? (
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          iconLeft={<Icon name="truck" size={15} />}
-                          onClick={() => setDispatchTarget(order)}
-                        >
-                          Marcar como despachado
-                        </Button>
-                      ) : (
-                        <button
-                          type="button"
-                          className="sales-table__detail"
-                          onClick={() => setDetail(order)}
-                        >
-                          Ver detalle
-                          <span aria-hidden="true">&gt;</span>
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        className="sales-table__detail"
+                        onClick={() => setDetail(order)}
+                      >
+                        Ver detalle
+                        <span aria-hidden="true">&gt;</span>
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -553,33 +540,6 @@ export default function SalesPage() {
               ))}
             </ul>
           </>
-        )}
-      </Modal>
-
-      {/* ── Despacho (endpoint interno existe, la UI no lo usa) ────── */}
-      <Modal
-        open={dispatchTarget !== null}
-        onClose={() => setDispatchTarget(null)}
-        title={dispatchTarget ? `Despachar orden ${dispatchTarget.code}` : ""}
-        subtitle="Confirmá el despacho de la mercadería al cliente."
-        size="sm"
-        footer={
-          <div className="sales__modal-foot">
-            <Button variant="secondary" onClick={() => setDispatchTarget(null)}>
-              Volver
-            </Button>
-            <Button variant="primary" onClick={() => setDispatchTarget(null)}>
-              Entendido
-            </Button>
-          </div>
-        }
-      >
-        {dispatchTarget && (
-          <p className="sales__dispatch-note">
-            El despacho todavía no se puede marcar a mano: la orden la completa
-            el rover asignado por Central. Cuando se complete, sale de
-            pendientes y se descuenta la reserva.
-          </p>
         )}
       </Modal>
 

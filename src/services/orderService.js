@@ -15,10 +15,9 @@
 | LO QUE EL BACKEND NO TIENE:
 |   · Despacho manual usado por el front: swagger SÍ declara
 |     PATCH /internal/orders/{id}/status (ChangeOrderStatusRequest:
-|     status + completed_at), pero la UI no lo invoca — la orden la
-|     completan los rovers vía Central y el modal de despacho solo
-|     informa. Pendiente de decisión de negocio (auditoría en
-|     docs/auditoria-endpoints.md).
+|     status + completed_at), pero la UI no lo invoca: el estado lo
+|     cambian los otros equipos (los rovers la completan vía Central) y
+|     esta app solo lo muestra.
 |   · Nombre de cliente: Order solo trae requested_by_user_id. La página lo
 |     cruza con userService cuando el rol lo permite (requiere admin_system);
 |     si no, muestra "—".
