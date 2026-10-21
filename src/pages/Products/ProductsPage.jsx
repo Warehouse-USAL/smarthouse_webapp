@@ -454,7 +454,7 @@ export default function ProductsPage() {
                 <th>Stock físico</th>
                 <th>Stock reservado</th>
                 <th>Stock disponible</th>
-                <th>Stock mínimo</th>
+                <th>Punto de reposición</th>
                 <th>Ubicación</th>
                 <th>Reponer</th>
                 <th>Acciones</th>
@@ -505,9 +505,15 @@ export default function ProductsPage() {
                       {product.availableStock}{" "}
                       <span className="products-table__unit">unidades</span>
                     </td>
-                    <td data-label="Stock mínimo" className="products-table__num">
-                      {product.minimumStock}{" "}
-                      <span className="products-table__unit">unidades</span>
+                    <td data-label="Punto de reposición" className="products-table__num">
+                      {product.reorderPoint != null ? (
+                        <>
+                          {product.reorderPoint}{" "}
+                          <span className="products-table__unit">unidades</span>
+                        </>
+                      ) : (
+                        "Sin calcular"
+                      )}
                     </td>
                     <td data-label="Ubicación" className="products-table__loc">
                       {first ? (

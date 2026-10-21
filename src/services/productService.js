@@ -128,6 +128,11 @@ const normalize = (raw) => {
     minimumStock:
       stock.min ?? 0,
 
+    // Punto de reposición de la corrida diaria (restock.reorder_point); null
+    // hasta que el producto tenga su primer cálculo.
+    reorderPoint:
+      raw.restock?.reorder_point != null ? Math.round(raw.restock.reorder_point) : null,
+
     maxQuantityPerOrder:
       orderConstraints.max_quantity_per_order ??
       orderConstraints.maxQuantityPerOrder ??

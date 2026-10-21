@@ -355,8 +355,11 @@ export default function RemitoModal({
                       },
                       {
                         icon: "alert",
-                        label: "Stock mínimo",
-                        value: `${product.minimumStock ?? 0} unidades`,
+                        label: "Punto de reposición",
+                        value:
+                          product.reorderPoint != null
+                            ? `${product.reorderPoint} unidades`
+                            : "Sin calcular",
                       },
                     ]
                   : []

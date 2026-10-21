@@ -566,7 +566,11 @@ export default function StockManagementPage() {
             <EmptyState
               icon="check"
               title="Sin alertas de reestock"
-              description="Ningún producto está por debajo de su stock mínimo."
+              description={
+                hasSuggestions
+                  ? "Ningún producto está por debajo de su punto de reposición."
+                  : "Ningún producto está por debajo de su stock mínimo."
+              }
             />
           ) : (
             <div className="stock-table-wrap">
@@ -867,8 +871,11 @@ export default function StockManagementPage() {
                 },
                 {
                   icon: "alert",
-                  label: "Stock mínimo",
-                  value: units(detailProduct?.minimumStock ?? 0),
+                  label: "Punto de reposición",
+                  value:
+                    detailProduct?.reorderPoint != null
+                      ? units(detailProduct.reorderPoint)
+                      : "Sin calcular",
                 },
                 {
                   icon: "chart",
