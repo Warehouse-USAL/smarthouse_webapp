@@ -14,6 +14,7 @@ import Badge from "../../components/ui/Badge/Badge";
 import CreateProductForm from "../../components/products/CreateProductForm/CreateProductForm";
 import { productService } from "../../services/productService";
 import { warehouseConfigService } from "../../services/warehouseConfigService";
+import { orderService, mapOrderStatus } from "../../services/orderService";
 import { can } from "../../lib/permissions";
 import { needsRestock } from "../../lib/restockSuggestion";
 import "./ProductsPage.css";
@@ -81,6 +82,8 @@ export default function ProductsPage() {
   const [adjustType, setAdjustType] = useState("entrada");
   const [adjustQty, setAdjustQty] = useState("");
   const [adjustSubmitting, setAdjustSubmitting] = useState(false);
+  // Resultado de una reducción: { cancelled, notCancelled } de failShortOfStock.
+  const [reductionResult, setReductionResult] = useState(null);
 
   // Permisos del rol actual (espejo del backend): crear/editar incluye a
   // ADMIN_SALES, borrar no; asignar stock es solo de warehouse.
@@ -255,17 +258,20 @@ export default function ProductsPage() {
   const adjustLocation =
     adjustLocations.find((loc) => loc.idPosition === adjustPosition) ?? null;
   const adjustCurrent = adjustLocation?.currentStock ?? 0;
-  const adjustReserved = adjusting?.reservedStock ?? 0;
 
   // Stock resultante del ajuste + validación previa al PATCH. Sin cantidad
   // cargada no hay error (el botón queda deshabilitado hasta que haya un next).
-  // El backend valida capacity/min por su lado y devuelve 400, que se muestra
-  // en el alert del handleAdjust.
+  // Una reducción puede dejar el stock por debajo de la reserva o del mínimo:
+  // registra una pérdida real. El backend solo rechaza superar la capacidad
+  // de la posición (400), que se muestra en el alert del handleAdjust.
   const computeAdjust = () => {
     if (adjustQty === "") return { next: null };
     const qty = Number(adjustQty);
-    if (!Number.isInteger(qty) || qty < 0) {
+    if (adjustType === "conteo" && (!Number.isInteger(qty) || qty < 0)) {
       return { next: null, error: "Ingresá una cantidad entera mayor o igual a 0." };
+    }
+    if (adjustType !== "conteo" && (!Number.isInteger(qty) || qty <= 0)) {
+      return { next: null, error: "Ingresá una cantidad entera mayor a 0." };
     }
     const decreasing =
       adjustType === "merma" || adjustType === "rotura" || adjustType === "vencimiento";
@@ -281,12 +287,6 @@ export default function ProductsPage() {
         : adjustType === "conteo"
           ? qty
           : adjustCurrent - qty;
-    if (next < adjustReserved) {
-      return {
-        next: null,
-        error: `No puede quedar por debajo de la reserva (${adjustReserved} un. reservadas).`,
-      };
-    }
     return { next };
   };
 
@@ -306,12 +306,39 @@ export default function ProductsPage() {
         adjustLocation.idPosition,
         { currentStock: next }
       );
-      setAdjusting(null);
-      await fetchProducts();
     } catch (err) {
       alert(
         err.response?.data?.error?.message ||
           "No pudimos aplicar el ajuste de stock."
+      );
+      setAdjustSubmitting(false);
+      return;
+    }
+    try {
+      if (next < adjustCurrent) {
+        // Releído tras el PATCH: otras posiciones pudieron cambiar desde que
+        // se cargó la página (ajustes de otro usuario, órdenes completadas).
+        const physicalStock = (await productService.getLocations(adjusting.id)).reduce(
+          (sum, loc) => sum + loc.currentStock,
+          0
+        );
+        const typeLabel = ADJUST_TYPES.find((t) => t.value === adjustType).label;
+        setReductionResult(
+          await orderService.failShortOfStock({
+            productId: adjusting.id,
+            physicalStock,
+            reason:
+              `INSUFFICIENT_STOCK: ajuste manual "${typeLabel}" de ${adjusting.sku} ` +
+              `en ${fullLocationLabel(adjustLocation)}: ${adjustCurrent} → ${next} un.`,
+          })
+        );
+      }
+      setAdjusting(null);
+      await fetchProducts();
+    } catch (err) {
+      alert(
+        "El ajuste de stock se registró, pero no pudimos actualizar las órdenes de compra afectadas: " +
+          (err.response?.data?.error?.message || err.message)
       );
     } finally {
       setAdjustSubmitting(false);
@@ -721,6 +748,53 @@ export default function ProductsPage() {
                 Stock actual: <strong>{adjustCurrent}</strong> → Stock
                 resultante: <strong>{adjustResult.next ?? "—"}</strong>
               </p>
+            </div>
+          ))}
+      </Modal>
+
+      <Modal
+        open={!!reductionResult}
+        onClose={() => setReductionResult(null)}
+        title="Reducción de stock registrada"
+        size="sm"
+        footer={
+          <Button variant="primary" onClick={() => setReductionResult(null)}>
+            Entendido
+          </Button>
+        }
+      >
+        {reductionResult &&
+          (reductionResult.cancelled.length === 0 &&
+          reductionResult.notCancelled.length === 0 ? (
+            <p className="products-page__adjust-text">
+              Reducción realizada sin problemas. No se vieron afectadas órdenes de compra.
+            </p>
+          ) : (
+            <div className="products-page__adjust">
+              <p className="products-page__adjust-text">
+                Reducción realizada. Las siguientes órdenes de compra se ven afectadas
+                porque el stock disponible es insuficiente para cumplir con los pedidos:
+              </p>
+              <ul className="products-page__failed-orders">
+                {reductionResult.cancelled.map((order) => {
+                  const status = mapOrderStatus(order);
+                  return (
+                    <li key={order.id} className="products-page__failed-order">
+                      <strong>{order.code}</strong>
+                      <Badge variant={status.variant}>{status.label}</Badge>
+                    </li>
+                  );
+                })}
+              </ul>
+              {reductionResult.notCancelled.length > 0 && (
+                <p className="products-page__adjust-text">
+                  No pudimos pasar a Falla por stock:{" "}
+                  <strong>
+                    {reductionResult.notCancelled.map((order) => order.code).join(", ")}
+                  </strong>
+                  . Revisalas desde Ventas: pueden haber cambiado de estado.
+                </p>
+              )}
             </div>
           ))}
       </Modal>

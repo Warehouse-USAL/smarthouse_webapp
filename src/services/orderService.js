@@ -26,7 +26,7 @@
 */
 
 import { apiClient } from "../lib/apiClient";
-import { displayCode, fetchPage, paginate, toInstantRange } from "../lib/pagination";
+import { displayCode, fetchAllPages, fetchPage, paginate, toInstantRange } from "../lib/pagination";
 import { orderMockService } from "./mocks/orderMockService";
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
@@ -52,7 +52,7 @@ export const mapOrderStatus = (order) => {
   if (status === ORDER_STATUS.CANCELADO) {
     const reason = order?.cancelReason ?? "";
     if (reason.includes("INSUFFICIENT_STOCK") || reason.includes("Stock insuficiente"))
-      return { key: "falla_stock", label: "Falla · stock", variant: "danger" };
+      return { key: "falla_stock", label: "Falla por stock", variant: "danger" };
     if (reason.includes("NO_VEHICLES_AVAILABLE") || reason.includes("robot"))
       return { key: "falla_robot", label: "Falla · robot", variant: "danger" };
     return { key: "cancelada", label: "Cancelada", variant: "danger" };
@@ -84,6 +84,16 @@ const normalize = (raw) => {
 };
 
 const createdAtMs = (order) => new Date(order.createdAt ?? 0).getTime();
+
+const listByStatus = async (status) => {
+  if (USE_MOCK) return (await orderMockService.list({ status })).map(normalize);
+  return fetchAllPages("/orders", { status }, "orders", normalize);
+};
+
+const quantityOf = (order, productId) =>
+  order.items
+    .filter((item) => item.productId === productId)
+    .reduce((sum, item) => sum + item.quantity, 0);
 
 const newestFirst = (orders) =>
   [...orders].sort((a, b) => createdAtMs(b) - createdAtMs(a));
@@ -153,5 +163,35 @@ export const orderService = {
     if (USE_MOCK) return normalize(await orderMockService.cancel(id, reason));
     const { data } = await apiClient.post(`/orders/${id}/cancel`, { reason });
     return normalize(data?.order ?? data);
+  },
+
+  // Tras una reducción manual: las in_progress consumen stock primero y se
+  // respetan; las pending se recorren de la más vieja a la más nueva y la que
+  // no entra completa con lo que queda se cancela con `reason`, que debe
+  // empezar con INSUFFICIENT_STOCK para que mapOrderStatus la muestre como
+  // falla por stock. Devuelve las canceladas y las que el backend rechazó
+  // (p. ej. 409 si se completaron entre el listado y la cancelación).
+  async failShortOfStock({ productId, physicalStock, reason }) {
+    const [inProgress, pending] = await Promise.all([
+      listByStatus(ORDER_STATUS.EN_PROCESO),
+      listByStatus(ORDER_STATUS.PENDIENTE),
+    ]);
+    let remaining =
+      physicalStock -
+      inProgress.reduce((sum, order) => sum + quantityOf(order, productId), 0);
+    const toFail = [];
+    for (const order of [...pending].sort((a, b) => createdAtMs(a) - createdAtMs(b))) {
+      const quantity = quantityOf(order, productId);
+      if (quantity === 0) continue;
+      if (quantity <= remaining) remaining -= quantity;
+      else toFail.push(order);
+    }
+    const results = await Promise.allSettled(
+      toFail.map((order) => orderService.cancel(order.id, reason))
+    );
+    return {
+      cancelled: results.filter((r) => r.status === "fulfilled").map((r) => r.value),
+      notCancelled: toFail.filter((_, i) => results[i].status === "rejected"),
+    };
   },
 };

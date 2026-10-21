@@ -190,6 +190,25 @@
   font-variant-numeric: tabular-nums;
 }
 
+.products-page__failed-orders {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.products-page__failed-order {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: 14px;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
 .products-page__footer {
   display: flex;
   align-items: center;
