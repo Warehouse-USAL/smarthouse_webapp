@@ -7,6 +7,7 @@
 |
 |   POST   /restock/orders          { product_id, quantity_requested, supplier }
 |   GET    /restock/orders          params: productId, supplier, from, to, page, size
+|                                    (ordena por created_at desc)
 |   GET    /restock/orders/:id      → + quantity_received_so_far
 |   POST   /restock/receptions      { restock_order_id?, product_id, quantity_received,
 |                                     delivery_unit, supplier, assignments[] }
@@ -44,15 +45,14 @@
 |     "Cancelado" no existe en el backend: no se puede llegar a ese estado, así
 |     que la UI no lo ofrece.
 |
-|   · Número de orden legible (RST-00001). El id es un ObjectId de Mongo. El
-|     código se deriva del orden cronológico del listado completo (ver
-|     `withDisplayCodes`), estable mientras no se borren órdenes.
+|   · Número de orden legible. Se deriva del id (`displayCode`): con dos años
+|     de historial el listado completo ya no se descarga, así que no hay orden
+|     cronológico global del cual sacar un correlativo.
 |
 |   · `quantity_received_so_far` solo viene en el DETALLE (GET /restock/orders/:id).
-|     Para pintar la columna "Recibido" del listado sin hacer N requests, se
-|     traen las recepciones (GET /restock/receptions) y se agregan por
-|     restock_order_id en el front. De paso eso da la "unidad de entrega", que
-|     vive en la Reception y no en la orden.
+|     Para pintar "Recibido" se traen las recepciones de cada orden de la página
+|     (GET /restock/receptions?restockOrderId) y se agregan en el front. De paso
+|     eso da la "unidad de entrega", que vive en la Reception y no en la orden.
 |
 | El backend serializa en snake_case (JacksonConfig SNAKE_CASE). Este service es
 | el único dueño de la traducción camelCase (UI) ↔ snake_case (cable).
@@ -60,16 +60,23 @@
 */
 
 import { apiClient } from "../lib/apiClient";
+import {
+  daysAgo,
+  displayCode,
+  fetchAllPages,
+  fetchPage,
+  paginate,
+  toInstantRange,
+} from "../lib/pagination";
 import { fromStoredRestock, fromSuggestionRow } from "../lib/restockSuggestion";
 import { warehouseConfigService } from "./warehouseConfigService";
 import { restockMockService } from "./mocks/restockMockService";
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 
-// El backend capea `size` en 50 (PageRequest.of(..., min(size, 50))). Para los
-// listados completos se pagina en bucle con este tope.
-const MAX_PAGE_SIZE = 50;
-const MAX_PAGES = 20; // cinturón de seguridad: 1000 registros como máximo.
+// Una orden de restock vieja casi seguro ya se recibió; las abiertas que ofrece
+// el remito se buscan solo en esta ventana para no recorrer dos años de historial.
+const OPEN_ORDERS_WINDOW_DAYS = 90;
 
 /*
 |--------------------------------------------------------------------------
@@ -115,8 +122,11 @@ const normalizeOrder = (raw) => {
     supplier: raw.supplier ?? "",
     requestedByUserId: raw.requested_by_user_id ?? raw.requestedByUserId ?? null,
     createdAt: raw.created_at ?? raw.createdAt ?? null,
+    code: restockOrderCode(raw.id),
   };
 };
+
+export const restockOrderCode = (id) => displayCode("RST", id);
 
 const normalizeReception = (raw) => {
   if (!raw) return null;
@@ -185,38 +195,44 @@ const toCreateReceptionPayload = (input) => ({
 |--------------------------------------------------------------------------
 */
 
-// Trae todas las páginas de un listado paginado del backend.
-const fetchAllPages = async (url, params, key, normalizer) => {
-  const out = [];
-  for (let page = 0; page < MAX_PAGES; page += 1) {
-    const { data } = await apiClient.get(url, {
-      params: { ...params, page, size: MAX_PAGE_SIZE },
-    });
-    const items = (data?.[key] || []).map(normalizer);
-    out.push(...items);
-    const total = data?.pagination?.total_pages ?? data?.pagination?.totalPages;
-    if (items.length < MAX_PAGE_SIZE) return out;
-    if (total !== undefined && page >= total - 1) return out;
-  }
-  // Se acabaron las páginas permitidas y el backend todavía tiene más. Devolver
-  // la lista igual sería peor que fallar: los totales recibidos y los códigos
-  // RST-xxxxx se calculan sobre el conjunto completo, así que con datos
-  // truncados saldrían mal sin que nada lo indique.
-  throw new Error(
-    `El listado ${url} supera los ${MAX_PAGES * MAX_PAGE_SIZE} registros; hay que paginar la pantalla.`
-  );
-};
+const newestFirst = (rows) =>
+  [...rows].sort((a, b) => new Date(b.createdAt ?? 0) - new Date(a.createdAt ?? 0));
 
-// RST-00001, RST-00002… por orden cronológico de creación (la más vieja es la 1).
-const withDisplayCodes = (orders) => {
-  const chronological = [...orders].sort(
-    (a, b) => new Date(a.createdAt ?? 0) - new Date(b.createdAt ?? 0)
-  );
-  const codes = new Map();
-  chronological.forEach((order, index) => {
-    codes.set(order.id, `RST-${String(index + 1).padStart(5, "0")}`);
+// Órdenes + progreso de recepción + estado derivado. `receptions` tiene que
+// incluir todas las de esas órdenes.
+const withProgress = (orders, receptions) => {
+  const byOrder = new Map();
+  for (const reception of receptions) {
+    if (!reception.restockOrderId) continue;
+    const acc = byOrder.get(reception.restockOrderId) ?? {
+      received: 0,
+      deliveryUnits: new Set(),
+      receptions: [],
+    };
+    acc.received += reception.quantityReceived;
+    if (reception.deliveryUnit) acc.deliveryUnits.add(reception.deliveryUnit);
+    acc.receptions.push(reception);
+    byOrder.set(reception.restockOrderId, acc);
+  }
+
+  return orders.map((order) => {
+    const progress = byOrder.get(order.id);
+    const received = progress?.received ?? 0;
+    return {
+      ...order,
+      quantityReceived: received,
+      // Varias recepciones pueden llegar en unidades distintas; se muestra
+      // la única si hay una sola, y "Mixta" si el remito vino partido.
+      deliveryUnit:
+        progress && progress.deliveryUnits.size === 1
+          ? [...progress.deliveryUnits][0]
+          : progress && progress.deliveryUnits.size > 1
+            ? "MIXTA"
+            : null,
+      receptions: progress?.receptions ?? [],
+      status: deriveStatus(order.quantityRequested, received),
+    };
   });
-  return orders.map((order) => ({ ...order, code: codes.get(order.id) }));
 };
 
 /*
@@ -322,9 +338,52 @@ const normalizeSuggestionRow = (raw) => ({
 export const restockService = {
   /* ---------- Órdenes de restock ---------- */
 
+  // Listado acotado (fetchAllPages): pasar siempre un rango de fechas o un
+  // producto. Para la tabla usar listOrdersPage.
   async listOrders(filters = {}) {
-    if (USE_MOCK) return restockMockService.listOrders(filters);
-    return fetchAllPages("/restock/orders", filters, "restock_orders", normalizeOrder);
+    if (USE_MOCK) {
+      return newestFirst((await restockMockService.listOrders(filters)).map(normalizeOrder));
+    }
+    return fetchAllPages(
+      "/restock/orders",
+      toInstantRange(filters),
+      "restock_orders",
+      normalizeOrder
+    );
+  },
+
+  // Una página de órdenes (más nuevas primero) con su progreso de recepción.
+  // filters: { productId, supplier, from, to } con from/to en yyyy-mm-dd.
+  async listOrdersPage({ page = 1, size = 10, ...filters } = {}) {
+    const result = USE_MOCK
+      ? paginate(
+          newestFirst((await restockMockService.listOrders(filters)).map(normalizeOrder)),
+          { page, size }
+        )
+      : await fetchPage(
+          "/restock/orders",
+          { ...toInstantRange(filters), page, size },
+          "restock_orders",
+          normalizeOrder
+        );
+    const receptions = await Promise.all(
+      result.items.map((order) => this.listReceptions({ restockOrderId: order.id }))
+    );
+    return { ...result, items: withProgress(result.items, receptions.flat()) };
+  },
+
+  // Órdenes que todavía esperan mercadería, para asociarles un remito. Las
+  // recepciones de una orden son posteriores a ella, así que alcanza con pedir
+  // las dos cosas en la misma ventana.
+  async listOpenOrders() {
+    const recent = { from: daysAgo(OPEN_ORDERS_WINDOW_DAYS) };
+    const [orders, receptions] = await Promise.all([
+      this.listOrders(recent),
+      this.listReceptions(recent),
+    ]);
+    return withProgress(orders, receptions).filter(
+      (order) => order.status !== ORDER_STATUS.COMPLETADO
+    );
   },
 
   async getOrder(id) {
@@ -360,7 +419,12 @@ export const restockService = {
   // feature/117; el backend viejo ignora el parámetro que no conoce.
   async listReceptions(filters = {}) {
     if (USE_MOCK) return restockMockService.listReceptions(filters);
-    return fetchAllPages("/restock/receptions", filters, "receptions", normalizeReception);
+    return fetchAllPages(
+      "/restock/receptions",
+      toInstantRange(filters),
+      "receptions",
+      normalizeReception
+    );
   },
 
   async getReception(id) {
@@ -508,52 +572,5 @@ export const restockService = {
       assignments: toAssignmentsPayload(assignments),
     });
     return normalizeReception(data?.reception ?? data);
-  },
-
-  /* ---------- Vista compuesta para la pantalla ---------- */
-
-  // Órdenes + progreso de recepción + estado derivado + código legible.
-  // Una sola llamada para el listado y otra para las recepciones, en vez de
-  // N × GET /restock/orders/:id.
-  async listOrdersWithProgress(filters = {}) {
-    const [orders, receptions] = await Promise.all([
-      this.listOrders(filters),
-      this.listReceptions(),
-    ]);
-
-    const byOrder = new Map();
-    for (const reception of receptions) {
-      if (!reception.restockOrderId) continue;
-      const acc = byOrder.get(reception.restockOrderId) ?? {
-        received: 0,
-        deliveryUnits: new Set(),
-        receptions: [],
-      };
-      acc.received += reception.quantityReceived;
-      if (reception.deliveryUnit) acc.deliveryUnits.add(reception.deliveryUnit);
-      acc.receptions.push(reception);
-      byOrder.set(reception.restockOrderId, acc);
-    }
-
-    return withDisplayCodes(
-      orders.map((order) => {
-        const progress = byOrder.get(order.id);
-        const received = progress?.received ?? 0;
-        return {
-          ...order,
-          quantityReceived: received,
-          // Varias recepciones pueden llegar en unidades distintas; se muestra
-          // la única si hay una sola, y "Mixta" si el remito vino partido.
-          deliveryUnit:
-            progress && progress.deliveryUnits.size === 1
-              ? [...progress.deliveryUnits][0]
-              : progress && progress.deliveryUnits.size > 1
-                ? "MIXTA"
-                : null,
-          receptions: progress?.receptions ?? [],
-          status: deriveStatus(order.quantityRequested, received),
-        };
-      })
-    );
   },
 };

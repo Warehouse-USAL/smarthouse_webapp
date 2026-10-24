@@ -165,8 +165,11 @@ export default function ProductLocationModal({ open, onClose, onAssigned, produc
               },
               {
                 icon: "alert",
-                label: "Stock mínimo",
-                value: `${product.minimumStock ?? 0} unidades`,
+                label: "Punto de reposición",
+                value:
+                  product.reorderPoint != null
+                    ? `${product.reorderPoint} unidades`
+                    : "Sin calcular",
               },
             ]}
           />
