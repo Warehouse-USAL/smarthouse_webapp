@@ -26,13 +26,41 @@ export const errorMessage = (e) => {
 };
 
 /*
+| Mensajes comunes a todas las pantallas para códigos que el backend agregó
+| después (algunos llegan con el código crudo como `message`, p. ej.
+| PROVIDER_WITHOUT_SUPPLIER). Un backend viejo nunca los manda, así que no
+| cambian nada contra él.
+*/
+export const COMMON_ERROR_MESSAGES = {
+  RESTOCK_ORDER_ALREADY_CANCELLED: "La orden de restock ya estaba cancelada.",
+  RESTOCK_ORDER_HAS_RECEPTIONS:
+    "No se puede cancelar la orden: ya tiene remitos registrados.",
+  RESTOCK_ORDER_CANCELLED:
+    "La orden de restock está cancelada y no admite nuevos remitos.",
+  PROVIDER_WITHOUT_SUPPLIER:
+    "Tu usuario de proveedor no tiene un proveedor asignado. Pedile a un administrador que lo configure.",
+  SUPPLIER_REQUIRED: "Indicá el proveedor.",
+  STOCK_CHANGE_CONFLICT:
+    "Otro cambio de stock se estaba aplicando al mismo tiempo. Reintentá la operación.",
+  IDEMPOTENCY_REQUEST_IN_PROGRESS:
+    "La solicitud todavía se está procesando. Esperá unos segundos y reintentá.",
+  DATABASE_UNAVAILABLE:
+    "La base de datos no está disponible en este momento. Reintentá en unos minutos.",
+};
+
+/*
 | Texto a mostrar, en orden de preferencia:
 |   1. el mensaje propio de la pantalla para ese código (más específico y con
 |      el vocabulario de la pantalla),
-|   2. el mensaje que mandó el backend,
-|   3. el fallback genérico.
+|   2. el mensaje común para ese código (COMMON_ERROR_MESSAGES),
+|   3. el mensaje que mandó el backend,
+|   4. el fallback genérico.
 */
 export const errorText = (e, messages = {}, fallback = "Algo salió mal. Intentá de nuevo.") => {
   const code = errorCode(e);
-  return (code && messages[code]) || errorMessage(e) || fallback;
+  return (
+    (code && (messages[code] || COMMON_ERROR_MESSAGES[code])) ||
+    errorMessage(e) ||
+    fallback
+  );
 };

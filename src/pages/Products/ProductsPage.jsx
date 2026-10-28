@@ -14,7 +14,12 @@ import Badge from "../../components/ui/Badge/Badge";
 import CreateProductForm from "../../components/products/CreateProductForm/CreateProductForm";
 import { productService } from "../../services/productService";
 import { warehouseConfigService } from "../../services/warehouseConfigService";
-import { orderService, mapOrderStatus } from "../../services/orderService";
+import {
+  orderService,
+  mapOrderStatus,
+  normalizeCancelledOrder,
+} from "../../services/orderService";
+import { errorText } from "../../lib/apiError";
 import { can } from "../../lib/permissions";
 import { needsRestock } from "../../lib/restockSuggestion";
 import "./ProductsPage.css";
@@ -297,39 +302,47 @@ export default function ProductsPage() {
     const { next, error } = computeAdjust();
     if (error || next == null) return;
     setAdjustSubmitting(true);
+    const typeLabel = ADJUST_TYPES.find((t) => t.value === adjustType).label;
+    const reason =
+      `Ajuste manual "${typeLabel}" de ${adjusting.sku} ` +
+      `en ${fullLocationLabel(adjustLocation)}: ${adjustCurrent} → ${next} un.`;
+    let response;
     try {
       // El backend recalcula físico/reserva/disponible del producto desde las
       // posiciones; el solo hecho de setear acá el stock es el ajuste.
-      await warehouseConfigService.updatePosition(
+      response = await warehouseConfigService.updatePosition(
         adjustLocation.idZone,
         adjustLocation.idLine,
         adjustLocation.idPosition,
-        { currentStock: next }
+        { currentStock: next, reason }
       );
     } catch (err) {
-      alert(
-        err.response?.data?.error?.message ||
-          "No pudimos aplicar el ajuste de stock."
-      );
+      alert(errorText(err, {}, "No pudimos aplicar el ajuste de stock."));
       setAdjustSubmitting(false);
       return;
     }
     try {
-      if (next < adjustCurrent) {
+      if (next < adjustCurrent && Array.isArray(response?.cancelled_orders)) {
+        // Backend nuevo: ya reconcilió los pedidos en la misma transacción y
+        // devuelve cuáles canceló (puede ser []). No se cancela nada acá.
+        setReductionResult({
+          cancelled: response.cancelled_orders.map(normalizeCancelledOrder),
+          notCancelled: [],
+        });
+      } else if (next < adjustCurrent) {
+        // Backend viejo (la respuesta no trae `cancelled_orders`): se cancelan
+        // desde el cliente.
         // Releído tras el PATCH: otras posiciones pudieron cambiar desde que
         // se cargó la página (ajustes de otro usuario, órdenes completadas).
         const physicalStock = (await productService.getLocations(adjusting.id)).reduce(
           (sum, loc) => sum + loc.currentStock,
           0
         );
-        const typeLabel = ADJUST_TYPES.find((t) => t.value === adjustType).label;
         setReductionResult(
           await orderService.failShortOfStock({
             productId: adjusting.id,
             physicalStock,
-            reason:
-              `INSUFFICIENT_STOCK: ajuste manual "${typeLabel}" de ${adjusting.sku} ` +
-              `en ${fullLocationLabel(adjustLocation)}: ${adjustCurrent} → ${next} un.`,
+            reason: `INSUFFICIENT_STOCK: ${reason}`,
           })
         );
       }
