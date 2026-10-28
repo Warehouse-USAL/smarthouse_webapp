@@ -9,8 +9,8 @@
 |   GET    /users                 params: role, isActive, page, size
 |                                  → { users: [...], pagination }
 |   GET    /users/:id             → UserResponse
-|   POST   /users                 CreateUserRequest { email, name, role, initial_password }
-|   PATCH  /users/:id             UpdateUserRequest  { name?, role?, active? }   ← modificación
+|   POST   /users                 CreateUserRequest { email, name, role, initial_password, supplier? }
+|   PATCH  /users/:id             UpdateUserRequest  { name?, role?, active?, supplier? }   ← modificación
 |   POST   /users/:id/reset-password   { new_password }                          (204)
 |   POST   /users/me/change-password   { current_password, new_password }        (self)
 |   PATCH  /users/me                   { name, address }                         (self)
@@ -22,6 +22,7 @@
 | Códigos de error del backend que la UI traduce:
 |   409 EMAIL_ALREADY_EXISTS · 404 USER_NOT_FOUND · 400 INVALID_ROLE
 |   400 WRONG_CURRENT_PASSWORD · 400 SAME_PASSWORD
+|   403 PROVIDER_WITHOUT_SUPPLIER (PROVIDER sin proveedor en restock/recepción)
 |
 */
 
@@ -56,6 +57,8 @@ const normalize = (raw) => {
     role: raw.role,
     active: raw.active,
     createdAt: raw.created_at ?? raw.createdAt ?? null,
+    // Campo aditivo del backend nuevo; con el viejo queda null.
+    supplier: raw.supplier ?? null,
     address: normalizeAddress(raw.address),
   };
 };
@@ -103,25 +106,27 @@ export const userService = {
     return normalize(data);
   },
 
-  async create({ email, name, role, initialPassword }) {
-    if (USE_MOCK) return normalize(await userMockService.create({ email, name, role, initialPassword }));
+  async create({ email, name, role, initialPassword, supplier }) {
+    if (USE_MOCK) return normalize(await userMockService.create({ email, name, role, initialPassword, supplier }));
     const { data } = await apiClient.post("/users", {
       email,
       name,
       role,
       initial_password: initialPassword,
+      ...(supplier ? { supplier } : {}),
     });
     return normalize(data);
   },
 
   // PATCH parcial: solo se mandan los campos presentes. El backend ignora los
   // null/ausentes y deja el valor previo (UpdateUserRequest).
-  async update(id, { name, role, active } = {}) {
-    if (USE_MOCK) return normalize(await userMockService.update(id, { name, role, active }));
+  async update(id, { name, role, active, supplier } = {}) {
+    if (USE_MOCK) return normalize(await userMockService.update(id, { name, role, active, supplier }));
     const payload = {};
     if (name !== undefined) payload.name = name;
     if (role !== undefined) payload.role = role;
     if (active !== undefined) payload.active = active;
+    if (supplier !== undefined) payload.supplier = supplier;
     const { data } = await apiClient.patch(`/users/${id}`, payload);
     return normalize(data);
   },

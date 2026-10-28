@@ -166,6 +166,8 @@ const toPositionPayload = (patch) => {
     out.size_stock_to_save = SIZE_FE_TO_BE[patch.sizeStockToSave] ?? patch.sizeStockToSave;
   if (patch.isActive !== undefined) out.is_active = patch.isActive;
   if (patch.currentStock !== undefined) out.current_stock = patch.currentStock;
+  // Opcional: el backend nuevo lo guarda en el historial de ajustes; el viejo lo ignora.
+  if (patch.reason) out.reason = patch.reason;
   return out;
 };
 
@@ -374,8 +376,13 @@ export const warehouseConfigService = {
 
   async updatePosition(idZone, idLine, idPosition, patch) {
     if (USE_MOCK) return warehouseConfigMockService.updatePosition(idZone, idLine, idPosition, patch);
-    await apiClient.patch(`/warehouse/positions/${idPosition}`, toPositionPayload(patch));
-    return fetchTree();
+    // Devuelve el cuerpo del PATCH. El backend nuevo suma `cancelled_orders`
+    // (siempre presente, `[]` si no hubo); el viejo no manda la clave.
+    const { data } = await apiClient.patch(
+      `/warehouse/positions/${idPosition}`,
+      toPositionPayload(patch)
+    );
+    return data;
   },
 
   // Detalle de una posición individual, incluyendo el producto asignado.

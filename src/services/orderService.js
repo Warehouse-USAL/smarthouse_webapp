@@ -82,6 +82,17 @@ const normalize = (raw) => {
   };
 };
 
+// Orden cancelada por el backend al reducir stock (`cancelled_orders` del
+// PATCH de la posición): { id, cancel_reason, created_at }. Se arma con la
+// misma forma que `normalize` para que el diálogo la muestre igual.
+export const normalizeCancelledOrder = (raw) => ({
+  id: raw.id,
+  status: ORDER_STATUS.CANCELADO,
+  cancelReason: raw.cancel_reason ?? raw.cancelReason ?? null,
+  createdAt: raw.created_at ?? raw.createdAt ?? null,
+  code: displayCode("OC", raw.id),
+});
+
 const createdAtMs = (order) => new Date(order.createdAt ?? 0).getTime();
 
 const listByStatus = async (status) => {
