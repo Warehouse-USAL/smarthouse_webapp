@@ -28,6 +28,9 @@ const ERROR_MESSAGES = {
   EMAIL_ALREADY_EXISTS: "Ya existe un usuario con ese email.",
   USER_NOT_FOUND: "El usuario ya no existe.",
   INVALID_ROLE: "El rol seleccionado no es válido.",
+  PROVIDER_WITHOUT_SUPPLIER:
+    "Un usuario con rol Proveedor necesita un proveedor asignado.",
+  SUPPLIER_REQUIRED: "Indicá el proveedor del usuario.",
   WRONG_CURRENT_PASSWORD: "La contraseña actual es incorrecta.",
   SAME_PASSWORD: "La nueva contraseña debe ser distinta a la anterior.",
 };
@@ -273,6 +276,7 @@ export default function UsersPage() {
                 <tr>
                   <th>Usuario</th>
                   <th>Rol</th>
+                  <th>Proveedor</th>
                   <th>Estado</th>
                   <th>Alta</th>
                   <th className="users-table__actions-col">Acciones</th>
@@ -295,6 +299,7 @@ export default function UsersPage() {
                     <td>
                       <Badge variant={roleVariant(user.role)}>{roleLabel(user.role)}</Badge>
                     </td>
+                    <td>{user.supplier || "—"}</td>
                     <td>
                       <Badge variant={user.active ? "success" : "neutral"} dot>
                         {user.active ? "Activo" : "Inactivo"}

@@ -12,8 +12,12 @@ import "./UserFormModal.css";
 | USER FORM MODAL — alta y modificación de usuario
 |--------------------------------------------------------------------------
 |
-| mode = "create"  → POST /users   { email, name, role, initial_password }
-| mode = "edit"    → PATCH /users/:id { name?, role?, active? }
+| mode = "create"  → POST /users   { email, name, role, initial_password, supplier? }
+| mode = "edit"    → PATCH /users/:id { name?, role?, active?, supplier? }
+|
+| `supplier` solo se pide (y es obligatorio) cuando el rol es PROVIDER: sin
+| proveedor, el backend rechaza sus operaciones de restock/recepción (403
+| PROVIDER_WITHOUT_SUPPLIER).
 |
 | En edición el email NO se puede modificar (el backend no expone ese campo en
 | UpdateUserRequest), así que se muestra de solo lectura. El form sube SOLO los
@@ -26,6 +30,7 @@ const buildInitialState = (mode, user) => ({
   name: user?.name ?? "",
   role: normalizeRole(user?.role) || "",
   active: user?.active ?? true,
+  supplier: user?.supplier ?? "",
   initialPassword: "",
 });
 
@@ -41,6 +46,8 @@ export default function UserFormModal({
   const isEdit = mode === "edit";
   const [values, setValues] = useState(() => buildInitialState(mode, user));
   const [errors, setErrors] = useState({});
+
+  const isProvider = values.role === "PROVIDER";
 
   // Reinicia el form cada vez que se abre / cambia el usuario objetivo.
   // Sincroniza el estado del form con las props del modal al abrirlo: es el caso
@@ -62,6 +69,8 @@ export default function UserFormModal({
     const errs = {};
     if (!values.name.trim()) errs.name = "El nombre es obligatorio";
     if (!values.role) errs.role = "Elegí un rol";
+    if (isProvider && !values.supplier.trim())
+      errs.supplier = "El proveedor es obligatorio para el rol Proveedor";
     if (!isEdit) {
       if (!values.email.trim()) errs.email = "El email es obligatorio";
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim()))
@@ -80,6 +89,8 @@ export default function UserFormModal({
     if (values.name.trim() !== (user?.name ?? "")) patch.name = values.name.trim();
     if (values.role !== normalizeRole(user?.role)) patch.role = values.role;
     if (values.active !== (user?.active ?? true)) patch.active = values.active;
+    if (values.role === "PROVIDER" && values.supplier.trim() !== (user?.supplier ?? ""))
+      patch.supplier = values.supplier.trim();
     return patch;
   }, [isEdit, values, user]);
 
@@ -99,6 +110,7 @@ export default function UserFormModal({
         name: values.name.trim(),
         role: values.role,
         initialPassword: values.initialPassword,
+        ...(isProvider ? { supplier: values.supplier.trim() } : {}),
       });
     }
   };
@@ -165,6 +177,19 @@ export default function UserFormModal({
           required
           error={errors.role}
         />
+
+        {isProvider && (
+          <Input
+            label="Proveedor"
+            name="supplier"
+            value={values.supplier}
+            onChange={set("supplier")}
+            placeholder="Nombre del proveedor"
+            required
+            error={errors.supplier}
+            hint="Proveedor para el que opera este usuario"
+          />
+        )}
 
         {!isEdit && (
           <Input
