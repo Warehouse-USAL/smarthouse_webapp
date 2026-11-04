@@ -195,15 +195,20 @@ que surjan de la revisión de negocio.
 
 **A definir con negocio/UX** (lista preliminar a confirmar):
 
-- [ ] Unificar los modales restantes al patrón `Modal` compartido (`RemitoModal`,
+- [x] Unificar los modales restantes al patrón `Modal` compartido (`RemitoModal`,
       `LocateReceptionModal`, modales de warehouse/usuarios).
-- [ ] Datos de stock en la ficha de producto: disponible, reserva, físico real y
-      badge de "Reponer".
-- [ ] Columna "Ya pedido" / "(+N en camino)" usando `onOrderStock`.
-- [ ] Preview automático de cantidad sugerida en la nueva orden de restock.
-- [ ] Capturas pixel-perfect pendientes de las pantallas de Stock y Productos
-      (1600 / 1366 / 768 / 375 px).
-- [ ] Consistencia de design tokens, espaciados y tipografía.
+- [x] Datos de stock en la ficha de producto: disponible, reserva, físico real y
+      badge de "Reponer". No existe una ficha: los datos están en la tabla de
+      Productos.
+- [x] Columna "Ya pedido" / "(+N en camino)" usando `onOrderStock`.
+- [x] Preview automático de cantidad sugerida en la nueva orden de restock.
+- [x] Capturas de las pantallas de Stock y Productos (1600 / 1366 / 768 / 375 px)
+      en `docs/capturas/`. Tomadas con datos mock; falta compararlas con un diseño
+      de referencia para considerarlas pixel-perfect.
+- [x] Consistencia de design tokens en `font-size`, `font-weight` y `gap`.
+- [ ] Consistencia de design tokens en `padding` y `margin`.
+- [x] Tablas de Ventas, Stock, Productos, Vehículos y Asignación unificadas con
+      `TablePanel`.
 
 **Criterio de aceptación:** cada mejora acordada queda implementada sin cambiar
 comportamiento funcional y con captura antes/después.

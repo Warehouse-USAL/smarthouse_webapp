@@ -2,9 +2,9 @@
 
 > Fecha: 2026-11-04
 > Rama: `feature/sprint-endpoints-visual-mobile`
-> Alcance: bloque **a)** de `docs/sprint-deuda-endpoints-visual-mobile.md`.
-> Los bloques a.2 (sugerencias de restock), b (visual) y c (mobile) siguen
-> pendientes.
+> Alcance: bloques **a)** y **b)** de `docs/sprint-deuda-endpoints-visual-mobile.md`.
+> Los bloques a.2 (sugerencias de restock) y c (mobile) siguen pendientes.
+> El bloque b) está en la sección 8.
 
 ---
 
@@ -150,7 +150,8 @@ Estas órdenes también quedan en estado `CANCELLED` en restock.
 
 - **a.2** Sugerencias de restock: decidir regla de negocio y corregir `[]` vs
   `null` en `listAlerts`.
-- **b** Mejoras visuales: unificar modales, columna "Ya pedido", capturas.
+- **b** Tokens de `padding` y `margin`, y comparar las capturas con un diseño de
+  referencia.
 - **c** Mobile: revisar 375 px / 768 px, tablas, navegación y modales.
 - Opcional: migrar la reducción a `POST /warehouse/positions/{id}/stock-adjustments`
   para registrar `DAMAGE` u otros tipos y mostrar `quantity_before/after`
@@ -169,3 +170,41 @@ Estas órdenes también quedan en estado `CANCELLED` en restock.
 5. Hacer una reducción que deje el stock por debajo de la reserva y comprobar
    que el modal de reducción lista las órdenes con su motivo
    (`INSUFFICIENT_STOCK: ...`).
+
+---
+
+## 8. Mejoras visuales (bloque b)
+
+### 8.1 Tablas con `TablePanel`
+
+`src/components/ui/TablePanel/` reúne título, contador, buscador, filtros, tabla
+y pie en una misma card.
+
+| Pantalla | Paneles | Filtros | Cambio |
+| --- | --- | --- | --- |
+| Ventas | 1 | Colapsables | Migrada sin cambios visuales |
+| Gestión de stock | 2 | Colapsables | Migrada; suma la columna "Ya pedido" |
+| Productos | 1, sin título | Fijos, debajo del buscador | Mismas 12 columnas |
+| Vehículos | 1 | Colapsables | De `div` a `<table>`, mismas 5 columnas; en mobile scrollea en lugar de ocultar columnas |
+| Asignación de stock | 2 | Sin filtros | De tarjetas a tablas, con buscadores independientes |
+
+Se eliminó `PendingLocationCard`, que quedó sin uso.
+
+### 8.2 Otros cambios
+
+- **Ya pedido:** muestra `onOrderStock`. Las alertas locales, que no tienen ese
+  dato, muestran "—".
+- **Nueva orden de restock:** al elegir un producto con alerta, se precarga su
+  cantidad sugerida. Si no tiene alerta con sugerida, el campo queda vacío.
+- **Tokens:** nueva escala `--text-*` en `variables.css`. Se reemplazaron
+  `font-size`, `font-weight` y `gap` fijos por tokens del mismo valor. Quedan fuera
+  `Logo.css` y los tamaños de título o de un solo uso (10, 24, 28, 29, 30, 32 y
+  40 px).
+
+### 8.3 Verificación
+
+Lint, tests y build OK. La revisión en Chrome se hizo con datos mock, y la tabla
+de restock pendiente, "Ya pedido" y la sugerida se probaron con datos inyectados
+en el navegador. Falta probar estos flujos contra el backend real.
+
+Capturas de Stock y Productos en `docs/capturas/antes/` y `docs/capturas/despues/`.
