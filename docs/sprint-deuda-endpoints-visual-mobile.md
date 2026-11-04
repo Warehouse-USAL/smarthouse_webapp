@@ -25,22 +25,22 @@ visibilidad completa a esa información.
 
 **Tareas:**
 
-- [ ] Confirmar el contrato exacto de los endpoints y campos nuevos antes de
+- [x] Confirmar el contrato exacto de los endpoints y campos nuevos antes de
       consumirlos. La fuente de verdad es el swagger del backend:
       `http://localhost:8080/swagger-ui/index.html#/`.
-- [ ] Mostrar la **auditoría del ajuste de stock**: motivo, usuario y fecha
+- [x] Mostrar la **auditoría del ajuste de stock**: motivo, usuario y fecha
       (hoy el front envía `reason` pero no lo vuelve a leer ni lo muestra).
-- [ ] Consumir y mostrar el **historial de movimientos / kardex por producto**
-      cuando el backend lo exponga. Si no existe endpoint, documentarlo como
-      bloqueante y no simular datos.
-- [ ] Mostrar en el detalle las **órdenes canceladas por reducción de stock**
+- [x] Consumir y mostrar el **historial de movimientos / kardex por producto**
+      (`GET /products/{id}/stock-adjustments` ya existe; ver
+      `docs/resuelto-sprint.md`).
+- [x] Mostrar en el detalle las **órdenes canceladas por reducción de stock**
       (`cancelled_orders`) con su motivo y código, de forma consistente con el
       modal actual de reducción.
-- [ ] Revisar que no queden llamadas a contratos viejos: el fallback a backend
+- [x] Revisar que no queden llamadas a contratos viejos: el fallback a backend
       viejo debe quedar solo como compatibilidad, no como camino principal.
-- [ ] Actualizar el texto de fallback de cancelación de restock en
+- [x] Actualizar el texto de fallback de cancelación de restock en
       `StockManagementPage.jsx` (hoy dice que el backend no lo soporta).
-- [ ] Dejar documentado el contrato consumido en `docs/`.
+- [x] Dejar documentado el contrato consumido en `docs/resuelto-sprint.md`.
 
 **Criterio de aceptación:** hacer un ajuste de stock con motivo y poder ver,
 desde la UI, el motivo, el usuario y la fecha; al reducir por debajo de la
@@ -241,7 +241,9 @@ horizontal en 375 px y 768 px; las acciones principales siguen accesibles.
 
 ## Fuera de alcance / pendientes heredados
 
-- **Kardex**: si el backend no expone el endpoint, queda bloqueado.
+- **Kardex**: desbloqueado. El backend expone
+  `GET /products/{id}/stock-adjustments`; ya se consume (ver
+  `docs/resuelto-sprint.md`).
 - **Despacho manual de ventas**: depende de la decisión del backend.
 - **Nombre de cliente en `Order`**: requiere `admin_system` o un join del
   backend.

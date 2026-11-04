@@ -14,14 +14,17 @@ import Badge from "../../components/ui/Badge/Badge";
 import CreateProductForm from "../../components/products/CreateProductForm/CreateProductForm";
 import { productService } from "../../services/productService";
 import { warehouseConfigService } from "../../services/warehouseConfigService";
+import { stockAdjustmentService } from "../../services/stockAdjustmentService";
 import {
   orderService,
   mapOrderStatus,
   normalizeCancelledOrder,
 } from "../../services/orderService";
+import { getUser } from "../../services/authService";
 import { errorText } from "../../lib/apiError";
 import { can } from "../../lib/permissions";
 import { needsRestock } from "../../lib/restockSuggestion";
+import { displayCode } from "../../lib/pagination";
 import "./ProductsPage.css";
 
 const PAGE_SIZE_OPTIONS = [
@@ -41,6 +44,28 @@ const ADJUST_TYPES = [
   { value: "vencimiento", label: "Vencimiento (-)" },
   { value: "conteo", label: "Conteo (stock final)" },
 ];
+
+// Etiquetas del enum StockAdjustmentType que devuelve el backend en el historial.
+const ADJUSTMENT_TYPE_LABEL = {
+  MANUAL_INCREASE: "Entrada manual",
+  MANUAL_DECREASE: "Baja manual",
+  DAMAGE: "Rotura / daño",
+  UNASSIGNED: "Producto desasignado",
+  DEACTIVATED: "Posición desactivada",
+};
+
+const HISTORY_PAGE_SIZE = 10;
+
+const formatDateTime = (iso) =>
+  iso
+    ? new Date(iso).toLocaleString("es-AR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "—";
 
 // Precio desde centavos (contrato): 1700000 → "17.000,00".
 const formatPrice = (price) => {
@@ -90,12 +115,21 @@ export default function ProductsPage() {
   // Resultado de una reducción: { cancelled, notCancelled } de failShortOfStock.
   const [reductionResult, setReductionResult] = useState(null);
 
+  // Historial/auditoría de ajustes (GET /products/:id/stock-adjustments).
+  const [historyProduct, setHistoryProduct] = useState(null);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyResult, setHistoryResult] = useState(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState(null);
+  const currentUser = useMemo(() => getUser(), []);
+
   // Permisos del rol actual (espejo del backend): crear/editar incluye a
   // ADMIN_SALES, borrar no; asignar stock es solo de warehouse.
   const canCreate = can("product.create");
   const canEdit = can("product.edit");
   const canDelete = can("product.delete");
   const canAssignStock = can("stock.assign");
+  const canViewStockHistory = can("stock.history");
 
 
   // Carga de categorías — async para que sea intercambiable con el backend real
@@ -156,6 +190,33 @@ export default function ProductsPage() {
     });
     return () => { cancelled = true; };
   }, [fetchProducts]);
+
+  // Historial del producto abierto en el modal. Se recarga al cambiar de página.
+  useEffect(() => {
+    if (!historyProduct) return undefined;
+    let stale = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- carga del historial contra el backend
+    setHistoryLoading(true);
+    setHistoryError(null);
+    stockAdjustmentService
+      .listProductAdjustments(historyProduct.id, {
+        page: historyPage,
+        size: HISTORY_PAGE_SIZE,
+      })
+      .then((result) => {
+        if (!stale) setHistoryResult(result);
+      })
+      .catch(() => {
+        if (!stale) {
+          setHistoryResult(null);
+          setHistoryError("No se pudo cargar el historial de ajustes. Revisá la conexión con el backend.");
+        }
+      })
+      .finally(() => {
+        if (!stale) setHistoryLoading(false);
+      });
+    return () => { stale = true; };
+  }, [historyProduct, historyPage]);
 
   // El filtro de zona se aplica en cliente porque el contrato no expone
   // un query param de zona en GET /products. Se compara contra zone_code de
@@ -257,6 +318,30 @@ export default function ProductsPage() {
     setAdjustPosition(product.locations?.[0]?.idPosition ?? "");
     setAdjustType("entrada");
     setAdjustQty("");
+  };
+
+  const openHistory = (product) => {
+    setHistoryProduct(product);
+    setHistoryPage(1);
+    setHistoryResult(null);
+    setHistoryError(null);
+  };
+
+  const closeHistory = () => {
+    setHistoryProduct(null);
+    setHistoryResult(null);
+    setHistoryError(null);
+  };
+
+  // El backend devuelve el id del usuario. Solo podemos resolver el nombre del
+  // usuario actual (no hay endpoint de usuarios accesible para warehouse).
+  const actorLabel = (adjustedBy) => {
+    if (!adjustedBy) return "—";
+    if (adjustedBy === "system") return "Sistema";
+    if (currentUser?.id && adjustedBy === currentUser.id) {
+      return currentUser.name || currentUser.email || adjustedBy;
+    }
+    return adjustedBy;
   };
 
   const adjustLocations = adjusting?.locations ?? [];
@@ -572,6 +657,17 @@ export default function ProductsPage() {
                             <Icon name="target" size={15} />
                           </button>
                         )}
+                        {canViewStockHistory && (
+                          <button
+                            type="button"
+                            className="products-table__action"
+                            onClick={() => openHistory(product)}
+                            aria-label="Ver historial de ajustes"
+                            title="Historial de ajustes"
+                          >
+                            <Icon name="list" size={15} />
+                          </button>
+                        )}
                         {canDelete && (
                           <button
                             type="button"
@@ -799,7 +895,14 @@ export default function ProductsPage() {
                   const status = mapOrderStatus(order);
                   return (
                     <li key={order.id} className="products-page__failed-order">
-                      <strong>{order.code}</strong>
+                      <span className="products-page__failed-order-info">
+                        <strong>{order.code}</strong>
+                        {order.cancelReason && (
+                          <span className="products-page__failed-order-reason">
+                            {order.cancelReason}
+                          </span>
+                        )}
+                      </span>
                       <Badge variant={status.variant}>{status.label}</Badge>
                     </li>
                   );
@@ -816,6 +919,85 @@ export default function ProductsPage() {
               )}
             </div>
           ))}
+      </Modal>
+
+      <Modal
+        open={!!historyProduct}
+        onClose={closeHistory}
+        title={historyProduct ? `Historial de ajustes — ${historyProduct.name}` : ""}
+        subtitle="Quién ajustó el stock, cuándo y por qué, en todas las posiciones del producto."
+        size="lg"
+        footer={
+          <Button variant="secondary" onClick={closeHistory}>
+            Cerrar
+          </Button>
+        }
+      >
+        {historyLoading ? (
+          <div className="products-page__loading">
+            <Spinner label="Cargando historial…" />
+          </div>
+        ) : historyError ? (
+          <p className="products-page__adjust-text">{historyError}</p>
+        ) : !historyResult || historyResult.items.length === 0 ? (
+          <EmptyState
+            icon="list"
+            title="Sin ajustes registrados"
+            description="Todavía no hay ajustes manuales de stock para este producto."
+          />
+        ) : (
+          <>
+            <div className="products-page__history-wrap">
+              <table className="products-page__history">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Tipo</th>
+                    <th>Motivo</th>
+                    <th>Usuario</th>
+                    <th>Cambio</th>
+                    <th>Órdenes canceladas</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {historyResult.items.map((adjustment) => (
+                    <tr key={adjustment.id}>
+                      <td className="products-page__history-num">
+                        {formatDateTime(adjustment.createdAt)}
+                      </td>
+                      <td>
+                        {ADJUSTMENT_TYPE_LABEL[adjustment.type] ??
+                          adjustment.type ??
+                          "—"}
+                      </td>
+                      <td>{adjustment.reason || "—"}</td>
+                      <td>{actorLabel(adjustment.adjustedBy)}</td>
+                      <td className="products-page__history-num">
+                        {adjustment.quantityBefore} → {adjustment.quantityAfter}
+                      </td>
+                      <td>
+                        {adjustment.cancelledOrderIds.length > 0
+                          ? adjustment.cancelledOrderIds
+                              .map((id) => displayCode("OC", id))
+                              .join(", ")
+                          : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {historyResult.totalPages > 1 && (
+              <div className="products-page__history-foot">
+                <Pagination
+                  current={historyPage}
+                  total={historyResult.totalPages}
+                  onChange={setHistoryPage}
+                />
+              </div>
+            )}
+          </>
+        )}
       </Modal>
     </div>
   );

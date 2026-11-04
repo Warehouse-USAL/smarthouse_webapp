@@ -401,7 +401,7 @@ export default function StockManagementPage() {
         errorText(
           e,
           {},
-          "El backend todavía no soporta la cancelación de órdenes de restock."
+          "No se pudo cancelar la orden. Revisá la conexión con el backend."
         )
       );
     } finally {
