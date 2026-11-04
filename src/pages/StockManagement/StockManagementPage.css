@@ -179,189 +179,17 @@
   align-items: stretch;
 }
 
-.stock-panel {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.stock-panel__head {
-  padding: var(--space-5) var(--space-5) 0;
-}
-
-.stock-panel__title {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin: 0;
-  font-family: var(--font-title);
-  font-size: 17px;
-  font-weight: var(--weight-semibold);
-  color: var(--color-text-primary);
-}
-
-.stock-panel__count {
-  color: inherit;
-  font-weight: var(--weight-bold);
-}
-
-.stock-panel__hint {
-  display: inline-flex;
-  color: var(--color-text-muted);
-  cursor: help;
-}
-
-.stock-panel__desc {
-  margin: var(--space-2) 0 0;
-  font-size: 14px;
-  color: var(--color-text-secondary);
-}
-
-/* ── Buscador + Filtros ────────────────────────────────────── */
-
-.stock-panel__toolbar {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-4) var(--space-5);
-}
-
-.stock-panel__toolbar .input-group {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.stock-panel__filters-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex-shrink: 0;
-  padding: 10px var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-soft);
-  background: var(--color-white);
-  font-size: 14px;
-  font-weight: var(--weight-medium);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: border-color var(--transition-duration-button),
-    color var(--transition-duration-button);
-}
-
-.stock-panel__filters-btn:hover {
-  border-color: var(--color-text-secondary);
-  color: var(--color-text-primary);
-}
-
-.stock-panel__filters-btn--on {
-  border-color: var(--color-yellow-primary);
-  background: var(--color-yellow-soft);
-  color: var(--color-yellow-dark);
-}
-
-.stock-panel__filters {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-4);
-  padding: 0 var(--space-5) var(--space-4);
-}
-
-.stock-panel__filters--wide {
-  grid-template-columns: 1fr 1fr;
-}
-
-.stock-panel__filters .select-group label,
-.stock-panel__filters .date-range__label {
-  font-size: 13px;
-  font-weight: var(--weight-medium);
-  color: var(--color-text-secondary-alt);
-}
-
-.stock-panel__loading {
-  display: grid;
-  place-items: center;
-  padding: var(--space-10) 0;
-}
-
-/* ── Pie del panel ─────────────────────────────────────────── */
-
 /* min-height para que los dos pies midan igual: el de órdenes lleva un select
    y el de alertas solo texto, y sin esto quedaban a distinta altura. */
-.stock-panel__foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  flex-wrap: wrap;
+.stock-management__grid .table-panel__foot {
   min-height: 76px;
-  padding: var(--space-3) var(--space-5);
-  border-top: 1px solid var(--color-border-soft);
-  margin-top: auto;
-}
-
-.stock-panel__showing {
-  font-size: 13px;
-  color: var(--color-text-secondary-alt);
-}
-
-.stock-panel__foot .select-group {
-  flex: 0 0 140px;
 }
 
 /* ── Tabla de órdenes ──────────────────────────────────────── */
 
-.stock-table-wrap {
-  width: auto;
-  overflow-x: auto;
-  border: 1px solid var(--color-border-soft);
-  border-radius: var(--radius-md);
-  /* Respiro entre el borde de la tabla y el de la card madre. */
-  margin: 0 var(--space-3) var(--space-3);
-}
-
-.stock-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-
+/* Se conserva el alto de encabezado propio de las tablas de stock. */
 .stock-table thead th {
   height: 56px;
-  text-align: center;
-  vertical-align: middle;
-  padding: 0 var(--space-5);
-  font-size: 13px;
-  font-weight: var(--weight-bold);
-  color: var(--color-text-secondary);
-  border-bottom: 1px solid var(--color-border-soft);
-  white-space: nowrap;
-}
-
-/* Alto común a las dos tablas: el de la fila más alta (la de alertas, que
-   además del producto en dos líneas lleva el botón). Con las dos al mismo paso,
-   la fila N de un panel queda a la altura de la fila N del otro. */
-.stock-table tbody tr {
-  height: 60px;
-}
-
-.stock-table tbody td {
-  padding: var(--space-2) var(--space-5);
-  border-bottom: 1px solid var(--color-border-soft);
-  vertical-align: middle;
-  text-align: center;
-  color: var(--color-text-secondary);
-}
-
-.stock-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.stock-table tbody tr {
-  transition: background var(--transition-duration-input);
-}
-
-.stock-table tbody tr:hover {
-  background: var(--color-surface-muted);
 }
 
 .stock-table__order,
@@ -394,12 +222,6 @@
   border-radius: var(--radius-sm);
   background: var(--color-surface-muted);
   color: var(--color-text-muted);
-}
-
-.stock-table thead th,
-.stock-table tbody td {
-  padding-left: var(--space-3);
-  padding-right: var(--space-3);
 }
 
 .stock-table__detail {
@@ -439,36 +261,36 @@
 /* Tabla de órdenes sin scroll horizontal: entra a presión en el panel con
    celdas compactas. Debajo de 1500px de viewport el panel ya no la contiene y
    vuelve el scroll como red de seguridad (si no, se recortaría Acciones). */
-.stock-table-wrap--fit {
+.table-panel__table-wrap--fit {
   overflow: hidden;
 }
 
-.stock-table-wrap--fit .stock-table thead th {
+.stock-table--fit thead th {
   white-space: normal;
 }
 
-.stock-table-wrap--fit .stock-table thead th,
-.stock-table-wrap--fit .stock-table tbody td {
+.stock-table--fit thead th,
+.stock-table--fit tbody td {
   padding-left: var(--space-2);
   padding-right: var(--space-2);
 }
 
-.stock-table-wrap--fit .stock-table__thumb {
+.stock-table--fit .stock-table__thumb {
   width: 28px;
   height: 28px;
 }
 
-.stock-table-wrap--fit .badge {
+.stock-table--fit .badge {
   font-size: 12px;
   padding: 3px 8px;
 }
 
-.stock-table-wrap--fit .stock-table__detail {
+.stock-table--fit .stock-table__detail {
   font-size: 13px;
 }
 
 @media (max-width: 1500px) {
-  .stock-table-wrap--fit {
+  .table-panel__table-wrap--fit {
     overflow-x: auto;
   }
 }
@@ -675,12 +497,7 @@
 }
 
 @media (max-width: 720px) {
-  .stock-panel__filters--wide {
-    grid-template-columns: 1fr;
-  }
-
-  .stock-panel__foot {
-    flex-direction: column;
-    align-items: stretch;
+  .stock-management__grid .table-panel__foot {
+    min-height: 0;
   }
 }

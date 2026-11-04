@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
-import Card from "../../components/ui/Card/Card";
+import TablePanel, { TablePanelTable } from "../../components/ui/TablePanel/TablePanel";
 import Input from "../../components/ui/Input/Input";
 import Select from "../../components/ui/Select/Select";
 import DateRangeFilter from "../../components/ui/DateRangeFilter/DateRangeFilter";
@@ -307,54 +307,61 @@ export default function SalesPage() {
       </div>
 
       {/* ── Tabla ────────────────────────────────────────── */}
-      <Card padding="none" className="sales-panel">
-        <header className="sales-panel__head">
-          <h3 className="sales-panel__title">Órdenes de compra</h3>
-        </header>
-
-        <div className="sales-panel__toolbar">
-          <Input
-            placeholder="Buscar en esta página por orden, cliente o producto..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            iconLeft={<Icon name="search" size={16} />}
-          />
-          <button
-            type="button"
-            className={`sales-panel__filters-btn ${
-              filtersOpen ? "sales-panel__filters-btn--on" : ""
-            }`}
-            onClick={() => setFiltersOpen((v) => !v)}
-          >
-            <Icon name="filter" size={16} />
-            Filtros
-          </button>
-        </div>
-
-        {filtersOpen && (
-          <div className="sales-panel__filters">
-            <Select
-              label="Estado"
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setPage(1);
-              }}
-              options={STATUS_FILTERS}
-            />
-            <DateRangeFilter
-              label="Fecha de compra"
-              value={range}
-              onChange={(next) => {
-                setRange(next);
-                setPage(1);
-              }}
-            />
-          </div>
-        )}
-
+      <TablePanel
+        title="Órdenes de compra"
+        search={{
+          placeholder: "Buscar en esta página por orden, cliente o producto...",
+          value: search,
+          onChange: (e) => setSearch(e.target.value),
+        }}
+        filtersOpen={filtersOpen}
+        onToggleFilters={() => setFiltersOpen((v) => !v)}
+        filtersClassName="table-panel__filters--two"
+        filters={
+          filtersOpen && (
+            <>
+              <Select
+                label="Estado"
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setPage(1);
+                }}
+                options={STATUS_FILTERS}
+              />
+              <DateRangeFilter
+                label="Fecha de compra"
+                value={range}
+                onChange={(next) => {
+                  setRange(next);
+                  setPage(1);
+                }}
+              />
+            </>
+          )
+        }
+        footer={
+          totalElements > 0 && (
+            <>
+              <span className="table-panel__showing">
+                Mostrando {start + 1} a {start + orders.length} de{" "}
+                {totalElements.toLocaleString("es-AR")} órdenes
+              </span>
+              <Pagination current={page} total={totalPages} onChange={setPage} />
+              <Select
+                value={String(pageSize)}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setPage(1);
+                }}
+                options={PAGE_SIZE_OPTIONS}
+              />
+            </>
+          )
+        }
+      >
         {loading ? (
-          <div className="sales-panel__loading">
+          <div className="table-panel__loading">
             <Spinner size={28} label="Cargando órdenes…" />
           </div>
         ) : items.length === 0 ? (
@@ -364,96 +371,72 @@ export default function SalesPage() {
             description="No encontramos órdenes de compra con los filtros seleccionados."
           />
         ) : (
-          <div className="sales-table-wrap">
-            <table className="sales-table">
-              <thead>
-                <tr>
-                  <th>Orden compra</th>
-                  <th>Fecha compra</th>
-                  <th>Cliente</th>
-                  <th>Producto</th>
-                  <th>SKU</th>
-                  <th>Cantidad</th>
-                  <th>Estado</th>
-                  <th>Fecha despacho</th>
-                  <th>Acciones</th>
+          <TablePanelTable className="sales-table">
+            <thead>
+              <tr>
+                <th>Orden compra</th>
+                <th>Fecha compra</th>
+                <th>Cliente</th>
+                <th>Producto</th>
+                <th>SKU</th>
+                <th>Cantidad</th>
+                <th>Estado</th>
+                <th>Fecha despacho</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((order) => (
+                <tr key={order.id}>
+                  <td className="sales-table__order">{order.code}</td>
+                  <td className="sales-table__date">{formatDate(order.createdAt)}</td>
+                  <td>{order.client}</td>
+                  <td>
+                    {order.firstItem ? (
+                      <div className="sales-table__product">
+                        <span className="sales-table__thumb">
+                          <Icon name="box" size={18} />
+                          {order.firstItem.imageUrl && (
+                            <img src={order.firstItem.imageUrl} alt="" loading="lazy" />
+                          )}
+                        </span>
+                        <span className="sales-table__product-name" title={order.firstItem.name}>
+                          {order.firstItem.name}
+                          {order.extraItems > 0 && (
+                            <span className="sales-table__product-more">
+                              {" "}+{order.extraItems} más
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td className="sales-table__sku">{order.firstItem?.sku ?? "—"}</td>
+                  <td className="sales-table__num">{order.totalQty} unidades</td>
+                  <td>
+                    <Badge variant={order.uiVariant} dot>
+                      {order.uiLabel}
+                    </Badge>
+                  </td>
+                  <td className="sales-table__date">{formatDate(order.completedAt)}</td>
+                  <td>
+                    <button
+                      type="button"
+                      className="sales-table__detail"
+                      onClick={() => setDetail(order)}
+                    >
+                      Ver detalle
+                      <span aria-hidden="true">&gt;</span>
+                    </button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {items.map((order) => (
-                  <tr key={order.id}>
-                    <td className="sales-table__order">{order.code}</td>
-                    <td className="sales-table__date">{formatDate(order.createdAt)}</td>
-                    <td>{order.client}</td>
-                    <td>
-                      {order.firstItem ? (
-                        <div className="sales-table__product">
-                          <span className="sales-table__thumb">
-                            <Icon name="box" size={18} />
-                            {order.firstItem.imageUrl && (
-                              <img src={order.firstItem.imageUrl} alt="" loading="lazy" />
-                            )}
-                          </span>
-                          <span className="sales-table__product-name" title={order.firstItem.name}>
-                            {order.firstItem.name}
-                            {order.extraItems > 0 && (
-                              <span className="sales-table__product-more">
-                                {" "}+{order.extraItems} más
-                              </span>
-                            )}
-                          </span>
-                        </div>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className="sales-table__sku">{order.firstItem?.sku ?? "—"}</td>
-                    <td className="sales-table__num">{order.totalQty} unidades</td>
-                    <td>
-                      <Badge variant={order.uiVariant} dot>
-                        {order.uiLabel}
-                      </Badge>
-                    </td>
-                    <td className="sales-table__date">{formatDate(order.completedAt)}</td>
-                    <td>
-                      <button
-                        type="button"
-                        className="sales-table__detail"
-                        onClick={() => setDetail(order)}
-                      >
-                        Ver detalle
-                        <span aria-hidden="true">&gt;</span>
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </TablePanelTable>
         )}
-
-        {totalElements > 0 && (
-          <footer className="sales-panel__foot">
-            <span className="sales-panel__showing">
-              Mostrando {start + 1} a {start + orders.length} de{" "}
-              {totalElements.toLocaleString("es-AR")} órdenes
-            </span>
-            <Pagination
-              current={page}
-              total={totalPages}
-              onChange={setPage}
-            />
-            <Select
-              value={String(pageSize)}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value));
-                setPage(1);
-              }}
-              options={PAGE_SIZE_OPTIONS}
-            />
-          </footer>
-        )}
-      </Card>
+      </TablePanel>
 
       {/* ── Detalle ──────────────────────────────────────── */}
       <Modal

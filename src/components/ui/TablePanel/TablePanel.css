@@ -1,0 +1,208 @@
+/*
+|--------------------------------------------------------------------------
+| TABLE PANEL
+|--------------------------------------------------------------------------
+|
+| Contenedor comun para tablas y listados. Replica el formato de
+| Gestion de Ventas / Gestion de stock: titulo, buscador, filtros,
+| contenido y pie (paginacion) dentro de una misma card.
+|
+*/
+
+.table-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Encabezado ─────────────────────────────────────────────── */
+
+.table-panel__head {
+  padding: var(--space-5) var(--space-5) 0;
+}
+
+.table-panel__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-family: var(--font-title);
+  font-size: 17px;
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.table-panel__count {
+  color: inherit;
+  font-weight: var(--weight-bold);
+}
+
+.table-panel__hint {
+  display: inline-flex;
+  color: var(--color-text-muted);
+  cursor: help;
+}
+
+.table-panel__desc {
+  margin: var(--space-2) 0 0;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+/* ── Buscador + Filtros ─────────────────────────────────────── */
+
+.table-panel__toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+}
+
+.table-panel__toolbar .input-group {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.table-panel__filters-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  padding: 10px var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-soft);
+  background: var(--color-white);
+  font-size: 14px;
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: border-color var(--transition-duration-button),
+    color var(--transition-duration-button);
+}
+
+.table-panel__filters-btn:hover {
+  border-color: var(--color-text-secondary);
+  color: var(--color-text-primary);
+}
+
+.table-panel__filters-btn--on {
+  border-color: var(--color-yellow-primary);
+  background: var(--color-yellow-soft);
+  color: var(--color-yellow-dark);
+}
+
+.table-panel__filters {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+  padding: 0 var(--space-5) var(--space-4);
+}
+
+.table-panel__filters--two {
+  grid-template-columns: 1fr 1fr;
+}
+
+.table-panel__filters .select-group label,
+.table-panel__filters .date-range__label {
+  font-size: 13px;
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary-alt);
+}
+
+.table-panel__loading {
+  display: grid;
+  place-items: center;
+  padding: var(--space-10) 0;
+}
+
+/* ── Pie del panel ─────────────────────────────────────────── */
+
+.table-panel__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: var(--space-3) var(--space-5);
+  border-top: 1px solid var(--color-border-soft);
+  margin-top: auto;
+}
+
+.table-panel__showing {
+  font-size: 13px;
+  color: var(--color-text-secondary-alt);
+}
+
+.table-panel__foot .select-group {
+  flex: 0 0 140px;
+}
+
+/* ── Tabla ──────────────────────────────────────────────────── */
+
+.table-panel__table-wrap {
+  width: auto;
+  overflow-x: auto;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  margin: 0 var(--space-3) var(--space-3);
+}
+
+.table-panel__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table-panel__table thead th {
+  height: 52px;
+  padding: 0 var(--space-3);
+  text-align: center;
+  vertical-align: middle;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: var(--weight-bold);
+  color: var(--color-text-secondary);
+  border-bottom: 1px solid var(--color-border-soft);
+}
+
+.table-panel__table tbody tr {
+  height: 60px;
+  transition: background var(--transition-duration-input);
+}
+
+.table-panel__table tbody td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border-soft);
+  vertical-align: middle;
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.table-panel__table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table-panel__table tbody tr:hover {
+  background: var(--color-surface-muted);
+}
+
+.table-panel__table-wrap .button {
+  white-space: nowrap;
+  width: auto;
+  height: 32px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+
+@media (max-width: 720px) {
+  .table-panel__filters--two {
+    grid-template-columns: 1fr;
+  }
+
+  .table-panel__foot {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

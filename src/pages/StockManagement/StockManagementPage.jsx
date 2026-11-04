@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
-import Card from "../../components/ui/Card/Card";
-import Input from "../../components/ui/Input/Input";
+import TablePanel, { TablePanelTable } from "../../components/ui/TablePanel/TablePanel";
 import Select from "../../components/ui/Select/Select";
 import DateRangeFilter from "../../components/ui/DateRangeFilter/DateRangeFilter";
 import Badge from "../../components/ui/Badge/Badge";
@@ -504,53 +503,31 @@ export default function StockManagementPage() {
 
       <div className="stock-management__grid">
         {/* ═══ Productos con alerta de reestock ═══════════════ */}
-        <Card padding="none" className="stock-panel">
-          <header className="stock-panel__head">
-            <h3 className="stock-panel__title">
-              Productos con alerta de reestock
-              <span className="stock-panel__count">({filteredAlerts.length})</span>
-              <span
-                className="stock-panel__hint"
-                title={
-                  hasSuggestions
-                    ? "El backend compara la posición de inventario (disponible + en tránsito) contra el punto de reposición calculado sobre la demanda."
-                    : "Un producto entra en alerta cuando su stock disponible queda por debajo del mínimo configurado."
-                }
-              >
-                <Icon name="info" size={15} />
-              </span>
-            </h3>
-            <p className="stock-panel__desc">
-              {hasSuggestions
-                ? "Cantidades sugeridas por el backend según demanda, stock de seguridad y mercadería en tránsito."
-                : "Productos que necesitan ser reabastecidos según niveles mínimos de stock."}
-            </p>
-          </header>
-
-          <div className="stock-panel__toolbar">
-            <Input
-              placeholder="Buscar por producto o SKU"
-              value={alertSearch}
-              onChange={(e) => {
-                setAlertSearch(e.target.value);
-                setAlertPage(1);
-              }}
-              iconLeft={<Icon name="search" size={16} />}
-            />
-            <button
-              type="button"
-              className={`stock-panel__filters-btn ${
-                alertFiltersOpen ? "stock-panel__filters-btn--on" : ""
-              }`}
-              onClick={() => setAlertFiltersOpen((v) => !v)}
-            >
-              <Icon name="filter" size={16} />
-              Filtros
-            </button>
-          </div>
-
-          {alertFiltersOpen && (
-            <div className="stock-panel__filters">
+        <TablePanel
+          title="Productos con alerta de reestock"
+          count={`(${filteredAlerts.length})`}
+          hint={
+            hasSuggestions
+              ? "El backend compara la posición de inventario (disponible + en tránsito) contra el punto de reposición calculado sobre la demanda."
+              : "Un producto entra en alerta cuando su stock disponible queda por debajo del mínimo configurado."
+          }
+          description={
+            hasSuggestions
+              ? "Cantidades sugeridas por el backend según demanda, stock de seguridad y mercadería en tránsito."
+              : "Productos que necesitan ser reabastecidos según niveles mínimos de stock."
+          }
+          search={{
+            placeholder: "Buscar por producto o SKU",
+            value: alertSearch,
+            onChange: (e) => {
+              setAlertSearch(e.target.value);
+              setAlertPage(1);
+            },
+          }}
+          filtersOpen={alertFiltersOpen}
+          onToggleFilters={() => setAlertFiltersOpen((v) => !v)}
+          filters={
+            alertFiltersOpen && (
               <Select
                 label="Categoría"
                 value={alertCategory}
@@ -560,11 +537,27 @@ export default function StockManagementPage() {
                 }}
                 options={categoryOptions}
               />
-            </div>
-          )}
-
+            )
+          }
+          footer={
+            filteredAlerts.length > 0 && (
+              <>
+                <span className="table-panel__showing">
+                  Mostrando {alertStart + 1} a{" "}
+                  {Math.min(alertStart + ALERTS_PAGE_SIZE, filteredAlerts.length)} de{" "}
+                  {filteredAlerts.length} productos
+                </span>
+                <Pagination
+                  current={Math.min(alertPage, alertTotalPages)}
+                  total={alertTotalPages}
+                  onChange={setAlertPage}
+                />
+              </>
+            )
+          }
+        >
           {loading ? (
-            <div className="stock-panel__loading">
+            <div className="table-panel__loading">
               <Spinner size={28} label="Cargando productos…" />
             </div>
           ) : alertItems.length === 0 ? (
@@ -578,148 +571,132 @@ export default function StockManagementPage() {
               }
             />
           ) : (
-            <div className="stock-table-wrap">
-              <table className="stock-table stock-table--wrap-head">
-                <thead>
-                  <tr>
-                    <th>Producto</th>
-                    <th>SKU</th>
-                    <th>Stock actual</th>
-                    <th>{alertItems[0]?.thresholdLabel ?? "Stock mínimo"}</th>
-                    <th>Sugerencia de reestock</th>
-                    <th className="stock-table__actions-col">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {alertItems.map((alert) => (
-                    <tr key={alert.productId}>
-                      <td>
-                        <div className="stock-table__product">
-                          <span className="stock-table__thumb">
-                            <Icon name="box" size={18} />
-                            {alert.imageUrl && (
-                              <img src={alert.imageUrl} alt="" loading="lazy" />
-                            )}
-                          </span>
-                          <span className="stock-table__product-text">
-                            <span
-                              className="stock-table__product-name"
-                              title={alert.name}
-                            >
-                              {alert.name}
-                            </span>
-                          </span>
-                        </div>
-                      </td>
-                      <td className="stock-table__sku">{alert.sku}</td>
-                      <td className="stock-table__num stock-table__num--low">
-                        {alert.availableStock}
-                      </td>
-                      <td className="stock-table__num">{alert.threshold}</td>
-                      <td className="stock-table__num stock-table__num--suggested">
-                        {alert.suggestedQuantity ?? (
+            <TablePanelTable className="stock-table stock-table--wrap-head">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>SKU</th>
+                  <th>Stock actual</th>
+                  <th>{alertItems[0]?.thresholdLabel ?? "Stock mínimo"}</th>
+                  <th>Sugerencia de reestock</th>
+                  <th className="stock-table__actions-col">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {alertItems.map((alert) => (
+                  <tr key={alert.productId}>
+                    <td>
+                      <div className="stock-table__product">
+                        <span className="stock-table__thumb">
+                          <Icon name="box" size={18} />
+                          {alert.imageUrl && (
+                            <img src={alert.imageUrl} alt="" loading="lazy" />
+                          )}
+                        </span>
+                        <span className="stock-table__product-text">
                           <span
-                            className="stock-table__num--unknown"
-                            title="La calcula el backend (POST /metrics/restock-suggestions). Todavía no está disponible: la cantidad se define al crear la orden."
+                            className="stock-table__product-name"
+                            title={alert.name}
                           >
-                            —
+                            {alert.name}
                           </span>
-                        )}
-                      </td>
-                      <td>
-                        <Button
-                          variant="warning-outline"
-                          size="sm"
-                          iconLeft={<Icon name="cart" size={15} />}
-                          onClick={() => setOrderModal({ alert })}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="stock-table__sku">{alert.sku}</td>
+                    <td className="stock-table__num stock-table__num--low">
+                      {alert.availableStock}
+                    </td>
+                    <td className="stock-table__num">{alert.threshold}</td>
+                    <td className="stock-table__num stock-table__num--suggested">
+                      {alert.suggestedQuantity ?? (
+                        <span
+                          className="stock-table__num--unknown"
+                          title="La calcula el backend (POST /metrics/restock-suggestions). Todavía no está disponible: la cantidad se define al crear la orden."
                         >
-                          Orden de Restock
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                          —
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      <Button
+                        variant="warning-outline"
+                        size="sm"
+                        iconLeft={<Icon name="cart" size={15} />}
+                        onClick={() => setOrderModal({ alert })}
+                      >
+                        Orden de Restock
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </TablePanelTable>
           )}
-
-          {filteredAlerts.length > 0 && (
-            <footer className="stock-panel__foot">
-              <span className="stock-panel__showing">
-                Mostrando {alertStart + 1} a{" "}
-                {Math.min(alertStart + ALERTS_PAGE_SIZE, filteredAlerts.length)} de{" "}
-                {filteredAlerts.length} productos
-              </span>
-              <Pagination
-                current={Math.min(alertPage, alertTotalPages)}
-                total={alertTotalPages}
-                onChange={setAlertPage}
-              />
-            </footer>
-          )}
-        </Card>
+        </TablePanel>
 
         {/* ═══ Órdenes de restock ═════════════════════════════ */}
-        <Card padding="none" className="stock-panel">
-          <header className="stock-panel__head">
-            <h3 className="stock-panel__title">
-              Órdenes de restock
-              <span className="stock-panel__count">({orderTotal.toLocaleString("es-AR")})</span>
-              <span
-                className="stock-panel__hint"
-                title="El estado se deriva de las recepciones registradas: sin recibir (pendiente), parcial (recibido) o completo."
-              >
-                <Icon name="info" size={15} />
-              </span>
-            </h3>
-            <p className="stock-panel__desc">
-              Gestioná el estado de tus órdenes de restock y registrá las
-              recepciones.
-            </p>
-          </header>
-
-          <div className="stock-panel__toolbar">
-            <Input
-              placeholder="Buscar en esta página por producto, SKU u orden"
-              value={orderSearch}
-              onChange={(e) => {
-                setOrderSearch(e.target.value);
-              }}
-              iconLeft={<Icon name="search" size={16} />}
-            />
-            <button
-              type="button"
-              className={`stock-panel__filters-btn ${
-                orderFiltersOpen ? "stock-panel__filters-btn--on" : ""
-              }`}
-              onClick={() => setOrderFiltersOpen((v) => !v)}
-            >
-              <Icon name="filter" size={16} />
-              Filtros
-            </button>
-          </div>
-
-          {orderFiltersOpen && (
-            <div className="stock-panel__filters stock-panel__filters--wide">
-              <Select
-                label="Estado (en esta página)"
-                value={orderStatus}
-                onChange={(e) => setOrderStatus(e.target.value)}
-                options={STATUS_OPTIONS}
-              />
-              <DateRangeFilter
-                label="Fecha de creación"
-                value={orderRange}
-                onChange={(next) => {
-                  setOrderRange(next);
-                  setOrderPage(1);
-                }}
-              />
-            </div>
-          )}
-
+        <TablePanel
+          title="Órdenes de restock"
+          count={`(${orderTotal.toLocaleString("es-AR")})`}
+          hint="El estado se deriva de las recepciones registradas: sin recibir (pendiente), parcial (recibido) o completo."
+          description="Gestioná el estado de tus órdenes de restock y registrá las recepciones."
+          search={{
+            placeholder: "Buscar en esta página por producto, SKU u orden",
+            value: orderSearch,
+            onChange: (e) => {
+              setOrderSearch(e.target.value);
+            },
+          }}
+          filtersOpen={orderFiltersOpen}
+          onToggleFilters={() => setOrderFiltersOpen((v) => !v)}
+          filtersClassName="table-panel__filters--two"
+          filters={
+            orderFiltersOpen && (
+              <>
+                <Select
+                  label="Estado (en esta página)"
+                  value={orderStatus}
+                  onChange={(e) => setOrderStatus(e.target.value)}
+                  options={STATUS_OPTIONS}
+                />
+                <DateRangeFilter
+                  label="Fecha de creación"
+                  value={orderRange}
+                  onChange={(next) => {
+                    setOrderRange(next);
+                    setOrderPage(1);
+                  }}
+                />
+              </>
+            )
+          }
+          footer={
+            orderTotal > 0 && (
+              <>
+                <span className="table-panel__showing">
+                  Mostrando {orderStart + 1} a {orderStart + orders.length} de{" "}
+                  {orderTotal.toLocaleString("es-AR")} órdenes
+                </span>
+                <Pagination
+                  current={orderPage}
+                  total={orderTotalPages}
+                  onChange={setOrderPage}
+                />
+                <Select
+                  value={String(orderPageSize)}
+                  onChange={(e) => {
+                    setOrderPageSize(Number(e.target.value));
+                    setOrderPage(1);
+                  }}
+                  options={PAGE_SIZE_OPTIONS}
+                />
+              </>
+            )
+          }
+        >
           {ordersLoading ? (
-            <div className="stock-panel__loading">
+            <div className="table-panel__loading">
               <Spinner size={28} label="Cargando órdenes…" />
             </div>
           ) : orderItems.length === 0 ? (
@@ -729,90 +706,69 @@ export default function StockManagementPage() {
               description="No encontramos órdenes de restock con los filtros seleccionados."
             />
           ) : (
-            <div className="stock-table-wrap stock-table-wrap--fit">
-              <table className="stock-table">
-                <thead>
-                  <tr>
-                    <th>Orden (RST)</th>
-                    <th>Fecha</th>
-                    <th>Producto</th>
-                    <th>SKU</th>
-                    <th>Solicitado</th>
-                    <th>Recibido</th>
-                    <th>Unidad</th>
-                    <th>Estado</th>
-                    <th className="stock-table__actions-col">Acciones</th>
+            <TablePanelTable
+              className="stock-table stock-table--fit"
+              wrapClassName="table-panel__table-wrap--fit"
+            >
+              <thead>
+                <tr>
+                  <th>Orden (RST)</th>
+                  <th>Fecha</th>
+                  <th>Producto</th>
+                  <th>SKU</th>
+                  <th>Solicitado</th>
+                  <th>Recibido</th>
+                  <th>Unidad</th>
+                  <th>Estado</th>
+                  <th className="stock-table__actions-col">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orderItems.map((order) => (
+                  <tr key={order.id}>
+                    <td className="stock-table__order">{order.code}</td>
+                    <td className="stock-table__date">
+                      {formatDate(order.createdAt)}
+                    </td>
+                    <td>
+                      <div className="stock-table__product">
+                        <span className="stock-table__thumb">
+                          <Icon name="box" size={18} />
+                          {order.imageUrl && (
+                            <img src={order.imageUrl} alt="" loading="lazy" />
+                          )}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="stock-table__sku">{order.sku}</td>
+                    <td className="stock-table__num">{order.quantityRequested}</td>
+                    <td className="stock-table__num">{order.quantityReceived}</td>
+                    <td>
+                      {order.deliveryUnit
+                        ? STORAGE_UNIT_LABEL[order.deliveryUnit] ?? "Mixta"
+                        : "—"}
+                    </td>
+                    <td>
+                      <Badge variant={STATUS_META[order.status].variant} dot>
+                        {STATUS_META[order.status].label}
+                      </Badge>
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className="stock-table__detail"
+                        onClick={() => openDetail(order)}
+                      >
+                        {order.status === "pendiente" ? "Ver acción" : "Ver detalle"}
+                        <span aria-hidden="true">&gt;</span>
+                      </button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {orderItems.map((order) => (
-                    <tr key={order.id}>
-                      <td className="stock-table__order">{order.code}</td>
-                      <td className="stock-table__date">
-                        {formatDate(order.createdAt)}
-                      </td>
-                      <td>
-                        <div className="stock-table__product">
-                          <span className="stock-table__thumb">
-                            <Icon name="box" size={18} />
-                            {order.imageUrl && (
-                              <img src={order.imageUrl} alt="" loading="lazy" />
-                            )}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="stock-table__sku">{order.sku}</td>
-                      <td className="stock-table__num">{order.quantityRequested}</td>
-                      <td className="stock-table__num">{order.quantityReceived}</td>
-                      <td>
-                        {order.deliveryUnit
-                          ? STORAGE_UNIT_LABEL[order.deliveryUnit] ?? "Mixta"
-                          : "—"}
-                      </td>
-                      <td>
-                        <Badge variant={STATUS_META[order.status].variant} dot>
-                          {STATUS_META[order.status].label}
-                        </Badge>
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          className="stock-table__detail"
-                          onClick={() => openDetail(order)}
-                        >
-                          {order.status === "pendiente" ? "Ver acción" : "Ver detalle"}
-                          <span aria-hidden="true">&gt;</span>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </TablePanelTable>
           )}
-
-          {orderTotal > 0 && (
-            <footer className="stock-panel__foot">
-              <span className="stock-panel__showing">
-                Mostrando {orderStart + 1} a {orderStart + orders.length} de{" "}
-                {orderTotal.toLocaleString("es-AR")} órdenes
-              </span>
-              <Pagination
-                current={orderPage}
-                total={orderTotalPages}
-                onChange={setOrderPage}
-              />
-              <Select
-                value={String(orderPageSize)}
-                onChange={(e) => {
-                  setOrderPageSize(Number(e.target.value));
-                  setOrderPage(1);
-                }}
-                options={PAGE_SIZE_OPTIONS}
-              />
-            </footer>
-          )}
-        </Card>
+        </TablePanel>
       </div>
 
       <RestockOrderModal
