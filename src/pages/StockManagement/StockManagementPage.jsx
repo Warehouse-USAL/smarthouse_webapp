@@ -66,20 +66,25 @@ const ACTION_CARDS = [
 ];
 
 // El backend NO persiste `status` en RestockOrder (RFC §9): los tres estados se
-// derivan de cuánto se recibió contra lo solicitado. Por eso no hay
-// "Cancelado": no existe forma de llegar a ese estado hoy.
+// derivan de cuánto se recibió contra lo solicitado. "Cancelado" solo aparece
+// si el backend nuevo manda `status: CANCELLED`.
 const STATUS_META = {
   pendiente: { label: "Pendiente", plural: "Pendientes", variant: "warning" },
   recibido: { label: "Recibido", plural: "Recibidos", variant: "info" },
   completado: { label: "Completado", plural: "Completados", variant: "success" },
+  cancelado: { label: "Cancelado", plural: "Cancelados", variant: "danger" },
 };
 
 const STATUS_OPTIONS = [
   { value: "", label: "Todos los estados" },
-  ...Object.entries(STATUS_META).map(([value, meta]) => ({
-    value,
-    label: meta.label,
-  })),
+  ...Object.entries(STATUS_META)
+    // El listado del backend excluye las canceladas por defecto: filtrar por
+    // "Cancelado" daría siempre vacío.
+    .filter(([value]) => value !== "cancelado")
+    .map(([value, meta]) => ({
+      value,
+      label: meta.label,
+    })),
 ];
 
 const CANCEL_REASONS = [

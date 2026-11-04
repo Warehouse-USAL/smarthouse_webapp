@@ -88,6 +88,8 @@ export const ORDER_STATUS = {
   PENDIENTE: "pendiente",
   RECIBIDO: "recibido",
   COMPLETADO: "completado",
+  // Solo lo manda el backend (`status: CANCELLED`); nunca se deriva.
+  CANCELADO: "cancelado",
 };
 
 // Estado de un REMITO (no de la orden). Lo persiste el backend a partir de la
@@ -122,6 +124,13 @@ const normalizeOrder = (raw) => {
     supplier: raw.supplier ?? "",
     requestedByUserId: raw.requested_by_user_id ?? raw.requestedByUserId ?? null,
     createdAt: raw.created_at ?? raw.createdAt ?? null,
+    // Campos aditivos del backend nuevo; con el viejo quedan en null/false.
+    cancelled: raw.status === "CANCELLED",
+    expectedDeliveryDate: raw.expected_delivery_date ?? raw.expectedDeliveryDate ?? null,
+    deliveryLeadTimeDays: raw.delivery_lead_time_days ?? raw.deliveryLeadTimeDays ?? null,
+    cancelledAt: raw.cancelled_at ?? raw.cancelledAt ?? null,
+    cancelledByUserId: raw.cancelled_by_user_id ?? raw.cancelledByUserId ?? null,
+    cancellationReason: raw.cancellation_reason ?? raw.cancellationReason ?? null,
     code: restockOrderCode(raw.id),
   };
 };
@@ -230,7 +239,10 @@ const withProgress = (orders, receptions) => {
             ? "MIXTA"
             : null,
       receptions: progress?.receptions ?? [],
-      status: deriveStatus(order.quantityRequested, received),
+      // CANCELLED lo decide el backend; el resto se sigue derivando de lo recibido.
+      status: order.cancelled
+        ? ORDER_STATUS.CANCELADO
+        : deriveStatus(order.quantityRequested, received),
     };
   });
 };
@@ -382,7 +394,8 @@ export const restockService = {
       this.listReceptions(recent),
     ]);
     return withProgress(orders, receptions).filter(
-      (order) => order.status !== ORDER_STATUS.COMPLETADO
+      (order) =>
+        order.status !== ORDER_STATUS.COMPLETADO && order.status !== ORDER_STATUS.CANCELADO
     );
   },
 
@@ -399,13 +412,9 @@ export const restockService = {
     return normalizeOrder(data?.restock_order ?? data);
   },
 
-  // Cancela una orden de restock pendiente.
-  // CONTRATO FUTURO: el backend todavía no tiene lifecycle en RestockOrder
-  // (RFC §9: sin campo `status`, sin endpoint de cancelación). Este método
-  // apunta al contrato esperado `POST /restock/orders/:id/cancel { reason }`
-  // para dejar el front listo; contra el backend actual responde 404 y la
-  // pantalla muestra el error sin romper. Sin rama de mock a propósito: no hay
-  // contrato que mockear todavía.
+  // Cancela una orden de restock: POST /restock/orders/:id/cancel { reason }.
+  // 409 RESTOCK_ORDER_ALREADY_CANCELLED / RESTOCK_ORDER_HAS_RECEPTIONS; contra
+  // un backend sin el endpoint responde 404. Sin rama de mock a propósito.
   async cancelOrder(id, reason) {
     const { data } = await apiClient.post(`/restock/orders/${id}/cancel`, {
       reason,
