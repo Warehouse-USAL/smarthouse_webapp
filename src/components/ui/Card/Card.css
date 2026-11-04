@@ -35,8 +35,8 @@
 }
 
 .card-header__title h3 {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
 }
 

@@ -63,7 +63,7 @@
 }
 
 .sales__metric-label {
-  font-size: 14px;
+  font-size: var(--text-md);
   color: var(--color-text-secondary);
 }
 
@@ -75,7 +75,7 @@
 }
 
 .sales__metric-sub {
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary-alt);
 }
 
@@ -145,7 +145,7 @@
   padding: 0;
   border: none;
   background: none;
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   color: var(--color-yellow-primary);
   cursor: pointer;
@@ -181,20 +181,20 @@
 }
 
 .sales__detail-grid dt {
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--color-text-secondary-alt);
 }
 
 .sales__detail-grid dd {
   margin: var(--space-1) 0 0;
-  font-size: 14px;
+  font-size: var(--text-md);
   font-weight: var(--weight-medium);
   color: var(--color-text-primary);
 }
 
 .sales__detail-title {
   margin: var(--space-5) 0 var(--space-3);
-  font-size: 14px;
+  font-size: var(--text-md);
   font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
 }
@@ -215,7 +215,7 @@
   padding: var(--space-3);
   border: 1px solid var(--color-border-soft);
   border-radius: var(--radius-sm);
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
 }
 
@@ -234,13 +234,13 @@
 }
 
 .sales__item-sku {
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--color-text-secondary-alt);
 }
 
 .sales__cancel-error {
   margin: var(--space-3) 0 0;
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-danger);
 }
 

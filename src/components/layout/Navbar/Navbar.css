@@ -24,8 +24,8 @@
 
 .navbar__link {
   position: relative;
-  font-size: 15px;
-  font-weight: 500;
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
   color: var(--color-text-secondary);
   padding: 8px 4px;
   transition: color 120ms ease;
@@ -41,7 +41,7 @@
 
 .navbar__link--active {
   color: var(--color-primary-dark);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
 }
 
 .navbar__link--active::after {
@@ -64,8 +64,8 @@
   align-items: center;
   gap: 10px;
   color: var(--color-text-primary);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
   cursor: pointer;
   background: none;
   border: none;
@@ -112,8 +112,8 @@
   background: none;
   border: none;
   border-radius: var(--radius-soft);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
   color: var(--color-text-primary);
   cursor: pointer;
   text-align: left;

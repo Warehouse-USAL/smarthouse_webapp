@@ -15,7 +15,7 @@
   border: none;
   background: transparent;
   border-radius: var(--radius-sm);
-  font-size: 14px;
+  font-size: var(--text-md);
   cursor: pointer;
   color: var(--color-text-primary);
   transition: background-color 120ms ease;
@@ -34,7 +34,7 @@
 .pagination__page--active {
   background-color: var(--color-primary-soft);
   color: var(--color-text-primary);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
 }
 
 .pagination__ellipsis {

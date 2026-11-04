@@ -109,6 +109,15 @@
   --weight-semibold: 600;
   --weight-bold: 700;
   --text-button-md: 15px;
+  --text-2xs: 11px;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-md: 14px;
+  --text-base: 15px;
+  --text-lg: 16px;
+  --text-xl: 17px;
+  --text-2xl: 18px;
+  --text-3xl: 20px;
 
   /* Layout */
   --container-width: 1700px;

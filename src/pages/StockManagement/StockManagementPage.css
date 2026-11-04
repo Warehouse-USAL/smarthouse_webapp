@@ -81,8 +81,8 @@
 }
 
 .stock-management__card-title {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
   margin: 0;
   text-align: left;
@@ -90,7 +90,7 @@
 
 .stock-management__card-desc {
   margin: 8px 0 0;
-  font-size: 14px;
+  font-size: var(--text-md);
   color: var(--color-text-secondary);
   line-height: 1.5;
   text-align: left;
@@ -152,12 +152,12 @@
   gap: 2px;
   flex: 1;
   min-width: 0;
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
 }
 
 .stock-management__pending-text strong {
-  font-size: 14px;
+  font-size: var(--text-md);
   color: var(--color-text-primary);
 }
 
@@ -225,7 +225,7 @@
 }
 
 .stock-table__detail {
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 
 /* Encabezados en dos líneas: columnas numéricas más angostas. El tope no
@@ -255,7 +255,7 @@
   white-space: nowrap;
   height: 32px;
   padding: 6px 10px;
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 
 /* Tabla de órdenes sin scroll horizontal: entra a presión en el panel con
@@ -281,12 +281,12 @@
 }
 
 .stock-table--fit .badge {
-  font-size: 12px;
+  font-size: var(--text-xs);
   padding: 3px 8px;
 }
 
 .stock-table--fit .stock-table__detail {
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 
 @media (max-width: 1500px) {
@@ -355,7 +355,7 @@
   padding: 0;
   border: none;
   background: none;
-  font-size: 14px;
+  font-size: var(--text-md);
   font-weight: var(--weight-medium);
   color: var(--color-yellow-primary);
   cursor: pointer;
@@ -381,15 +381,15 @@
 
 .stock-management__cancel-text {
   margin: 0 0 var(--space-4);
-  font-size: 14px;
+  font-size: var(--text-md);
   color: var(--color-text-secondary);
 }
 
 .stock-management__cancel-label {
   display: block;
   margin: var(--space-4) 0 var(--space-2);
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
 }
 
@@ -400,7 +400,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background-color: var(--color-white);
-  font-size: 14px;
+  font-size: var(--text-md);
   font-family: inherit;
   color: var(--color-text-primary);
   resize: vertical;
@@ -413,7 +413,7 @@
 
 .stock-management__cancel-error {
   margin: var(--space-3) 0 0;
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-danger);
 }
 
@@ -430,13 +430,13 @@
 }
 
 .stock-management__order-grid dt {
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--color-text-secondary-alt);
 }
 
 .stock-management__order-grid dd {
   margin: var(--space-1) 0 0;
-  font-size: 14px;
+  font-size: var(--text-md);
   font-weight: var(--weight-medium);
   color: var(--color-text-primary);
 }
@@ -451,7 +451,7 @@
   border: 1px solid var(--color-danger-border);
   border-radius: var(--radius-sm);
   background-color: var(--color-danger-soft);
-  font-size: 12px;
+  font-size: var(--text-xs);
   line-height: 1.5;
   color: var(--color-danger);
 }
@@ -463,7 +463,7 @@
 
 .stock-management__detail-title {
   margin: var(--space-5) 0 var(--space-3);
-  font-size: 14px;
+  font-size: var(--text-md);
   font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
 }
@@ -484,7 +484,7 @@
   padding: var(--space-3);
   border: 1px solid var(--color-border-soft);
   border-radius: var(--radius-sm);
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
 }
 

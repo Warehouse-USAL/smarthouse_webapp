@@ -27,7 +27,7 @@
   gap: var(--space-2);
   margin: 0;
   font-family: var(--font-title);
-  font-size: 17px;
+  font-size: var(--text-xl);
   font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
 }
@@ -45,7 +45,7 @@
 
 .table-panel__desc {
   margin: var(--space-2) 0 0;
-  font-size: 14px;
+  font-size: var(--text-md);
   color: var(--color-text-secondary);
 }
 
@@ -72,7 +72,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-soft);
   background: var(--color-white);
-  font-size: 14px;
+  font-size: var(--text-md);
   font-weight: var(--weight-medium);
   color: var(--color-text-secondary);
   cursor: pointer;
@@ -104,7 +104,7 @@
 
 .table-panel__filters .select-group label,
 .table-panel__filters .date-range__label {
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   color: var(--color-text-secondary-alt);
 }
@@ -129,7 +129,7 @@
 }
 
 .table-panel__showing {
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary-alt);
 }
 
@@ -150,7 +150,7 @@
 .table-panel__table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 
 .table-panel__table thead th {
@@ -159,7 +159,7 @@
   text-align: center;
   vertical-align: middle;
   white-space: nowrap;
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: var(--weight-bold);
   color: var(--color-text-secondary);
   border-bottom: 1px solid var(--color-border-soft);
@@ -191,7 +191,7 @@
   width: auto;
   height: 32px;
   padding: 6px 10px;
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 
 /* Celda de producto: miniatura + nombre. */

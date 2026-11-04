@@ -20,7 +20,7 @@
 .auth_ilustration_content {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--space-5);
 }
 
 .auth_ilustration_content h2 {
@@ -30,7 +30,7 @@
 }
 
 .auth_ilustration_content p {
-  font-size: 20px;
+  font-size: var(--text-3xl);
   line-height: 1.4;
 
   color: var(--color-text-secondary);
