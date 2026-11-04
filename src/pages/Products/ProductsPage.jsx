@@ -111,6 +111,7 @@ export default function ProductsPage() {
   const [adjustPosition, setAdjustPosition] = useState("");
   const [adjustType, setAdjustType] = useState("entrada");
   const [adjustQty, setAdjustQty] = useState("");
+  const [adjustReason, setAdjustReason] = useState("");
   const [adjustSubmitting, setAdjustSubmitting] = useState(false);
   // Resultado de una reducción: { cancelled, notCancelled } de failShortOfStock.
   const [reductionResult, setReductionResult] = useState(null);
@@ -318,6 +319,7 @@ export default function ProductsPage() {
     setAdjustPosition(product.locations?.[0]?.idPosition ?? "");
     setAdjustType("entrada");
     setAdjustQty("");
+    setAdjustReason("");
   };
 
   const openHistory = (product) => {
@@ -388,9 +390,13 @@ export default function ProductsPage() {
     if (error || next == null) return;
     setAdjustSubmitting(true);
     const typeLabel = ADJUST_TYPES.find((t) => t.value === adjustType).label;
-    const reason =
-      `Ajuste manual "${typeLabel}" de ${adjusting.sku} ` +
-      `en ${fullLocationLabel(adjustLocation)}: ${adjustCurrent} → ${next} un.`;
+    // Motivo escrito por el operador; si lo deja vacío, se guarda un resumen
+    // automático para que el historial nunca quede sin contexto.
+    const typedReason = adjustReason.trim();
+    const reason = typedReason
+      ? `${typeLabel}: ${typedReason}`
+      : `Ajuste manual "${typeLabel}" de ${adjusting.sku} ` +
+        `en ${fullLocationLabel(adjustLocation)}: ${adjustCurrent} → ${next} un.`;
     let response;
     try {
       // El backend recalcula físico/reserva/disponible del producto desde las
@@ -858,6 +864,15 @@ export default function ProductsPage() {
                 value={adjustQty}
                 onChange={(e) => setAdjustQty(e.target.value)}
                 error={adjustResult.error}
+              />
+              <Input
+                label="Motivo (opcional)"
+                type="text"
+                placeholder="Ej. rotura de caja, conteo físico"
+                maxLength={500}
+                hint="Se guarda en el historial de ajustes."
+                value={adjustReason}
+                onChange={(e) => setAdjustReason(e.target.value)}
               />
               <p className="products-page__adjust-preview">
                 Stock actual: <strong>{adjustCurrent}</strong> → Stock

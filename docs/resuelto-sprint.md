@@ -36,7 +36,8 @@
 
 `PATCH /warehouse/positions/{id}` ya registra el ajuste en el historial: el
 backend guarda el `reason` y el usuario del JWT. La UI no necesita un endpoint
-extra para escribir, solo para leer.
+extra para escribir, solo para leer. El `reason` lo escribe el operador en el
+modal; si lo deja vacío se envía un resumen automático para no perder contexto.
 
 El `page` de los `GET` es **zero-indexed**; `fetchPage` traduce la página
 1-based de la UI a 0-based y limita `size` a 50.
@@ -105,7 +106,7 @@ Estas órdenes también quedan en estado `CANCELLED` en restock.
 | `src/services/stockAdjustmentService.js` | **Nuevo.** `listProductAdjustments(productId, {page,size})` + `normalizeAdjustment`. Devuelve página vacía si `VITE_USE_MOCK=true`. |
 | `src/services/stockAdjustmentService.test.js` | **Nuevo.** Normalización del registro y traducción 1-based → 0-based. |
 | `src/lib/permissions.js` | Nueva capacidad `stock.history` (`SUPERADMIN`, `ADMIN_WAREHOUSE`, `ADMIN_SALES`). |
-| `src/pages/Products/ProductsPage.jsx` | Botón de historial por producto, modal con tabla paginada, motivo en órdenes canceladas. |
+| `src/pages/Products/ProductsPage.jsx` | Botón de historial por producto, modal con tabla paginada, motivo editable en el ajuste y motivo en órdenes canceladas. |
 | `src/pages/Products/ProductsPage.css` | Estilos del historial y del motivo de la orden cancelada. |
 | `src/pages/StockManagement/StockManagementPage.jsx` | Fallback de cancelación de restock actualizado (ya no dice "el backend no lo soporta"). |
 
@@ -115,9 +116,15 @@ Estas órdenes también quedan en estado `CANCELLED` en restock.
 
 - **Se mantiene el `PATCH` para aplicar ajustes.** Ya funciona, registra
   historial y es el que respeta el flujo actual de la UI (incluido el mock).
+- **El motivo del ajuste es editable.** El modal tiene un campo
+  "Motivo (opcional)"; si el operador lo completa, el `reason` enviado al
+  `PATCH` queda como `<tipo>: <motivo>` (ej. `Rotura (-): caja aplastada`). Si
+  lo deja vacío, se envía el resumen automático con SKU, posición y cambio.
 - **No se integró el `POST /stock-adjustments`** en esta iteración. Sería el
   camino para registrar tipos explícitos como `DAMAGE` al reducir stock; queda
-  como mejora futura. Hoy el front solo elige entrada/salida y envía `reason`.
+  como mejora futura. Hoy el `PATCH` mapea el tipo a
+  `MANUAL_INCREASE`/`MANUAL_DECREASE`, pero el texto elegido se conserva en el
+  prefijo del motivo.
 - **El usuario se muestra como id** salvo que coincida con el usuario actual
   (se resuelve a nombre) o sea `system` (se muestra "Sistema"). No hay endpoint
   de usuarios accesible para `ADMIN_WAREHOUSE`.
@@ -154,8 +161,8 @@ Estas órdenes también quedan en estado `CANCELLED` en restock.
 ## 7. Cómo probar a mano
 
 1. Login con `SUPERADMIN` o `ADMIN_WAREHOUSE`.
-2. Productos → ajustar stock de un producto con motivo
-   (ej. "Rotura de caja"). Aplicar.
+2. Productos → ajustar stock de un producto; escribir el motivo en
+   "Motivo (opcional)" (ej. "Rotura de caja"). Aplicar.
 3. En la misma fila, abrir **Historial de ajustes** (ícono de lista).
 4. Verificar: fecha, tipo, motivo, usuario, `antes → después` y órdenes
    canceladas (si la reducción dejó stock insuficiente).
