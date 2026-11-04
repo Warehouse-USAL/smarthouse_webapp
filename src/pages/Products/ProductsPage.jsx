@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
+import ActionCard from "../../components/ui/ActionCard/ActionCard";
 import Button from "../../components/ui/Button/Button";
 import Input from "../../components/ui/Input/Input";
 import Select from "../../components/ui/Select/Select";
 import Icon from "../../components/ui/Icon/Icon";
-import Card from "../../components/ui/Card/Card";
+import TablePanel, { TablePanelTable } from "../../components/ui/TablePanel/TablePanel";
 import Spinner from "../../components/ui/Spinner/Spinner";
 import EmptyState from "../../components/ui/EmptyState/EmptyState";
 import Pagination from "../../components/ui/Pagination/Pagination";
@@ -14,9 +15,17 @@ import Badge from "../../components/ui/Badge/Badge";
 import CreateProductForm from "../../components/products/CreateProductForm/CreateProductForm";
 import { productService } from "../../services/productService";
 import { warehouseConfigService } from "../../services/warehouseConfigService";
-import { orderService, mapOrderStatus } from "../../services/orderService";
+import { stockAdjustmentService } from "../../services/stockAdjustmentService";
+import {
+  orderService,
+  mapOrderStatus,
+  normalizeCancelledOrder,
+} from "../../services/orderService";
+import { getUser } from "../../services/authService";
+import { errorText } from "../../lib/apiError";
 import { can } from "../../lib/permissions";
 import { needsRestock } from "../../lib/restockSuggestion";
+import { displayCode } from "../../lib/pagination";
 import "./ProductsPage.css";
 
 const PAGE_SIZE_OPTIONS = [
@@ -36,6 +45,28 @@ const ADJUST_TYPES = [
   { value: "vencimiento", label: "Vencimiento (-)" },
   { value: "conteo", label: "Conteo (stock final)" },
 ];
+
+// Etiquetas del enum StockAdjustmentType que devuelve el backend en el historial.
+const ADJUSTMENT_TYPE_LABEL = {
+  MANUAL_INCREASE: "Entrada manual",
+  MANUAL_DECREASE: "Baja manual",
+  DAMAGE: "Rotura / daño",
+  UNASSIGNED: "Producto desasignado",
+  DEACTIVATED: "Posición desactivada",
+};
+
+const HISTORY_PAGE_SIZE = 10;
+
+const formatDateTime = (iso) =>
+  iso
+    ? new Date(iso).toLocaleString("es-AR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "—";
 
 // Precio desde centavos (contrato): 1700000 → "17.000,00".
 const formatPrice = (price) => {
@@ -58,7 +89,9 @@ const fullLocationLabel = (loc) => {
 };
 
 export default function ProductsPage() {
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
+  const [unassignedCount, setUnassignedCount] = useState(null);
   const [zones, setZones] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -81,9 +114,18 @@ export default function ProductsPage() {
   const [adjustPosition, setAdjustPosition] = useState("");
   const [adjustType, setAdjustType] = useState("entrada");
   const [adjustQty, setAdjustQty] = useState("");
+  const [adjustReason, setAdjustReason] = useState("");
   const [adjustSubmitting, setAdjustSubmitting] = useState(false);
   // Resultado de una reducción: { cancelled, notCancelled } de failShortOfStock.
   const [reductionResult, setReductionResult] = useState(null);
+
+  // Historial/auditoría de ajustes (GET /products/:id/stock-adjustments).
+  const [historyProduct, setHistoryProduct] = useState(null);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyResult, setHistoryResult] = useState(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState(null);
+  const currentUser = useMemo(() => getUser(), []);
 
   // Permisos del rol actual (espejo del backend): crear/editar incluye a
   // ADMIN_SALES, borrar no; asignar stock es solo de warehouse.
@@ -91,6 +133,7 @@ export default function ProductsPage() {
   const canEdit = can("product.edit");
   const canDelete = can("product.delete");
   const canAssignStock = can("stock.assign");
+  const canViewStockHistory = can("stock.history");
 
 
   // Carga de categorías — async para que sea intercambiable con el backend real
@@ -130,6 +173,15 @@ export default function ProductsPage() {
         })
       );
       setProducts(withLocations);
+      // El contador solo es confiable sin filtros y con el catálogo completo:
+      // `list` trae una página de hasta 50 productos.
+      if (!search && !categoryFilter) {
+        setUnassignedCount(
+          list.length < 50
+            ? withLocations.filter((p) => p.locations.length === 0).length
+            : null
+        );
+      }
     } catch (err) {
       setError(
         err.response?.data?.error?.message ||
@@ -151,6 +203,33 @@ export default function ProductsPage() {
     });
     return () => { cancelled = true; };
   }, [fetchProducts]);
+
+  // Historial del producto abierto en el modal. Se recarga al cambiar de página.
+  useEffect(() => {
+    if (!historyProduct) return undefined;
+    let stale = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- carga del historial contra el backend
+    setHistoryLoading(true);
+    setHistoryError(null);
+    stockAdjustmentService
+      .listProductAdjustments(historyProduct.id, {
+        page: historyPage,
+        size: HISTORY_PAGE_SIZE,
+      })
+      .then((result) => {
+        if (!stale) setHistoryResult(result);
+      })
+      .catch(() => {
+        if (!stale) {
+          setHistoryResult(null);
+          setHistoryError("No se pudo cargar el historial de ajustes. Revisá la conexión con el backend.");
+        }
+      })
+      .finally(() => {
+        if (!stale) setHistoryLoading(false);
+      });
+    return () => { stale = true; };
+  }, [historyProduct, historyPage]);
 
   // El filtro de zona se aplica en cliente porque el contrato no expone
   // un query param de zona en GET /products. Se compara contra zone_code de
@@ -252,6 +331,31 @@ export default function ProductsPage() {
     setAdjustPosition(product.locations?.[0]?.idPosition ?? "");
     setAdjustType("entrada");
     setAdjustQty("");
+    setAdjustReason("");
+  };
+
+  const openHistory = (product) => {
+    setHistoryProduct(product);
+    setHistoryPage(1);
+    setHistoryResult(null);
+    setHistoryError(null);
+  };
+
+  const closeHistory = () => {
+    setHistoryProduct(null);
+    setHistoryResult(null);
+    setHistoryError(null);
+  };
+
+  // El backend devuelve el id del usuario. Solo podemos resolver el nombre del
+  // usuario actual (no hay endpoint de usuarios accesible para warehouse).
+  const actorLabel = (adjustedBy) => {
+    if (!adjustedBy) return "—";
+    if (adjustedBy === "system") return "Sistema";
+    if (currentUser?.id && adjustedBy === currentUser.id) {
+      return currentUser.name || currentUser.email || adjustedBy;
+    }
+    return adjustedBy;
   };
 
   const adjustLocations = adjusting?.locations ?? [];
@@ -297,39 +401,51 @@ export default function ProductsPage() {
     const { next, error } = computeAdjust();
     if (error || next == null) return;
     setAdjustSubmitting(true);
+    const typeLabel = ADJUST_TYPES.find((t) => t.value === adjustType).label;
+    // Motivo escrito por el operador; si lo deja vacío, se guarda un resumen
+    // automático para que el historial nunca quede sin contexto.
+    const typedReason = adjustReason.trim();
+    const reason = typedReason
+      ? `${typeLabel}: ${typedReason}`
+      : `Ajuste manual "${typeLabel}" de ${adjusting.sku} ` +
+        `en ${fullLocationLabel(adjustLocation)}: ${adjustCurrent} → ${next} un.`;
+    let response;
     try {
       // El backend recalcula físico/reserva/disponible del producto desde las
       // posiciones; el solo hecho de setear acá el stock es el ajuste.
-      await warehouseConfigService.updatePosition(
+      response = await warehouseConfigService.updatePosition(
         adjustLocation.idZone,
         adjustLocation.idLine,
         adjustLocation.idPosition,
-        { currentStock: next }
+        { currentStock: next, reason }
       );
     } catch (err) {
-      alert(
-        err.response?.data?.error?.message ||
-          "No pudimos aplicar el ajuste de stock."
-      );
+      alert(errorText(err, {}, "No pudimos aplicar el ajuste de stock."));
       setAdjustSubmitting(false);
       return;
     }
     try {
-      if (next < adjustCurrent) {
+      if (next < adjustCurrent && Array.isArray(response?.cancelled_orders)) {
+        // Backend nuevo: ya reconcilió los pedidos en la misma transacción y
+        // devuelve cuáles canceló (puede ser []). No se cancela nada acá.
+        setReductionResult({
+          cancelled: response.cancelled_orders.map(normalizeCancelledOrder),
+          notCancelled: [],
+        });
+      } else if (next < adjustCurrent) {
+        // Backend viejo (la respuesta no trae `cancelled_orders`): se cancelan
+        // desde el cliente.
         // Releído tras el PATCH: otras posiciones pudieron cambiar desde que
         // se cargó la página (ajustes de otro usuario, órdenes completadas).
         const physicalStock = (await productService.getLocations(adjusting.id)).reduce(
           (sum, loc) => sum + loc.currentStock,
           0
         );
-        const typeLabel = ADJUST_TYPES.find((t) => t.value === adjustType).label;
         setReductionResult(
           await orderService.failShortOfStock({
             productId: adjusting.id,
             physicalStock,
-            reason:
-              `INSUFFICIENT_STOCK: ajuste manual "${typeLabel}" de ${adjusting.sku} ` +
-              `en ${fullLocationLabel(adjustLocation)}: ${adjustCurrent} → ${next} un.`,
+            reason: `INSUFFICIENT_STOCK: ${reason}`,
           })
         );
       }
@@ -353,97 +469,113 @@ export default function ProductsPage() {
       <PageHeader
         title="Productos"
         subtitle="Gestioná el catálogo. La asignación de stock a posiciones se hace desde la pantalla Asignación de stock."
-        action={
-          <div className="products-page__header-actions">
-            {canAssignStock && (
-              <Link to="/asignacion-stock">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  iconLeft={<Icon name="pin" size={14} />}
-                >
-                  Asignar stock
-                </Button>
-              </Link>
-            )}
-            {canCreate && (
+      />
+
+      {(canCreate || canAssignStock) && (
+        <div className="action-card-grid">
+          {canCreate && (
+            <ActionCard
+              icon="plus"
+              title="Dar de alta producto"
+              description="Registrá un producto nuevo en el catálogo."
+              note="Después podés asignarle una ubicación en el warehouse."
+              variant="yellow"
+              onClick={() => setCreateOpen(true)}
+            />
+          )}
+          {canAssignStock && (
+            <ActionCard
+              icon="pin"
+              title="Asignar stock"
+              description="Ubicá los productos nuevos y la mercadería de restock."
+              note={
+                unassignedCount === null
+                  ? null
+                  : unassignedCount === 0
+                    ? "Todos los productos tienen ubicación."
+                    : `${unassignedCount} producto${unassignedCount === 1 ? "" : "s"} sin ubicación.`
+              }
+              variant="blue"
+              onClick={() => navigate("/asignacion-stock")}
+            />
+          )}
+        </div>
+      )}
+
+      <TablePanel
+        search={{
+          placeholder: "Buscar por nombre o SKU",
+          value: search,
+          onChange: (e) => { setSearch(e.target.value); setPage(1); },
+        }}
+        filtersClassName="table-panel__filters--two"
+        filters={
+          <>
+            <Select
+              label="Zonas"
+              value={zone}
+              onChange={(e) => { setZone(e.target.value); setPage(1); }}
+              options={zoneOptions}
+            />
+            <Select
+              label="Categoría"
+              value={categoryFilter}
+              onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
+              options={categoryOptions}
+            />
+          </>
+        }
+        footer={
+          !loading && !error && filtered.length > 0 && (
+            <>
+              <span className="table-panel__showing">
+                Mostrando {pageStart + 1} a{" "}
+                {Math.min(pageStart + pageSize, filtered.length)} de{" "}
+                {filtered.length} productos
+              </span>
+              <Pagination current={page} total={totalPages} onChange={setPage} />
+              <Select
+                value={String(pageSize)}
+                onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+                options={PAGE_SIZE_OPTIONS}
+              />
+            </>
+          )
+        }
+      >
+      {loading ? (
+        <div className="table-panel__loading">
+          <Spinner label="Cargando productos…" />
+        </div>
+      ) : error ? (
+        <EmptyState
+          icon="info"
+          title="Algo salió mal"
+          description={error}
+          action={
+            <Button variant="secondary" onClick={fetchProducts}>
+              Reintentar
+            </Button>
+          }
+        />
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          icon="box"
+          title="No hay productos"
+          description="No encontramos productos con los filtros seleccionados."
+          action={
+            canCreate ? (
               <Button
                 iconLeft={<Icon name="plus" size={16} />}
                 onClick={() => setCreateOpen(true)}
               >
                 Dar de alta producto
               </Button>
-            )}
-          </div>
-        }
-      />
-
-      <div className="products-page__search">
-        <Input
-          placeholder="Buscar por nombre o SKU"
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          iconLeft={<Icon name="search" size={16} />}
+            ) : null
+          }
         />
-      </div>
-
-      <Card padding="md" className="products-page__filters">
-        <div className="products-page__filter">
-          <Select
-            label="Zonas"
-            value={zone}
-            onChange={(e) => { setZone(e.target.value); setPage(1); }}
-            options={zoneOptions}
-          />
-        </div>
-        <div className="products-page__filter">
-          <Select
-            label="Categoría"
-            value={categoryFilter}
-            onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
-            options={categoryOptions}
-          />
-        </div>
-      </Card>
-
-      {loading ? (
-        <div className="products-page__loading">
-          <Spinner label="Cargando productos…" />
-        </div>
-      ) : error ? (
-        <Card>
-          <EmptyState
-            icon="info"
-            title="Algo salió mal"
-            description={error}
-            action={
-              <Button variant="secondary" onClick={fetchProducts}>
-                Reintentar
-              </Button>
-            }
-          />
-        </Card>
-      ) : filtered.length === 0 ? (
-        <Card>
-          <EmptyState
-            icon="box"
-            title="No hay productos"
-            description="No encontramos productos con los filtros seleccionados."
-            action={
-              canCreate ? (
-                <Button
-                  iconLeft={<Icon name="plus" size={16} />}
-                  onClick={() => setCreateOpen(true)}
-                >
-                  Dar de alta producto
-                </Button>
-              ) : null
-            }
-          />
-        </Card>
       ) : (
-        <div className="products-table-wrap">
-          <table className="products-table">
+          <TablePanelTable className="products-table">
             <thead>
               <tr>
                 <th>Imagen</th>
@@ -559,6 +691,17 @@ export default function ProductsPage() {
                             <Icon name="target" size={15} />
                           </button>
                         )}
+                        {canViewStockHistory && (
+                          <button
+                            type="button"
+                            className="products-table__action"
+                            onClick={() => openHistory(product)}
+                            aria-label="Ver historial de ajustes"
+                            title="Historial de ajustes"
+                          >
+                            <Icon name="list" size={15} />
+                          </button>
+                        )}
                         {canDelete && (
                           <button
                             type="button"
@@ -576,25 +719,9 @@ export default function ProductsPage() {
                 );
               })}
             </tbody>
-          </table>
-        </div>
+          </TablePanelTable>
       )}
-
-      {!loading && !error && filtered.length > 0 && (
-        <footer className="products-page__footer">
-          <span className="products-page__count">
-            Mostrando {pageStart + 1} a{" "}
-            {Math.min(pageStart + pageSize, filtered.length)} de{" "}
-            {filtered.length} productos
-          </span>
-          <Pagination current={page} total={totalPages} onChange={setPage} />
-          <Select
-            value={String(pageSize)}
-            onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
-            options={PAGE_SIZE_OPTIONS}
-          />
-        </footer>
-      )}
+      </TablePanel>
 
       <Modal
         open={createOpen}
@@ -750,6 +877,15 @@ export default function ProductsPage() {
                 onChange={(e) => setAdjustQty(e.target.value)}
                 error={adjustResult.error}
               />
+              <Input
+                label="Motivo (opcional)"
+                type="text"
+                placeholder="Ej. rotura de caja, conteo físico"
+                maxLength={500}
+                hint="Se guarda en el historial de ajustes."
+                value={adjustReason}
+                onChange={(e) => setAdjustReason(e.target.value)}
+              />
               <p className="products-page__adjust-preview">
                 Stock actual: <strong>{adjustCurrent}</strong> → Stock
                 resultante: <strong>{adjustResult.next ?? "—"}</strong>
@@ -786,7 +922,14 @@ export default function ProductsPage() {
                   const status = mapOrderStatus(order);
                   return (
                     <li key={order.id} className="products-page__failed-order">
-                      <strong>{order.code}</strong>
+                      <span className="products-page__failed-order-info">
+                        <strong>{order.code}</strong>
+                        {order.cancelReason && (
+                          <span className="products-page__failed-order-reason">
+                            {order.cancelReason}
+                          </span>
+                        )}
+                      </span>
                       <Badge variant={status.variant}>{status.label}</Badge>
                     </li>
                   );
@@ -803,6 +946,85 @@ export default function ProductsPage() {
               )}
             </div>
           ))}
+      </Modal>
+
+      <Modal
+        open={!!historyProduct}
+        onClose={closeHistory}
+        title={historyProduct ? `Historial de ajustes — ${historyProduct.name}` : ""}
+        subtitle="Quién ajustó el stock, cuándo y por qué, en todas las posiciones del producto."
+        size="lg"
+        footer={
+          <Button variant="secondary" onClick={closeHistory}>
+            Cerrar
+          </Button>
+        }
+      >
+        {historyLoading ? (
+          <div className="products-page__loading">
+            <Spinner label="Cargando historial…" />
+          </div>
+        ) : historyError ? (
+          <p className="products-page__adjust-text">{historyError}</p>
+        ) : !historyResult || historyResult.items.length === 0 ? (
+          <EmptyState
+            icon="list"
+            title="Sin ajustes registrados"
+            description="Todavía no hay ajustes manuales de stock para este producto."
+          />
+        ) : (
+          <>
+            <div className="products-page__history-wrap">
+              <table className="products-page__history">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Tipo</th>
+                    <th>Motivo</th>
+                    <th>Usuario</th>
+                    <th>Cambio</th>
+                    <th>Órdenes canceladas</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {historyResult.items.map((adjustment) => (
+                    <tr key={adjustment.id}>
+                      <td className="products-page__history-num">
+                        {formatDateTime(adjustment.createdAt)}
+                      </td>
+                      <td>
+                        {ADJUSTMENT_TYPE_LABEL[adjustment.type] ??
+                          adjustment.type ??
+                          "—"}
+                      </td>
+                      <td>{adjustment.reason || "—"}</td>
+                      <td>{actorLabel(adjustment.adjustedBy)}</td>
+                      <td className="products-page__history-num">
+                        {adjustment.quantityBefore} → {adjustment.quantityAfter}
+                      </td>
+                      <td>
+                        {adjustment.cancelledOrderIds.length > 0
+                          ? adjustment.cancelledOrderIds
+                              .map((id) => displayCode("OC", id))
+                              .join(", ")
+                          : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {historyResult.totalPages > 1 && (
+              <div className="products-page__history-foot">
+                <Pagination
+                  current={historyPage}
+                  total={historyResult.totalPages}
+                  onChange={setHistoryPage}
+                />
+              </div>
+            )}
+          </>
+        )}
       </Modal>
     </div>
   );

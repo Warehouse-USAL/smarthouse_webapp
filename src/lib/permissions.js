@@ -18,6 +18,7 @@
 |   product.*    ProductController  (POST/PATCH: +ADMIN_SALES; DELETE: no SALES)
 |   warehouse.*  Zone/Line/PositionController (anotación a nivel de clase)
 |   stock.assign PATCH /warehouse/positions/:id (mismos roles que warehouse)
+|   stock.history GET /products/:id/stock-adjustments (+ADMIN_SALES)
 |   vehicle.*    VehicleController  (read: +ADMIN_WAREHOUSE; create: solo SYSTEM)
 |   user.*       UserController
 |
@@ -39,6 +40,9 @@ export const CAPABILITIES = {
 
   // Asignación de stock (PATCH posiciones)
   "stock.assign": ["SUPERADMIN", "ADMIN_WAREHOUSE"],
+
+  // Historial/auditoría de ajustes (GET /products/:id/stock-adjustments)
+  "stock.history": ["SUPERADMIN", "ADMIN_WAREHOUSE", "ADMIN_SALES"],
 
   // Ventas: órdenes de despacho al cliente (OrderController).
   // GET /orders lo ve cualquier rol; POST /orders y cancel, solo ventas/warehouse.

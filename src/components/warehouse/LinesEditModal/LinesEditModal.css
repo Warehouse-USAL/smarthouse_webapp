@@ -1,6 +1,6 @@
 .lines-edit__subtitle {
   margin: 0 0 var(--space-4);
-  font-size: 14px;
+  font-size: var(--text-md);
   line-height: 1.5;
   color: var(--color-text-secondary);
 }
@@ -16,7 +16,7 @@
 .lines-edit__zone-field .select-group { flex: 1; max-width: 320px; }
 
 .lines-edit__limit {
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary-alt);
   padding-bottom: 10px;
   white-space: nowrap;
@@ -28,7 +28,7 @@
   border: 1px dashed var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface-muted);
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary-alt);
   text-align: center;
 }
@@ -69,13 +69,13 @@
 }
 
 .lines-edit__line-name {
-  font-weight: 600;
-  font-size: 15px;
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-base);
   color: var(--color-text-primary);
 }
 
 .lines-edit__line-meta {
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--color-text-secondary-alt);
 }
 
@@ -112,8 +112,8 @@
   border: 1px dashed var(--color-border);
   background: var(--color-white);
   color: var(--color-text-secondary);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
   cursor: pointer;
   transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
 }
@@ -148,7 +148,7 @@
   border-radius: var(--radius-sm);
   background: var(--color-warning-bg);
   border: 1px solid var(--color-warning-border);
-  font-size: 13px;
+  font-size: var(--text-sm);
   line-height: 1.45;
   color: var(--color-yellow-dark);
 }
@@ -157,7 +157,7 @@
 
 .lines-edit__error {
   margin-top: var(--space-3);
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-danger);
   background-color: var(--color-danger-soft);
   border: 1px solid var(--color-danger-border);
@@ -174,7 +174,7 @@
 }
 
 .lines-edit__count {
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary-alt);
 }
 

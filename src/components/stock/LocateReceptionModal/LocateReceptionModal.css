@@ -1,6 +1,6 @@
 .locate-modal__subtitle {
   margin: 0 0 var(--space-5);
-  font-size: 14px;
+  font-size: var(--text-md);
   line-height: 1.55;
   color: var(--color-text-secondary);
 }
@@ -19,7 +19,7 @@
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
   background: var(--color-surface-muted);
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
 }
 
@@ -28,7 +28,7 @@
   align-items: center;
   gap: var(--space-2);
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary-alt);
 }
 
@@ -41,6 +41,6 @@
   padding: var(--space-5);
   border: 1px dashed var(--color-border);
   border-radius: var(--radius-md);
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary-alt);
 }

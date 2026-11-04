@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
-import Input from "../../components/ui/Input/Input";
+import TablePanel, { TablePanelTable } from "../../components/ui/TablePanel/TablePanel";
+import Badge from "../../components/ui/Badge/Badge";
+import Button from "../../components/ui/Button/Button";
+import EmptyState from "../../components/ui/EmptyState/EmptyState";
+import Spinner from "../../components/ui/Spinner/Spinner";
 import Icon from "../../components/ui/Icon/Icon";
-import PendingLocationCard from "../../components/stock/PendingLocationCard/PendingLocationCard";
 import ProductLocationModal from "../../components/stock/ProductLocationModal/ProductLocationModal";
 import LocateReceptionModal from "../../components/stock/LocateReceptionModal/LocateReceptionModal";
 import { productService } from "../../services/productService";
@@ -15,7 +18,8 @@ const matchesSearch = (item, q) =>
   item.sku.toLowerCase().includes(q);
 
 export default function StockAssignmentPage() {
-  const [search, setSearch] = useState("");
+  const [productSearch, setProductSearch] = useState("");
+  const [restockSearch, setRestockSearch] = useState("");
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [locateReception, setLocateReception] = useState(null);
@@ -63,8 +67,8 @@ export default function StockAssignmentPage() {
             ...reception,
             name: product?.name ?? "Producto dado de baja",
             sku: product?.sku ?? reception.productId,
-            // PendingLocationCard lee imageUrl del producto; sin este cruce la
-            // card mostraba el placeholder en lugar de la foto.
+            // La tabla lee imageUrl del producto; sin este cruce la fila
+            // mostraría el placeholder en lugar de la foto.
             imageUrl: product?.imageUrl ?? "",
             orderId: reception.restockOrderId
               ? restockOrderCode(reception.restockOrderId)
@@ -96,14 +100,14 @@ export default function StockAssignmentPage() {
   }, [load]);
 
   const filteredProducts = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = productSearch.trim().toLowerCase();
     return products.filter((item) => matchesSearch(item, q));
-  }, [products, search]);
+  }, [products, productSearch]);
 
   const filteredRestock = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = restockSearch.trim().toLowerCase();
     return pendingRestock.filter((item) => matchesSearch(item, q));
-  }, [pendingRestock, search]);
+  }, [pendingRestock, restockSearch]);
 
   const openProductModal = (product) => {
     setSelectedProduct(product);
@@ -115,40 +119,39 @@ export default function StockAssignmentPage() {
     setProductModalOpen(false);
   };
 
-  const renderProducts = () => {
+  // Carga y error son compartidos: las dos tablas salen del mismo `load`.
+  const renderStatus = () => {
     if (productsError) {
       return (
-        <p className="stock-assignment__status stock-assignment__status--error">
-          {productsError}{" "}
-          <button type="button" className="stock-assignment__retry" onClick={load}>
-            Reintentar
-          </button>
-        </p>
+        <EmptyState
+          icon="info"
+          title="Algo salió mal"
+          description={productsError}
+          action={<Button variant="secondary" onClick={load}>Reintentar</Button>}
+        />
       );
     }
-    if (loadingProducts && products.length === 0) {
-      return <p className="stock-assignment__status">Cargando productos…</p>;
+    if (loadingProducts && products.length === 0 && pendingRestock.length === 0) {
+      return (
+        <div className="table-panel__loading">
+          <Spinner label="Cargando productos…" />
+        </div>
+      );
     }
-    if (filteredProducts.length === 0) {
-      return <p className="stock-assignment__status">No hay productos sin ubicación asignada.</p>;
-    }
-    return (
-      <div className="stock-assignment__grid">
-        {filteredProducts.map((product) => (
-          <PendingLocationCard
-            key={product.id}
-            product={product}
-            meta={[
-              { icon: "grid", text: `Categoría: ${product.category}` },
-              { icon: "box", text: `Stock: ${product.availableStock} unidades` },
-            ]}
-            estadoInline
-            onAssign={openProductModal}
-          />
-        ))}
-      </div>
-    );
+    return null;
   };
+
+  const renderProductCell = (item) => (
+    <div className="table-panel__product">
+      <span className="table-panel__thumb">
+        <Icon name="box" size={18} />
+        {item.imageUrl && <img src={item.imageUrl} alt="" loading="lazy" />}
+      </span>
+      <span className="table-panel__product-name" title={item.name}>
+        {item.name}
+      </span>
+    </div>
+  );
 
   return (
     <div className="stock-assignment">
@@ -157,54 +160,119 @@ export default function StockAssignmentPage() {
         subtitle="Productos nuevos y de restock pendientes de ubicación. Asigná una ubicación disponible para cada uno."
       />
 
-      <div className="stock-assignment__search">
-        <Input
-          placeholder="Buscar por nombre o SKU"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          iconLeft={<Icon name="search" size={16} />}
-        />
-      </div>
-
-      <section className="stock-assignment__section">
-        <h2 className="stock-assignment__section-title">
-          Productos sin ubicación asignada{" "}
-          <span className="stock-assignment__section-count">
-            ({loadingProducts ? "…" : filteredProducts.length})
-          </span>
-        </h2>
-        {renderProducts()}
-      </section>
-
-      <section className="stock-assignment__section">
-        <h2 className="stock-assignment__section-title">
-          Productos de restock pendientes de ubicación{" "}
-          <span className="stock-assignment__section-count">
-            ({filteredRestock.length})
-          </span>
-        </h2>
-        <div className="stock-assignment__grid">
-          {filteredRestock.length === 0 ? (
-            <p className="stock-assignment__status">
-              No hay productos de restock pendientes de ubicación.
-            </p>
+      <div className="table-panel-grid">
+      <TablePanel
+        title="Productos sin ubicación asignada"
+        count={`(${loadingProducts ? "…" : filteredProducts.length})`}
+        search={{
+          placeholder: "Buscar por nombre o SKU",
+          value: productSearch,
+          onChange: (e) => setProductSearch(e.target.value),
+        }}
+      >
+        {renderStatus() ??
+          (filteredProducts.length === 0 ? (
+            <EmptyState
+              icon="box"
+              title="Sin productos"
+              description="No hay productos sin ubicación asignada."
+            />
           ) : (
-            filteredRestock.map((product) => (
-              <PendingLocationCard
-                key={product.id}
-                product={product}
-                badge={{ variant: "success", label: "Restock aceptado" }}
-                meta={[
-                  { icon: "file", text: `Orden: ${product.orderId}` },
-                  { icon: "box", text: `${product.received} unidades` },
-                  { icon: "calendar", text: `Recepción: ${product.receivedAt}` },
-                ]}
-                onAssign={setLocateReception}
-              />
-            ))
-          )}
-        </div>
-      </section>
+            <TablePanelTable className="table-panel__table--compact">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>SKU</th>
+                  <th>Categoría</th>
+                  <th>Stock disponible</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredProducts.map((product) => (
+                  <tr key={product.id}>
+                    <td>{renderProductCell(product)}</td>
+                    <td className="table-panel__nowrap">{product.sku}</td>
+                    <td>{product.category}</td>
+                    <td>{product.availableStock} unidades</td>
+                    <td>
+                      <Badge variant="warning" dot>Pendiente de ubicación</Badge>
+                    </td>
+                    <td>
+                      <Button
+                        variant="warning-outline"
+                        size="sm"
+                        iconLeft={<Icon name="pin" size={14} />}
+                        onClick={() => openProductModal(product)}
+                      >
+                        Asignar ubicación
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </TablePanelTable>
+          ))}
+      </TablePanel>
+
+      <TablePanel
+        title="Productos de restock pendientes de ubicación"
+        count={`(${loadingProducts ? "…" : filteredRestock.length})`}
+        search={{
+          placeholder: "Buscar por nombre o SKU",
+          value: restockSearch,
+          onChange: (e) => setRestockSearch(e.target.value),
+        }}
+      >
+        {renderStatus() ??
+          (filteredRestock.length === 0 ? (
+            <EmptyState
+              icon="box"
+              title="Sin productos"
+              description="No hay productos de restock pendientes de ubicación."
+            />
+          ) : (
+            <TablePanelTable className="table-panel__table--compact">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>SKU</th>
+                  <th>Orden</th>
+                  <th>Cantidad pendiente</th>
+                  <th>Fecha recepción</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRestock.map((product) => (
+                  <tr key={product.id}>
+                    <td>{renderProductCell(product)}</td>
+                    <td className="table-panel__nowrap">{product.sku}</td>
+                    <td className="table-panel__nowrap">{product.orderId}</td>
+                    <td>{product.received} unidades</td>
+                    <td className="table-panel__nowrap">{product.receivedAt}</td>
+                    <td>
+                      <Badge variant="success" dot>Restock aceptado</Badge>
+                    </td>
+                    <td>
+                      <Button
+                        variant="warning-outline"
+                        size="sm"
+                        iconLeft={<Icon name="pin" size={14} />}
+                        onClick={() => setLocateReception(product)}
+                      >
+                        Ubicar mercadería
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </TablePanelTable>
+          ))}
+      </TablePanel>
+      </div>
 
       <ProductLocationModal
         open={productModalOpen}

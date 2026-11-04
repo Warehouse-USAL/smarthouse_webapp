@@ -40,13 +40,13 @@
 }
 
 .product-summary-card__label {
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--color-text-secondary-alt);
 }
 
 .product-summary-card__name {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--text-lg);
   font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
   overflow: hidden;
@@ -55,7 +55,7 @@
 }
 
 .product-summary-card__sku {
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
 }
 
@@ -64,7 +64,7 @@
   align-items: center;
   gap: 6px;
   margin-top: var(--space-1);
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-text-primary);
   /* Categorías largas (ej. "HERRAMIENTAS ..."): una línea con puntos
      suspensivos en vez de corte a mitad de palabra. */
@@ -99,7 +99,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
   white-space: nowrap;
 }

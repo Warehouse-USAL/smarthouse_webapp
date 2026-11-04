@@ -23,7 +23,7 @@ import "./RestockOrderModal.css";
 |   · En blanco (sin `alert`, entrando por la tarjeta "Agregar órdenes de
 |     restock"): el formulario arranca vacío y el operador elige producto y
 |     cantidad. Al elegir producto se muestran sus números para que la decisión
-|     no sea a ciegas.
+|     no sea a ciegas y, si tiene una alerta con sugerida, la cantidad se precarga.
 |
 | El proveedor NO se pide: el backend lo exige (@NotBlank supplier en
 | CreateRestockOrderRequest) pero el producto no lo guarda y el diseño no lo
@@ -37,6 +37,7 @@ export default function RestockOrderModal({
   open,
   alert,
   products = [],
+  alerts = [],
   onClose,
   onCreated,
 }) {
@@ -72,8 +73,19 @@ export default function RestockOrderModal({
   // Los números que se muestran: los de la alerta, o los del producto elegido.
   const detail = useMemo(() => {
     if (fromAlert) return alert;
-    return toRestockAlert(products.find((p) => p.id === productId));
-  }, [fromAlert, alert, products, productId]);
+    return (
+      alerts.find((a) => a.productId === productId) ??
+      toRestockAlert(products.find((p) => p.id === productId))
+    );
+  }, [fromAlert, alert, alerts, products, productId]);
+
+  // Modo libre: al elegir producto se precarga su sugerida (editable). Sin
+  // sugerida se limpia, para no arrastrar la cantidad del producto anterior.
+  const handleProductChange = (nextId) => {
+    setProductId(nextId);
+    const suggested = alerts.find((a) => a.productId === nextId)?.suggestedQuantity;
+    setQuantity(suggested > 0 ? String(suggested) : "");
+  };
 
   const quantityNumber = Number(quantity) || 0;
   const canSubmit = !submitting && Boolean(productId) && quantityNumber > 0;
@@ -134,7 +146,7 @@ export default function RestockOrderModal({
             label="Producto"
             placeholder="Seleccioná un producto"
             value={productId}
-            onChange={(e) => setProductId(e.target.value)}
+            onChange={(e) => handleProductChange(e.target.value)}
             options={productOptions}
             required
           />
