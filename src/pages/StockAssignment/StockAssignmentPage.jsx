@@ -131,7 +131,7 @@ export default function StockAssignmentPage() {
         />
       );
     }
-    if (loadingProducts) {
+    if (loadingProducts && products.length === 0 && pendingRestock.length === 0) {
       return (
         <div className="table-panel__loading">
           <Spinner label="Cargando productos…" />
