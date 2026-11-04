@@ -44,8 +44,8 @@
 
 .modal__header h2 {
   margin: 0;
-  font-size: 18px;
-  font-weight: 600;
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-semibold);
 }
 
 .modal__title-wrap {
@@ -55,7 +55,7 @@
 
 .modal__subtitle {
   margin: 4px 0 0;
-  font-size: 13px;
+  font-size: var(--text-sm);
   line-height: 1.5;
   color: var(--color-text-secondary);
 }

@@ -40,8 +40,8 @@
 |     ("Hoy no hay campo status"). El estado se DERIVA comparando lo solicitado
 |     contra lo recibido — el mismo proxy que propone el RFC:
 |         recibido == 0                → pendiente
-|         0 < recibido < solicitado    → recibido (parcial)
-|         recibido >= solicitado       → completado
+|         0 < recibido < solicitado    → recibido parcial
+|         recibido >= solicitado       → recibido
 |     "Cancelado" no existe en el backend: no se puede llegar a ese estado, así
 |     que la UI no lo ofrece.
 |
@@ -86,8 +86,8 @@ const OPEN_ORDERS_WINDOW_DAYS = 90;
 
 export const ORDER_STATUS = {
   PENDIENTE: "pendiente",
+  RECIBIDO_PARCIAL: "recibido_parcial",
   RECIBIDO: "recibido",
-  COMPLETADO: "completado",
   // Solo lo manda el backend (`status: CANCELLED`); nunca se deriva.
   CANCELADO: "cancelado",
 };
@@ -102,8 +102,8 @@ export const RECEPTION_STATUS = {
 
 export const deriveStatus = (quantityRequested, quantityReceived) => {
   if (!quantityReceived) return ORDER_STATUS.PENDIENTE;
-  if (quantityReceived < quantityRequested) return ORDER_STATUS.RECIBIDO;
-  return ORDER_STATUS.COMPLETADO;
+  if (quantityReceived < quantityRequested) return ORDER_STATUS.RECIBIDO_PARCIAL;
+  return ORDER_STATUS.RECIBIDO;
 };
 
 /*
@@ -395,7 +395,7 @@ export const restockService = {
     ]);
     return withProgress(orders, receptions).filter(
       (order) =>
-        order.status !== ORDER_STATUS.COMPLETADO && order.status !== ORDER_STATUS.CANCELADO
+        order.status !== ORDER_STATUS.RECIBIDO && order.status !== ORDER_STATUS.CANCELADO
     );
   },
 

@@ -49,13 +49,13 @@
 .status-banner-exito .status-banner-icon {
     background-color: unset;
     color: var(--color-success);
-    font-size: 17px;
+    font-size: var(--text-xl);
     flex-shrink: 0;
 }
 
 .status-banner-exito span {
     color: var(--color-success);
-    font-size: 14px;
+    font-size: var(--text-md);
     font-weight: var(--weight-regular);
 }
 
@@ -75,12 +75,12 @@
 .status-banner-error .status-banner-icon {
     background-color: unset;
     color: var(--color-danger);
-    font-size: 17px;
+    font-size: var(--text-xl);
     flex-shrink: 0;
 }
 
 .status-banner-error span {
     color: var(--color-danger);
-    font-size: 14px;
+    font-size: var(--text-md);
     font-weight: var(--weight-bold);
 }

@@ -13,7 +13,7 @@
   background: var(--color-danger-soft);
   border: 1px solid var(--color-danger-border);
   color: var(--color-danger);
-  font-size: 13px;
+  font-size: var(--text-sm);
   line-height: 1.4;
 }
 
@@ -45,12 +45,12 @@
 
 .user-form__toggle-title {
   font-weight: var(--weight-medium);
-  font-size: 14px;
+  font-size: var(--text-md);
   color: var(--color-text-primary);
 }
 
 .user-form__toggle-sub {
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--color-text-secondary-alt);
 }
 

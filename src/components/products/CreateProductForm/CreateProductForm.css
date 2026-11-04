@@ -15,7 +15,7 @@
 
 .cpf-section__title {
   font-size: 0.8rem;
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--color-text-muted);
@@ -41,7 +41,7 @@
 
 .cpf-description__label {
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
 }
 
@@ -79,7 +79,7 @@
   background: var(--color-surface-muted);
   border: 1px solid var(--color-border);
   font-size: 0.8rem;
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   letter-spacing: 0.04em;
   color: var(--color-text-secondary);
   line-height: 1.6;
@@ -144,9 +144,9 @@
 }
 
 .cpf-specs__remove:hover {
-  background: var(--color-danger-muted, #fee2e2);
-  color: var(--color-danger, #dc2626);
-  border-color: var(--color-danger, #dc2626);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  border-color: var(--color-danger);
 }
 
 /* ── Imágenes ── */
@@ -240,7 +240,7 @@
   background: var(--color-primary);
   color: white;
   font-size: 0.7rem;
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   letter-spacing: 0.04em;
 }
 
@@ -296,7 +296,7 @@
 /* ── Error de moneda legacy (bloquea submit si no es ARS) ── */
 .cpf-currency-error {
   margin: var(--space-1) 0 0;
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--color-danger);
 }
 
@@ -338,7 +338,7 @@
 
 .cpf-image-hint {
   margin: 0 0 var(--space-3);
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary-alt);
 }
 
@@ -361,7 +361,7 @@
   border: 1px dashed var(--color-border);
   border-radius: var(--radius-soft);
   background: var(--color-white);
-  font-size: 15px;
+  font-size: var(--text-base);
   font-weight: var(--weight-semibold);
   color: var(--color-text-secondary);
   white-space: nowrap;

@@ -1,6 +1,6 @@
 .positions-edit__subtitle {
   margin: 0 0 var(--space-4);
-  font-size: 14px;
+  font-size: var(--text-md);
   color: var(--color-text-secondary);
   line-height: 1.5;
 }
@@ -17,7 +17,7 @@
   border: 1px dashed var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface-muted);
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary-alt);
   text-align: center;
 }
@@ -32,8 +32,8 @@
 }
 
 .positions-edit__bulk-label {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
   color: var(--color-text-secondary-alt);
   margin-right: 4px;
 }
@@ -43,8 +43,8 @@
   border-radius: var(--radius-full);
   border: 1px solid var(--color-border);
   background: var(--color-white);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
   color: var(--color-text-secondary);
   cursor: pointer;
   transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
@@ -76,8 +76,8 @@
 .positions-edit__head {
   background: var(--color-surface-muted);
   border-bottom: 1px solid var(--color-border-soft);
-  font-size: 11px;
-  font-weight: 600;
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--color-text-secondary-alt);
@@ -101,14 +101,14 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
 }
 
 .positions-edit__badge {
   font-size: 10px;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.03em;
   padding: 2px 7px;
@@ -118,7 +118,7 @@
 }
 
 .positions-edit__unit {
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary-alt);
 }
 
@@ -127,7 +127,7 @@
 
 .positions-edit__error {
   margin-top: var(--space-3);
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-danger);
   background-color: var(--color-danger-soft);
   border: 1px solid var(--color-danger-border);
@@ -144,7 +144,7 @@
 }
 
 .positions-edit__changed-count {
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary-alt);
 }
 

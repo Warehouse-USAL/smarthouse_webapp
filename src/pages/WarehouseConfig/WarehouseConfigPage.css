@@ -6,8 +6,8 @@
 
 .warehouse-page__loading {
   padding: var(--space-3) var(--space-4);
-  color: var(--color-muted, #6b7280);
-  font-size: 14px;
+  color: var(--color-text-secondary-alt);
+  font-size: var(--text-md);
 }
 
 .warehouse-page__layout {
@@ -38,8 +38,8 @@
 .warehouse-page__legend-item {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
 }
 
@@ -67,8 +67,8 @@
 }
 
 .warehouse-page__location-selects .select-group label {
-  font-size: 13px;
-  font-weight: 500;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
   color: var(--color-text-secondary);
 }
 
@@ -87,8 +87,8 @@
   border: 1px solid var(--color-yellow-primary);
   background: var(--color-yellow-soft);
   color: var(--color-text-primary);
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
   cursor: pointer;
   text-align: left;
   transition: background 120ms ease, transform 120ms ease, box-shadow 120ms ease;
