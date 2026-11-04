@@ -578,6 +578,7 @@ export default function StockManagementPage() {
                   <th>SKU</th>
                   <th>Stock actual</th>
                   <th>{alertItems[0]?.thresholdLabel ?? "Stock mínimo"}</th>
+                  <th>Ya pedido</th>
                   <th>Sugerencia de reestock</th>
                   <th className="stock-table__actions-col">Acciones</th>
                 </tr>
@@ -608,6 +609,16 @@ export default function StockManagementPage() {
                       {alert.availableStock}
                     </td>
                     <td className="stock-table__num">{alert.threshold}</td>
+                    <td className="stock-table__num">
+                      {alert.onOrderStock ?? (
+                        <span
+                          className="stock-table__num--unknown"
+                          title="La calcula el backend (POST /metrics/restock-suggestions). Todavía no está disponible."
+                        >
+                          —
+                        </span>
+                      )}
+                    </td>
                     <td className="stock-table__num stock-table__num--suggested">
                       {alert.suggestedQuantity ?? (
                         <span
@@ -775,6 +786,7 @@ export default function StockManagementPage() {
         open={orderModal !== null}
         alert={orderModal?.alert ?? null}
         products={products}
+        alerts={alerts}
         onClose={() => setOrderModal(null)}
         onCreated={handleOrderCreated}
       />
