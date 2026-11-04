@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
 import TablePanel, { TablePanelTable } from "../../components/ui/TablePanel/TablePanel";
+import ActionCard from "../../components/ui/ActionCard/ActionCard";
 import Select from "../../components/ui/Select/Select";
 import DateRangeFilter from "../../components/ui/DateRangeFilter/DateRangeFilter";
 import Badge from "../../components/ui/Badge/Badge";
@@ -451,31 +452,17 @@ export default function StockManagementPage() {
         />
       )}
 
-      <div className="stock-management__actions">
+      <div className="action-card-grid">
         {ACTION_CARDS.map((card) => (
-          <button
+          <ActionCard
             key={card.key}
-            type="button"
-            className={`stock-management__card stock-management__card--${card.variant}`}
+            icon={card.icon}
+            title={card.title}
+            description={card.description}
+            note={card.note}
+            variant={card.variant}
             onClick={() => handleActionCard(card.key)}
-          >
-            <div className="stock-management__card-icon">
-              <Icon name={card.icon} size={22} color="currentColor" />
-            </div>
-            <div className="stock-management__card-body">
-              <h3 className="stock-management__card-title">{card.title}</h3>
-              <p className="stock-management__card-desc">
-                {card.description}
-                <br />
-                {card.note}
-              </p>
-            </div>
-            <Icon
-              name="chevronRight"
-              size={18}
-              className="stock-management__card-chevron"
-            />
-          </button>
+          />
         ))}
       </div>
 

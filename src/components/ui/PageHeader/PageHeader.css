@@ -24,12 +24,6 @@
 }
 
 
-.products-page__header-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
 .products-page__link-action {
   display: inline-flex;
   align-items: center;

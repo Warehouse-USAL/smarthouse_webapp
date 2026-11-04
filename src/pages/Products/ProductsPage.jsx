@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
+import ActionCard from "../../components/ui/ActionCard/ActionCard";
 import Button from "../../components/ui/Button/Button";
 import Input from "../../components/ui/Input/Input";
 import Select from "../../components/ui/Select/Select";
@@ -88,7 +89,9 @@ const fullLocationLabel = (loc) => {
 };
 
 export default function ProductsPage() {
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
+  const [unassignedCount, setUnassignedCount] = useState(null);
   const [zones, setZones] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -170,6 +173,15 @@ export default function ProductsPage() {
         })
       );
       setProducts(withLocations);
+      // El contador solo es confiable sin filtros y con el catálogo completo:
+      // `list` trae una página de hasta 50 productos.
+      if (!search && !categoryFilter) {
+        setUnassignedCount(
+          list.length < 50
+            ? withLocations.filter((p) => p.locations.length === 0).length
+            : null
+        );
+      }
     } catch (err) {
       setError(
         err.response?.data?.error?.message ||
@@ -457,30 +469,38 @@ export default function ProductsPage() {
       <PageHeader
         title="Productos"
         subtitle="Gestioná el catálogo. La asignación de stock a posiciones se hace desde la pantalla Asignación de stock."
-        action={
-          <div className="products-page__header-actions">
-            {canAssignStock && (
-              <Link to="/asignacion-stock">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  iconLeft={<Icon name="pin" size={14} />}
-                >
-                  Asignar stock
-                </Button>
-              </Link>
-            )}
-            {canCreate && (
-              <Button
-                iconLeft={<Icon name="plus" size={16} />}
-                onClick={() => setCreateOpen(true)}
-              >
-                Dar de alta producto
-              </Button>
-            )}
-          </div>
-        }
       />
+
+      {(canCreate || canAssignStock) && (
+        <div className="action-card-grid">
+          {canCreate && (
+            <ActionCard
+              icon="plus"
+              title="Dar de alta producto"
+              description="Registrá un producto nuevo en el catálogo."
+              note="Después podés asignarle una ubicación en el warehouse."
+              variant="yellow"
+              onClick={() => setCreateOpen(true)}
+            />
+          )}
+          {canAssignStock && (
+            <ActionCard
+              icon="pin"
+              title="Asignar stock"
+              description="Ubicá los productos nuevos y la mercadería de restock."
+              note={
+                unassignedCount === null
+                  ? null
+                  : unassignedCount === 0
+                    ? "Todos los productos tienen ubicación."
+                    : `${unassignedCount} producto${unassignedCount === 1 ? "" : "s"} sin ubicación.`
+              }
+              variant="blue"
+              onClick={() => navigate("/asignacion-stock")}
+            />
+          )}
+        </div>
+      )}
 
       <TablePanel
         search={{
