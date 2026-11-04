@@ -48,8 +48,8 @@ const formatDate = (iso) =>
 
 const STATUS_LABEL = {
   pendiente: { label: "Pendiente", variant: "warning" },
-  recibido: { label: "Recibido", variant: "info" },
-  completado: { label: "Completado", variant: "success" },
+  recibido_parcial: { label: "Recibido parcial", variant: "info" },
+  recibido: { label: "Recibido", variant: "success" },
 };
 
 export default function RemitoModal({

@@ -70,8 +70,8 @@ const ACTION_CARDS = [
 // si el backend nuevo manda `status: CANCELLED`.
 const STATUS_META = {
   pendiente: { label: "Pendiente", plural: "Pendientes", variant: "warning" },
-  recibido: { label: "Recibido", plural: "Recibidos", variant: "info" },
-  completado: { label: "Completado", plural: "Completados", variant: "success" },
+  recibido_parcial: { label: "Recibido parcial", plural: "Recibidos parciales", variant: "info" },
+  recibido: { label: "Recibido", plural: "Recibidos", variant: "success" },
   cancelado: { label: "Cancelado", plural: "Cancelados", variant: "danger" },
 };
 
@@ -637,7 +637,7 @@ export default function StockManagementPage() {
         <TablePanel
           title="Órdenes de restock"
           count={`(${orderTotal.toLocaleString("es-AR")})`}
-          hint="El estado se deriva de las recepciones registradas: sin recibir (pendiente), parcial (recibido) o completo."
+          hint="El estado se deriva de las recepciones registradas: pendiente (sin recibir), recibido parcial (menos de lo pedido) o recibido (todo lo pedido)."
           description="Gestioná el estado de tus órdenes de restock y registrá las recepciones."
           search={{
             placeholder: "Buscar en esta página por producto, SKU u orden",

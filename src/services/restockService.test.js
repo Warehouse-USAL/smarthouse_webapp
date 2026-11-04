@@ -36,7 +36,26 @@ describe("estado de las órdenes de restock", () => {
       [{ id: "r1", restock_order_id: "o1", product_id: "p1", quantity_received: 4 }]
     );
     const { items } = await restockService.listOrdersPage();
+    expect(items[0].status).toBe("recibido_parcial");
+  });
+
+  it("recibir lo mismo que lo pedido queda recibido y deja de estar abierta", async () => {
+    mockBackend(
+      [order({ status: "PENDING" })],
+      [{ id: "r1", restock_order_id: "o1", product_id: "p1", quantity_received: 10 }]
+    );
+    const { items } = await restockService.listOrdersPage();
     expect(items[0].status).toBe("recibido");
+    expect(await restockService.listOpenOrders()).toEqual([]);
+  });
+
+  it("una recepción parcial sigue abierta para recibir el resto", async () => {
+    mockBackend(
+      [order({ status: "PENDING" })],
+      [{ id: "r1", restock_order_id: "o1", product_id: "p1", quantity_received: 4 }]
+    );
+    const open = await restockService.listOpenOrders();
+    expect(open.map((o) => o.status)).toEqual(["recibido_parcial"]);
   });
 
   it("CANCELLED gana sobre lo derivado y expone los campos nuevos", async () => {
