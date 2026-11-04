@@ -170,15 +170,6 @@
 
 /* ── Dos paneles lado a lado ───────────────────────────────── */
 
-.stock-management__grid {
-  display: grid;
-  /* minmax(0, …) para que las tablas anchas scrolleen dentro del panel en vez
-     de estirar la columna de la grilla. */
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: var(--space-4);
-  align-items: stretch;
-}
-
 /* min-height para que los dos pies midan igual: el de órdenes lleva un select
    y el de alertas solo texto, y sin esto quedaban a distinta altura. */
 .stock-management__grid .table-panel__foot {
@@ -489,12 +480,6 @@
 }
 
 /* ── Responsive ────────────────────────────────────────────── */
-
-@media (max-width: 1180px) {
-  .stock-management__grid {
-    grid-template-columns: 1fr;
-  }
-}
 
 @media (max-width: 720px) {
   .stock-management__grid .table-panel__foot {

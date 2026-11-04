@@ -501,7 +501,7 @@ export default function StockManagementPage() {
         </div>
       )}
 
-      <div className="stock-management__grid">
+      <div className="table-panel-grid stock-management__grid">
         {/* ═══ Productos con alerta de reestock ═══════════════ */}
         <TablePanel
           title="Productos con alerta de reestock"

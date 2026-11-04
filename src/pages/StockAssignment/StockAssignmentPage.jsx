@@ -160,6 +160,7 @@ export default function StockAssignmentPage() {
         subtitle="Productos nuevos y de restock pendientes de ubicación. Asigná una ubicación disponible para cada uno."
       />
 
+      <div className="table-panel-grid">
       <TablePanel
         title="Productos sin ubicación asignada"
         count={`(${loadingProducts ? "…" : filteredProducts.length})`}
@@ -177,7 +178,7 @@ export default function StockAssignmentPage() {
               description="No hay productos sin ubicación asignada."
             />
           ) : (
-            <TablePanelTable>
+            <TablePanelTable className="table-panel__table--compact">
               <thead>
                 <tr>
                   <th>Producto</th>
@@ -192,7 +193,7 @@ export default function StockAssignmentPage() {
                 {filteredProducts.map((product) => (
                   <tr key={product.id}>
                     <td>{renderProductCell(product)}</td>
-                    <td>{product.sku}</td>
+                    <td className="table-panel__nowrap">{product.sku}</td>
                     <td>{product.category}</td>
                     <td>{product.availableStock} unidades</td>
                     <td>
@@ -232,7 +233,7 @@ export default function StockAssignmentPage() {
               description="No hay productos de restock pendientes de ubicación."
             />
           ) : (
-            <TablePanelTable>
+            <TablePanelTable className="table-panel__table--compact">
               <thead>
                 <tr>
                   <th>Producto</th>
@@ -248,10 +249,10 @@ export default function StockAssignmentPage() {
                 {filteredRestock.map((product) => (
                   <tr key={product.id}>
                     <td>{renderProductCell(product)}</td>
-                    <td>{product.sku}</td>
-                    <td>{product.orderId}</td>
+                    <td className="table-panel__nowrap">{product.sku}</td>
+                    <td className="table-panel__nowrap">{product.orderId}</td>
                     <td>{product.received} unidades</td>
-                    <td>{product.receivedAt}</td>
+                    <td className="table-panel__nowrap">{product.receivedAt}</td>
                     <td>
                       <Badge variant="success" dot>Restock aceptado</Badge>
                     </td>
@@ -271,6 +272,7 @@ export default function StockAssignmentPage() {
             </TablePanelTable>
           ))}
       </TablePanel>
+      </div>
 
       <ProductLocationModal
         open={productModalOpen}

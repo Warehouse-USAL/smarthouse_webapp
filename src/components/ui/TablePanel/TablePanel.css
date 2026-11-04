@@ -15,6 +15,15 @@
   overflow: hidden;
 }
 
+/* Dos paneles lado a lado. minmax(0, …) para que las tablas anchas scrolleen
+   dentro del panel en vez de estirar la columna de la grilla. */
+.table-panel-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: stretch;
+}
+
 /* ── Encabezado ─────────────────────────────────────────────── */
 
 .table-panel__head {
@@ -186,6 +195,25 @@
   background: var(--color-surface-muted);
 }
 
+/* Para tablas en media pantalla: menos padding y títulos en dos líneas. */
+.table-panel__table--compact thead th {
+  padding: 0 var(--space-2);
+  white-space: normal;
+}
+
+.table-panel__table--compact tbody td {
+  padding: var(--space-2);
+}
+
+.table-panel__table--compact .table-panel__product-name {
+  max-width: 130px;
+  white-space: normal;
+}
+
+.table-panel__table .table-panel__nowrap {
+  white-space: nowrap;
+}
+
 .table-panel__table-wrap .button {
   white-space: nowrap;
   width: auto;
@@ -232,6 +260,42 @@
 }
 
 /* ── Responsive ─────────────────────────────────────────────── */
+
+/* Dos tablas compactas lado a lado en pantallas chicas: se prioriza que las
+   acciones queden a la vista. */
+@media (max-width: 1700px) {
+  .table-panel__table--compact thead th {
+    padding: 0 var(--space-1);
+  }
+
+  .table-panel__table--compact tbody td {
+    padding: var(--space-2) var(--space-1);
+  }
+
+  .table-panel__table--compact .table-panel__product-name {
+    max-width: 100px;
+  }
+
+  .table-panel__table--compact .badge {
+    white-space: normal;
+  }
+
+  .table-panel__table--compact .button__icon {
+    display: none;
+  }
+}
+
+@media (max-width: 1400px) {
+  .table-panel__table--compact .table-panel__product-name {
+    max-width: 80px;
+  }
+}
+
+@media (max-width: 1180px) {
+  .table-panel-grid {
+    grid-template-columns: 1fr;
+  }
+}
 
 @media (max-width: 720px) {
   .table-panel__filters--two {
