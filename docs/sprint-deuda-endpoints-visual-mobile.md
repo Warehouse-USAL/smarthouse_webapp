@@ -49,6 +49,145 @@ inventados: si falta un endpoint, se marca como pendiente de backend.
 
 ---
 
+## a.2) Sugerencias de restock (`/metrics/restock-suggestions`) — prioridad alta
+
+**Hallazgo verificado (2026-11-04, backend local :8080):** el endpoint responde
+`200` y el contrato coincide con el front, pero la tabla de alertas queda vacía
+porque el backend devuelve `should_restock: false` en todos los productos. No es
+un bug del endpoint: es la regla de cálculo.
+
+**Fórmula real** (`wh-backend/.../service/metrics/restock/RestockFormula.java`):
+
+```
+blended        = alpha * recent_demand + (1 - alpha) * long_term_demand
+safety         = long_term_demand * safety_days
+reorder_point  = blended * lead_time_days + safety
+target_stock   = blended * (lead_time_days + coverage_days) + safety
+position       = available + on_order
+gap            = ceil(max(0, target_stock - position))
+should_restock = position <= reorder_point && gap > 0
+```
+
+La demanda sale de **órdenes no canceladas** creadas dentro de la ventana
+(`recent_days` / `long_days`). Sin ventas, `demand = 0`, entonces
+`reorder_point = 0`, `target_stock = 0` y `gap = 0`: **no repone ni con stock en
+0** (`0 <= 0` se cumple, pero `gap > 0` no).
+
+**Segundo problema, en el front:** `listAlerts` devuelve `[]` (array vacío)
+cuando todas las filas tienen `should_restock: false`, no `null`. En
+`StockManagementPage.jsx:181`, `suggested ?? buildRestockAlerts(...)` no cae al
+fallback porque `[]` no es `null`, y `hasSuggestions` queda en `true`
+(`suggested !== null`). Resultado: tabla vacía y estado inconsistente.
+
+**Diferencia de criterios a resolver con negocio:**
+
+- La UI/negocio mira `stock.available < stock.min` (mínimo).
+- El backend mira `inventory_position <= reorder_point` (demanda proyectada).
+- `on_order_stock` evita reponer lo que ya viene en camino (ej. MOU-010 con 165
+  y TAL-001 con 140 no se marcan aunque el disponible sea 0).
+
+**Tareas:**
+
+- [ ] Decidir la regla de negocio: (a) el backend usa `minimum_stock` como piso
+      del `reorder_point` o marca `available < min`; (b) el front mergea las
+      alertas locales de bajo mínimo con `suggested_quantity: null`; (c) se
+      acepta que sin demanda no hay sugerencia y el operador carga a mano.
+- [ ] Corregir en `listAlerts` / `StockManagementPage` el manejo de `[]` vs
+      `null` y el cálculo de `hasSuggestions`, para que el fallback local corra
+      cuando corresponda o se muestre un estado vacío explícito.
+- [ ] Verificar con datos reales (curls de abajo) que con demanda > 0 el
+      endpoint devuelve `should_restock: true` y `suggested_quantity > 0`.
+- [ ] Documentar la fórmula y la diferencia `minimum_stock` vs `reorder_point`.
+- [ ] Revisar el estado vacío de la tabla: hoy no distingue "no hay nada que
+      reponer" de "el backend no calculó".
+
+**Criterio de aceptación:** con un producto bajo mínimo y sin demanda, la UI
+muestra una decisión explícita (alerta por mínimo con cantidad manual, o mensaje
+de que la sugerencia depende de la demanda), y con demanda real el backend
+devuelve `should_restock: true` verificado por curl.
+
+**Verificación con curls (demanda sintética):**
+
+> Requiere `jq` y rol `SUPERADMIN` o `ADMIN_WAREHOUSE` (el `PATCH` de posición y
+> `/metrics/*` lo exigen; las órdenes aceptan además `ADMIN_SALES`/`OPERATOR`).
+> Reemplazar `EMAIL`, `PASSWORD` y, si hace falta, `SKU`. El script sube stock a
+> una posición, crea órdenes (demanda reciente) y vuelve a consultar la métrica.
+> Las órdenes quedan `PENDING` y reservan stock: para deshacer, cancelarlas con
+> `POST /orders/{id}/cancel`.
+
+```bash
+BASE=http://localhost:8080
+EMAIL="admin@usal.com"
+PASSWORD="..."
+SKU="TAL-001"
+GOAL=${GOAL:-30}
+
+TOKEN=$(curl -s -X POST "$BASE/auth/login" \
+  -H 'Content-Type: application/json' \
+  -d "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}" | jq -r '.token')
+AUTH="Authorization: Bearer $TOKEN"
+
+PRODUCT_ID=$(curl -s "$BASE/products?search=$SKU&size=5" -H "$AUTH" \
+  | jq -r --arg sku "$SKU" '.products[] | select(.sku==$sku) | .id')
+echo "producto: $PRODUCT_ID"
+
+POS=$(curl -s "$BASE/warehouse/positions" -H "$AUTH" \
+  | jq -c --arg p "$PRODUCT_ID" \
+    '.positions[] | select(.product_id==$p and .is_active) | {id:.id_position,max:.maximum_capacity,current:.current_stock,size:.size_stock_to_save}' \
+  | head -1)
+POS_ID=$(echo "$POS" | jq -r .id)
+POS_MAX=$(echo "$POS" | jq -r .max)
+POS_CUR=$(echo "$POS" | jq -r .current)
+POS_SIZE=$(echo "$POS" | jq -r .size)
+echo "posición: $POS_ID (máx $POS_MAX, actual $POS_CUR, $POS_SIZE)"
+if [ -z "$POS_ID" ] || [ "$POS_ID" = "null" ]; then
+  echo "sin posición asignada a $SKU; ajustar a mano"
+  exit 1
+fi
+
+VOL_MAX=$(curl -s -X POST "$BASE/warehouse/positions/validate-fit" -H "$AUTH" \
+  -H 'Content-Type: application/json' \
+  -d "{\"product_id\":\"$PRODUCT_ID\",\"quantity\":$POS_MAX,\"size\":\"$POS_SIZE\"}" \
+  | jq -r '.max_quantity_allowed')
+[ "$VOL_MAX" = "null" ] && VOL_MAX=$POS_MAX
+
+CAP=$(( POS_MAX < VOL_MAX ? POS_MAX : VOL_MAX ))
+[ "$CAP" -lt 1 ] && { echo "sin capacidad para $SKU; ajustar a mano"; exit 1; }
+STOCK=$(( POS_CUR > GOAL ? POS_CUR : GOAL ))
+[ "$STOCK" -gt "$CAP" ] && STOCK=$CAP
+echo "stock objetivo: $STOCK"
+
+if [ "$STOCK" -ne "$POS_CUR" ]; then
+  curl -s -X PATCH "$BASE/warehouse/positions/$POS_ID" -H "$AUTH" \
+    -H 'Content-Type: application/json' \
+    -d "{\"current_stock\":$STOCK,\"reason\":\"demanda sintética restock\"}" \
+    | jq -c '{current_stock,maximum_capacity}'
+fi
+
+MAX_ORDER=$(curl -s "$BASE/products/$PRODUCT_ID" -H "$AUTH" \
+  | jq -r '.product.order_constraints.max_quantity_per_order // 10')
+[ "$MAX_ORDER" -le 0 ] && MAX_ORDER=10
+LEFT=$STOCK
+while [ "$LEFT" -gt 0 ]; do
+  Q=$(( LEFT < MAX_ORDER ? LEFT : MAX_ORDER ))
+  curl -s -X POST "$BASE/orders" -H "$AUTH" -H 'Content-Type: application/json' \
+    -d "{\"items\":[{\"product_id\":\"$PRODUCT_ID\",\"quantity\":$Q}],\"destination_area\":\"Ventas\",\"address\":{\"street\":\"Calle Falsa 123\",\"postal_code\":\"5000\"},\"priority\":\"medium\"}" \
+    | jq -c '.order | {id,status}'
+  LEFT=$((LEFT - Q))
+done
+
+curl -s -X POST "$BASE/metrics/restock-suggestions" -H "$AUTH" \
+  -H 'Content-Type: application/json' \
+  -d "{\"params\":{\"alpha\":0.3,\"recent_days\":7,\"long_days\":60,\"safety_days\":2,\"lead_time_days\":5,\"coverage_days\":7},\"filters\":{\"product_ids\":[\"$PRODUCT_ID\"]}}" \
+  | jq '.data[] | {sku,available_stock,on_order_stock,inventory_position,reorder_point,target_stock,should_restock,suggested_quantity}'
+```
+
+> Para persistir el resultado en `product.restock` (lo que lee la UI sin request
+> extra), correr además `POST /metrics/restock-suggestions/apply` con el mismo
+> `params` y sin `filters`.
+
+---
+
 ## b) Mejoras visuales — prioridad media
 
 **Problema:** quedaron mejoras de UI/UX pendientes del sprint anterior y otras
@@ -93,7 +232,8 @@ horizontal en 375 px y 768 px; las acciones principales siguen accesibles.
 
 ## Orden sugerido
 
-1. **a)** Deuda de endpoints de stock (alto impacto funcional).
+1. **a) y a.2)** Deuda de endpoints de stock y sugerencias de restock (alto
+   impacto funcional).
 2. **b)** Mejoras visuales acordadas con negocio.
 3. **c)** Mobile (baja prioridad, al final).
 
