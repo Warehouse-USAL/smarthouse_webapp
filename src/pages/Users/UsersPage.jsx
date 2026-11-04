@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
 import Button from "../../components/ui/Button/Button";
-import Input from "../../components/ui/Input/Input";
 import Select from "../../components/ui/Select/Select";
 import Icon from "../../components/ui/Icon/Icon";
-import Card from "../../components/ui/Card/Card";
+import TablePanel, { TablePanelTable } from "../../components/ui/TablePanel/TablePanel";
 import Badge from "../../components/ui/Badge/Badge";
 import Spinner from "../../components/ui/Spinner/Spinner";
 import EmptyState from "../../components/ui/EmptyState/EmptyState";
@@ -71,6 +70,7 @@ export default function UsersPage() {
   const [roleFilter, setRoleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [quickFilter, setQuickFilter] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [page, setPage] = useState(1); // UI: 1-indexed; backend: 0-indexed
 
   // Modales
@@ -197,81 +197,90 @@ export default function UsersPage() {
         }
       />
 
-      <Card padding="md" className="users-page__filters">
-        <div className="users-page__filter users-page__filter--grow">
-          <Input
-            placeholder="Filtrar por nombre o email (en esta página)"
-            value={quickFilter}
-            onChange={(e) => setQuickFilter(e.target.value)}
-            iconLeft={<Icon name="search" size={16} />}
-          />
-        </div>
-        <div className="users-page__filter">
-          <Select
-            value={roleFilter}
-            onChange={(e) => {
-              setRoleFilter(e.target.value);
-              setPage(1);
-            }}
-            options={[{ value: "", label: "Todos los roles" }, ...ROLE_OPTIONS]}
-          />
-        </div>
-        <div className="users-page__filter">
-          <Select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setPage(1);
-            }}
-            options={STATUS_OPTIONS}
-          />
-        </div>
-      </Card>
-
+      <TablePanel
+        title="Usuarios registrados"
+        search={{
+          placeholder: "Filtrar por nombre o email (en esta página)",
+          value: quickFilter,
+          onChange: (e) => setQuickFilter(e.target.value),
+        }}
+        filtersOpen={filtersOpen}
+        onToggleFilters={() => setFiltersOpen((v) => !v)}
+        filtersClassName="table-panel__filters--two"
+        filters={
+          filtersOpen && (
+            <>
+              <Select
+                label="Rol"
+                value={roleFilter}
+                onChange={(e) => {
+                  setRoleFilter(e.target.value);
+                  setPage(1);
+                }}
+                options={[{ value: "", label: "Todos los roles" }, ...ROLE_OPTIONS]}
+              />
+              <Select
+                label="Estado"
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setPage(1);
+                }}
+                options={STATUS_OPTIONS}
+              />
+            </>
+          )
+        }
+        footer={
+          !loading && !error && totalElements > 0 && (
+            <>
+              <span className="table-panel__showing">
+                {totalElements} usuario{totalElements === 1 ? "" : "s"} en total
+                {quickFilter && ` · ${visibleUsers.length} en esta página`}
+              </span>
+              <Pagination current={page} total={totalPages} onChange={setPage} />
+            </>
+          )
+        }
+      >
       {loading ? (
-        <div className="users-page__loading">
+        <div className="table-panel__loading">
           <Spinner label="Cargando usuarios…" />
         </div>
       ) : error ? (
-        <Card>
-          <EmptyState
-            icon="info"
-            title="Algo salió mal"
-            description={error}
-            action={
-              <Button variant="secondary" onClick={fetchUsers}>
-                Reintentar
-              </Button>
-            }
-          />
-        </Card>
+        <EmptyState
+          icon="info"
+          title="Algo salió mal"
+          description={error}
+          action={
+            <Button variant="secondary" onClick={fetchUsers}>
+              Reintentar
+            </Button>
+          }
+        />
       ) : visibleUsers.length === 0 ? (
-        <Card>
-          <EmptyState
-            icon="user"
-            title="No hay usuarios"
-            description={
-              quickFilter || roleFilter || statusFilter
-                ? "No encontramos usuarios con los filtros seleccionados."
-                : "Todavía no hay usuarios cargados."
-            }
-            action={
-              quickFilter || roleFilter || statusFilter ? (
-                <Button variant="secondary" onClick={resetFilters}>
-                  Limpiar filtros
-                </Button>
-              ) : (
-                <Button iconLeft={<Icon name="plus" size={16} />} onClick={openCreate}>
-                  Nuevo usuario
-                </Button>
-              )
-            }
-          />
-        </Card>
+        <EmptyState
+          icon="user"
+          title="No hay usuarios"
+          description={
+            quickFilter || roleFilter || statusFilter
+              ? "No encontramos usuarios con los filtros seleccionados."
+              : "Todavía no hay usuarios cargados."
+          }
+          action={
+            quickFilter || roleFilter || statusFilter ? (
+              <Button variant="secondary" onClick={resetFilters}>
+                Limpiar filtros
+              </Button>
+            ) : (
+              <Button iconLeft={<Icon name="plus" size={16} />} onClick={openCreate}>
+                Nuevo usuario
+              </Button>
+            )
+          }
+        />
       ) : (
-        <Card padding="none" className="users-page__table-card">
-          <div className="users-table-wrap">
-            <table className="users-table">
+            <TablePanelTable className="users-table">
               <thead>
                 <tr>
                   <th>Usuario</th>
@@ -279,7 +288,7 @@ export default function UsersPage() {
                   <th>Proveedor</th>
                   <th>Estado</th>
                   <th>Alta</th>
-                  <th className="users-table__actions-col">Acciones</th>
+                  <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -334,20 +343,9 @@ export default function UsersPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
-        </Card>
+            </TablePanelTable>
       )}
-
-      {!loading && !error && totalElements > 0 && (
-        <footer className="users-page__footer">
-          <span className="users-page__count">
-            {totalElements} usuario{totalElements === 1 ? "" : "s"} en total
-            {quickFilter && ` · ${visibleUsers.length} en esta página`}
-          </span>
-          <Pagination current={page} total={totalPages} onChange={setPage} />
-        </footer>
-      )}
+      </TablePanel>
 
       <UserFormModal
         open={formMode !== null}
