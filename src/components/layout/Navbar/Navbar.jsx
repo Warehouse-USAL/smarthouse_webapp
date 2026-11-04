@@ -20,6 +20,7 @@ const NAV_ITEMS = [
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
   const menuRef = useRef(null);
   const navigate = useNavigate();
 
@@ -47,12 +48,39 @@ export default function Navbar() {
   return (
     <header className="navbar">
       <div className="navbar__inner">
+        <button
+          type="button"
+          className="navbar__toggle"
+          onClick={() => setNavOpen((prev) => !prev)}
+          aria-label={navOpen ? "Cerrar menú" : "Abrir menú"}
+          aria-expanded={navOpen}
+        >
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          >
+            {navOpen ? (
+              <path d="M6 6l12 12M18 6L6 18" />
+            ) : (
+              <path d="M4 7h16M4 12h16M4 17h16" />
+            )}
+          </svg>
+        </button>
         <Logo />
-        <nav className="navbar__nav" aria-label="Principal">
+        <nav
+          className={`navbar__nav ${navOpen ? "navbar__nav--open" : ""}`}
+          aria-label="Principal"
+        >
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
+              onClick={() => setNavOpen(false)}
               className={({ isActive }) =>
                 `navbar__link ${isActive ? "navbar__link--active" : ""}`
               }

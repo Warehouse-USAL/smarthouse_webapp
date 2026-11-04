@@ -33,6 +33,7 @@
   text-align: center;
   align-items: center;
   display: flex;
+  white-space: nowrap;
 }
 
 .navbar__link:hover {
@@ -55,8 +56,24 @@
   border-radius: var(--radius-full);
 }
 
+.navbar__toggle {
+  display: none;
+  flex-shrink: 0;
+  padding: var(--space-1);
+  border: none;
+  border-radius: var(--radius-soft);
+  background: none;
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.navbar__toggle:hover {
+  background-color: var(--color-bg-soft);
+}
+
 .navbar__user-wrapper {
   position: relative;
+  flex-shrink: 0;
 }
 
 .navbar__user {
@@ -72,6 +89,13 @@
   padding: 4px 6px;
   border-radius: var(--radius-soft);
   font-family: inherit;
+}
+
+.navbar__user-name {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .navbar__user:hover {
@@ -126,4 +150,84 @@
 
 .navbar__dropdown-item svg {
   color: var(--color-text-muted);
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+
+@media (max-width: 1720px) {
+  .navbar__inner {
+    padding: 0 var(--space-6);
+    gap: var(--space-4);
+  }
+
+  .navbar__nav {
+    gap: var(--space-4);
+  }
+
+  .navbar__link {
+    font-size: var(--text-md);
+  }
+
+  .navbar__user-name {
+    max-width: 110px;
+  }
+}
+
+/* Sin nombre de usuario: el avatar alcanza para abrir el menú. */
+@media (max-width: 1400px) {
+  .navbar__inner {
+    padding: 0 var(--space-4);
+    gap: var(--space-3);
+  }
+
+  .navbar__nav {
+    gap: var(--space-3);
+  }
+
+  .navbar__link {
+    font-size: var(--text-sm);
+  }
+
+  .navbar__user-name {
+    display: none;
+  }
+}
+
+/* Los ítems ya no entran en una fila: pasan a un menú desplegable. */
+@media (max-width: 1180px) {
+  .navbar__toggle {
+    display: inline-flex;
+  }
+
+  .navbar__user-wrapper {
+    margin-left: auto;
+  }
+
+  .navbar__nav {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    gap: 0;
+    padding: var(--space-2) var(--space-4);
+    background-color: var(--color-white);
+    border-bottom: 1px solid var(--color-border-soft);
+    box-shadow: var(--shadow-dropdown);
+  }
+
+  .navbar__nav--open {
+    display: flex;
+  }
+
+  .navbar__link {
+    padding: var(--space-3) var(--space-2);
+    font-size: var(--text-md);
+    text-align: left;
+  }
+
+  .navbar__link--active::after {
+    display: none;
+  }
 }
