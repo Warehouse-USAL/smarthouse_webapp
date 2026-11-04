@@ -3,8 +3,8 @@
 > Fecha: 2026-11-04
 > Rama: `feature/sprint-endpoints-visual-mobile`
 > Alcance: bloques **a)** y **b)** de `docs/sprint-deuda-endpoints-visual-mobile.md`.
-> Los bloques a.2 (sugerencias de restock) y c (mobile) siguen pendientes.
-> El bloque b) está en la sección 8.
+> El bloque b) está en la sección 8. Los bloques a.2 y c se dieron por resueltos
+> sin cambios adicionales (ver sección 6).
 
 ---
 
@@ -148,11 +148,14 @@ Estas órdenes también quedan en estado `CANCELLED` en restock.
 
 ## 6. Pendiente
 
-- **a.2** Sugerencias de restock: decidir regla de negocio y corregir `[]` vs
-  `null` en `listAlerts`.
-- **b** Tokens de `padding` y `margin`, y comparar las capturas con un diseño de
-  referencia.
-- **c** Mobile: revisar 375 px / 768 px, tablas, navegación y modales.
+- **a.2** Sugerencias de restock: según lo revisado por el equipo, funcionan con
+  la seed del backend, así que no se tocó el código. Sin demanda siguen sin generar
+  sugerencia.
+- **b** Tokens de `padding` y `margin`.
+- **c** Mobile: revisado por el equipo y dado por bueno.
+- **Backend:** una orden de restock parcial no se puede cerrar con faltante,
+  porque no admite cancelación si ya tiene recepciones. Lo que falta sigue
+  contando como en pedido.
 - Opcional: migrar la reducción a `POST /warehouse/positions/{id}/stock-adjustments`
   para registrar `DAMAGE` u otros tipos y mostrar `quantity_before/after`
   devueltos por el backend.
@@ -186,7 +189,8 @@ y pie en una misma card.
 | Gestión de stock | 2 | Colapsables | Migrada; suma la columna "Ya pedido" |
 | Productos | 1, sin título | Fijos, debajo del buscador | Mismas 12 columnas |
 | Vehículos | 1 | Colapsables | De `div` a `<table>`, mismas 5 columnas; en mobile scrollea en lugar de ocultar columnas |
-| Asignación de stock | 2 | Sin filtros | De tarjetas a tablas, con buscadores independientes |
+| Asignación de stock | 2, lado a lado | Sin filtros | De tarjetas a tablas, con buscadores independientes |
+| Usuarios | 1 | Colapsables | Mismas 6 columnas |
 
 Se eliminó `PendingLocationCard`, que quedó sin uso.
 
@@ -200,11 +204,30 @@ Se eliminó `PendingLocationCard`, que quedó sin uso.
   `font-size`, `font-weight` y `gap` fijos por tokens del mismo valor. Quedan fuera
   `Logo.css` y los tamaños de título o de un solo uso (10, 24, 28, 29, 30, 32 y
   40 px).
+- **Navbar:** los títulos ya no se parten en dos líneas. Se compacta por etapas
+  (1720 y 1400 px, donde queda solo el avatar) y desde 1180 px pasa a menú
+  hamburguesa.
+- **Tarjetas de acción:** nuevo componente `ActionCard`, usado en Productos y en
+  Gestión de stock. En Productos reemplaza a los botones "Dar de alta producto" y
+  "Asignar stock"; esta última muestra cuántos productos no tienen ubicación, salvo
+  que el catálogo llegue a 50 productos.
+- **Estados de las órdenes de restock:** se derivan de lo recibido, porque el
+  backend solo guarda `PENDING` y `CANCELLED`.
+
+| Recibido respecto de lo pedido | Estado |
+| --- | --- |
+| Nada | Pendiente |
+| Menos de lo pedido | Recibido parcial |
+| Igual o más | Recibido |
+
+El estado "Completado" se eliminó de las órdenes de restock. Una orden parcial se
+sigue ofreciendo en el remito para recibir el resto.
 
 ### 8.3 Verificación
 
-Lint, tests y build OK. La revisión en Chrome se hizo con datos mock, y la tabla
+Lint, 23 tests y build OK. La revisión en Chrome se hizo con datos mock, y la tabla
 de restock pendiente, "Ya pedido" y la sugerida se probaron con datos inyectados
-en el navegador. Falta probar estos flujos contra el backend real.
+en el navegador.
 
-Capturas de Stock y Productos en `docs/capturas/antes/` y `docs/capturas/despues/`.
+Las capturas de `docs/capturas/` no incluyen los últimos cambios (Usuarios, navbar,
+tarjetas y estados).
