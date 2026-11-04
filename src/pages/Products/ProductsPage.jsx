@@ -5,7 +5,7 @@ import Button from "../../components/ui/Button/Button";
 import Input from "../../components/ui/Input/Input";
 import Select from "../../components/ui/Select/Select";
 import Icon from "../../components/ui/Icon/Icon";
-import Card from "../../components/ui/Card/Card";
+import TablePanel, { TablePanelTable } from "../../components/ui/TablePanel/TablePanel";
 import Spinner from "../../components/ui/Spinner/Spinner";
 import EmptyState from "../../components/ui/EmptyState/EmptyState";
 import Pagination from "../../components/ui/Pagination/Pagination";
@@ -482,72 +482,80 @@ export default function ProductsPage() {
         }
       />
 
-      <div className="products-page__search">
-        <Input
-          placeholder="Buscar por nombre o SKU"
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          iconLeft={<Icon name="search" size={16} />}
-        />
-      </div>
-
-      <Card padding="md" className="products-page__filters">
-        <div className="products-page__filter">
-          <Select
-            label="Zonas"
-            value={zone}
-            onChange={(e) => { setZone(e.target.value); setPage(1); }}
-            options={zoneOptions}
-          />
-        </div>
-        <div className="products-page__filter">
-          <Select
-            label="Categoría"
-            value={categoryFilter}
-            onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
-            options={categoryOptions}
-          />
-        </div>
-      </Card>
-
+      <TablePanel
+        search={{
+          placeholder: "Buscar por nombre o SKU",
+          value: search,
+          onChange: (e) => { setSearch(e.target.value); setPage(1); },
+        }}
+        filtersClassName="table-panel__filters--two"
+        filters={
+          <>
+            <Select
+              label="Zonas"
+              value={zone}
+              onChange={(e) => { setZone(e.target.value); setPage(1); }}
+              options={zoneOptions}
+            />
+            <Select
+              label="Categoría"
+              value={categoryFilter}
+              onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
+              options={categoryOptions}
+            />
+          </>
+        }
+        footer={
+          !loading && !error && filtered.length > 0 && (
+            <>
+              <span className="table-panel__showing">
+                Mostrando {pageStart + 1} a{" "}
+                {Math.min(pageStart + pageSize, filtered.length)} de{" "}
+                {filtered.length} productos
+              </span>
+              <Pagination current={page} total={totalPages} onChange={setPage} />
+              <Select
+                value={String(pageSize)}
+                onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+                options={PAGE_SIZE_OPTIONS}
+              />
+            </>
+          )
+        }
+      >
       {loading ? (
-        <div className="products-page__loading">
+        <div className="table-panel__loading">
           <Spinner label="Cargando productos…" />
         </div>
       ) : error ? (
-        <Card>
-          <EmptyState
-            icon="info"
-            title="Algo salió mal"
-            description={error}
-            action={
-              <Button variant="secondary" onClick={fetchProducts}>
-                Reintentar
-              </Button>
-            }
-          />
-        </Card>
+        <EmptyState
+          icon="info"
+          title="Algo salió mal"
+          description={error}
+          action={
+            <Button variant="secondary" onClick={fetchProducts}>
+              Reintentar
+            </Button>
+          }
+        />
       ) : filtered.length === 0 ? (
-        <Card>
-          <EmptyState
-            icon="box"
-            title="No hay productos"
-            description="No encontramos productos con los filtros seleccionados."
-            action={
-              canCreate ? (
-                <Button
-                  iconLeft={<Icon name="plus" size={16} />}
-                  onClick={() => setCreateOpen(true)}
-                >
-                  Dar de alta producto
-                </Button>
-              ) : null
-            }
-          />
-        </Card>
+        <EmptyState
+          icon="box"
+          title="No hay productos"
+          description="No encontramos productos con los filtros seleccionados."
+          action={
+            canCreate ? (
+              <Button
+                iconLeft={<Icon name="plus" size={16} />}
+                onClick={() => setCreateOpen(true)}
+              >
+                Dar de alta producto
+              </Button>
+            ) : null
+          }
+        />
       ) : (
-        <div className="products-table-wrap">
-          <table className="products-table">
+          <TablePanelTable className="products-table">
             <thead>
               <tr>
                 <th>Imagen</th>
@@ -691,25 +699,9 @@ export default function ProductsPage() {
                 );
               })}
             </tbody>
-          </table>
-        </div>
+          </TablePanelTable>
       )}
-
-      {!loading && !error && filtered.length > 0 && (
-        <footer className="products-page__footer">
-          <span className="products-page__count">
-            Mostrando {pageStart + 1} a{" "}
-            {Math.min(pageStart + pageSize, filtered.length)} de{" "}
-            {filtered.length} productos
-          </span>
-          <Pagination current={page} total={totalPages} onChange={setPage} />
-          <Select
-            value={String(pageSize)}
-            onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
-            options={PAGE_SIZE_OPTIONS}
-          />
-        </footer>
-      )}
+      </TablePanel>
 
       <Modal
         open={createOpen}
