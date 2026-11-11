@@ -194,6 +194,18 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 11. Productos: generar orden de restock desde la tabla
+
+- Nuevo botón (carrito) en **Acciones** que abre el mismo `RestockOrderModal`
+  de Gestión de stock con el producto ya elegido.
+- Si la corrida diaria calculó una cantidad sugerida (`product.restock`), se
+  precarga y se puede editar; si no, el campo arranca vacío.
+- Visible solo para `SUPERADMIN` / `ADMIN_WAREHOUSE` (nueva capacidad
+  `restock.create`, espejo de `POST /restock/orders`) y solo en productos
+  activos. Al crear la orden se muestra un aviso de éxito y se recarga la página.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Asignación de stock / Ventas** usan `productService.listAll()`

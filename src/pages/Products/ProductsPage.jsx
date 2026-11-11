@@ -14,6 +14,8 @@ import Pagination from "../../components/ui/Pagination/Pagination";
 import Modal from "../../components/ui/Modal/Modal";
 import Badge from "../../components/ui/Badge/Badge";
 import CreateProductForm from "../../components/products/CreateProductForm/CreateProductForm";
+import RestockOrderModal from "../../components/stock/RestockOrderModal/RestockOrderModal";
+import StatusBanner from "../../components/ui/StatusBanner/StatusBanner";
 import { productService } from "../../services/productService";
 import { warehouseConfigService } from "../../services/warehouseConfigService";
 import { stockAdjustmentService } from "../../services/stockAdjustmentService";
@@ -25,7 +27,7 @@ import {
 import { getUser } from "../../services/authService";
 import { errorText } from "../../lib/apiError";
 import { can } from "../../lib/permissions";
-import { needsRestock } from "../../lib/restockSuggestion";
+import { fromStoredRestock, needsRestock, toRestockAlert } from "../../lib/restockSuggestion";
 import { displayCode } from "../../lib/pagination";
 import "./ProductsPage.css";
 
@@ -139,6 +141,11 @@ export default function ProductsPage() {
 
   // Historial/auditoría de ajustes (GET /products/:id/stock-adjustments).
   const [historyProduct, setHistoryProduct] = useState(null);
+
+  // Orden de restock desde la fila: el producto ya viene elegido. Si la corrida
+  // diaria calculó una sugerida, se precarga; si no, la cantidad arranca vacía.
+  const [restockAlert, setRestockAlert] = useState(null);
+  const [feedback, setFeedback] = useState(null);
   const [historyPage, setHistoryPage] = useState(1);
   const [historyResult, setHistoryResult] = useState(null);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -152,6 +159,7 @@ export default function ProductsPage() {
   const canDelete = can("product.delete");
   const canAssignStock = can("stock.assign");
   const canViewStockHistory = can("stock.history");
+  const canCreateRestock = can("restock.create");
   // Filtrar por zona / sin ubicación necesita GET /warehouse/positions.
   const canFilterLocation = can("warehouse.read");
 
@@ -555,6 +563,14 @@ export default function ProductsPage() {
         </div>
       )}
 
+      {feedback && (
+        <StatusBanner
+          statusBannerState="status-banner-exito"
+          icon={<Icon name="check" size={16} />}
+          text={feedback}
+        />
+      )}
+
       <TablePanel
         search={{
           placeholder: "Buscar por nombre o SKU",
@@ -752,6 +768,20 @@ export default function ProductsPage() {
                             title="Historial de ajustes"
                           >
                             <Icon name="list" size={15} />
+                          </button>
+                        )}
+                        {canCreateRestock && product.active && (
+                          <button
+                            type="button"
+                            className="products-table__action"
+                            onClick={() => {
+                              setFeedback(null);
+                              setRestockAlert(fromStoredRestock(product) ?? toRestockAlert(product));
+                            }}
+                            aria-label="Generar orden de restock"
+                            title="Generar orden de restock"
+                          >
+                            <Icon name="cart" size={15} />
                           </button>
                         )}
                         {canDelete && (
@@ -1078,6 +1108,15 @@ export default function ProductsPage() {
           </>
         )}
       </Modal>
+      <RestockOrderModal
+        open={restockAlert !== null}
+        alert={restockAlert}
+        onClose={() => setRestockAlert(null)}
+        onCreated={async () => {
+          setFeedback("Orden de restock creada correctamente.");
+          await reloadProducts();
+        }}
+      />
     </div>
   );
 }
