@@ -176,6 +176,24 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 10. Productos: tabla más compacta (13 → 9 columnas)
+
+- **Stock** = disponible como dato principal y "Físico X · Reservado Y" debajo
+  (antes: tres columnas de stock).
+- **Reponer** conserva el badge Sí/No y muestra el punto de reposición al pasar
+  el mouse (antes: columna "Punto de reposición" aparte).
+- **Imagen** más grande (44 px) y **Nombre** completo: ya no se corta con "…",
+  puede ocupar más de una línea.
+- Se quita la columna **Activo**: con el filtro en "Sí" por defecto mostraba
+  "Sí" en todas las filas. En su lugar, un producto dado de baja lleva la
+  etiqueta gris **"Inactivo"** al lado del nombre (el filtro Activo se mantiene).
+- Imagen, SKU, Nombre, Categoría, Precio, Ubicación y Acciones quedan como
+  columnas separadas.
+- Verificado con capturas a 1600 px y 375 px (datos de prueba): sin cortes ni
+  scroll horizontal.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Asignación de stock / Ventas** usan `productService.listAll()`

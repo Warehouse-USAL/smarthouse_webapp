@@ -638,12 +638,8 @@ export default function ProductsPage() {
                 <th>Nombre</th>
                 <th>Categoría</th>
                 <th>Precio</th>
-                <th>Stock físico</th>
-                <th>Stock reservado</th>
-                <th>Stock disponible</th>
-                <th>Punto de reposición</th>
+                <th>Stock</th>
                 <th>Ubicación</th>
-                <th>Activo</th>
                 <th>Reponer</th>
                 <th>Acciones</th>
               </tr>
@@ -659,7 +655,7 @@ export default function ProductsPage() {
                   <tr key={product.id || product.sku}>
                     <td data-label="Imagen" className="products-table__img">
                       <span className="products-table__thumb">
-                        <Icon name="box" size={16} />
+                        <Icon name="box" size={20} />
                         {product.imageUrl && (
                           <img src={product.imageUrl} alt="" loading="lazy" />
                         )}
@@ -668,40 +664,33 @@ export default function ProductsPage() {
                     <td data-label="SKU" className="products-table__sku">
                       {product.sku}
                     </td>
-                    <td data-label="Nombre">
-                      <span className="products-table__name" title={product.name}>
-                        {product.name}
-                      </span>
+                    <td data-label="Nombre" className="products-table__name">
+                      {product.name}
+                      {!product.active && (
+                        <>
+                          {" "}
+                          <Badge variant="neutral">Inactivo</Badge>
+                        </>
+                      )}
                     </td>
                     <td data-label="Categoría">{categoryLabel(product.category)}</td>
                     <td data-label="Precio" className="products-table__num">
                       ${formatPrice(product.price)}
                     </td>
-                    <td data-label="Stock físico" className="products-table__num">
-                      {product.stock?.physical ?? 0}{" "}
-                      <span className="products-table__unit">unidades</span>
-                    </td>
-                    <td data-label="Stock reservado" className="products-table__num">
-                      {product.reservedStock}{" "}
-                      <span className="products-table__unit">unidades</span>
-                    </td>
                     <td
-                      data-label="Stock disponible"
+                      data-label="Stock"
                       className="products-table__num"
                       title="Disponible = Stock físico − Stock reservado"
                     >
-                      {product.availableStock}{" "}
-                      <span className="products-table__unit">unidades</span>
-                    </td>
-                    <td data-label="Punto de reposición" className="products-table__num">
-                      {product.reorderPoint != null ? (
-                        <>
-                          {product.reorderPoint}{" "}
-                          <span className="products-table__unit">unidades</span>
-                        </>
-                      ) : (
-                        "Sin calcular"
-                      )}
+                      <span className="products-table__stock">
+                        <span>
+                          {product.availableStock}{" "}
+                          <span className="products-table__unit">disponibles</span>
+                        </span>
+                        <span className="products-table__stock-detail">
+                          Físico {product.stock?.physical ?? 0} · Reservado {product.reservedStock}
+                        </span>
+                      </span>
                     </td>
                     <td data-label="Ubicación" className="products-table__loc">
                       {first ? (
@@ -718,12 +707,14 @@ export default function ProductsPage() {
                         "Sin asignar"
                       )}
                     </td>
-                    <td data-label="Activo">
-                      <Badge variant={product.active ? "success" : "danger"} dot>
-                        {product.active ? "Sí" : "No"}
-                      </Badge>
-                    </td>
-                    <td data-label="Reponer">
+                    <td
+                      data-label="Reponer"
+                      title={
+                        product.reorderPoint != null
+                          ? `Punto de reposición: ${product.reorderPoint} unidades`
+                          : "Punto de reposición: sin calcular"
+                      }
+                    >
                       <Badge variant={underMinimum ? "danger" : "success"} dot>
                         {underMinimum ? "Sí" : "No"}
                       </Badge>
