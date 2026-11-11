@@ -7,6 +7,8 @@ import EmptyState from "../../components/ui/EmptyState/EmptyState";
 import LoadError from "../../components/ui/LoadError/LoadError";
 import Spinner from "../../components/ui/Spinner/Spinner";
 import Icon from "../../components/ui/Icon/Icon";
+import Pagination from "../../components/ui/Pagination/Pagination";
+import Select from "../../components/ui/Select/Select";
 import ProductLocationModal from "../../components/stock/ProductLocationModal/ProductLocationModal";
 import LocateReceptionModal from "../../components/stock/LocateReceptionModal/LocateReceptionModal";
 import { productService } from "../../services/productService";
@@ -18,9 +20,29 @@ const matchesSearch = (item, q) =>
   item.name.toLowerCase().includes(q) ||
   item.sku.toLowerCase().includes(q);
 
+// Mismas opciones que las tablas de Gestión de stock.
+const PAGE_SIZE_OPTIONS = [
+  { value: "5", label: "5 por página" },
+  { value: "10", label: "10 por página" },
+  { value: "20", label: "20 por página" },
+];
+
+// Página visible de una lista ya filtrada. Si la lista se achica (se ubicó un
+// producto), la página se ajusta a la última que existe.
+const pageOf = (rows, page, size) => {
+  const totalPages = Math.max(1, Math.ceil(rows.length / size));
+  const current = Math.min(page, totalPages);
+  const start = (current - 1) * size;
+  return { items: rows.slice(start, start + size), current, totalPages, start };
+};
+
 export default function StockAssignmentPage() {
   const [productSearch, setProductSearch] = useState("");
   const [restockSearch, setRestockSearch] = useState("");
+  const [productPage, setProductPage] = useState(1);
+  const [productPageSize, setProductPageSize] = useState(5);
+  const [restockPage, setRestockPage] = useState(1);
+  const [restockPageSize, setRestockPageSize] = useState(5);
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [locateReception, setLocateReception] = useState(null);
@@ -110,6 +132,9 @@ export default function StockAssignmentPage() {
     return pendingRestock.filter((item) => matchesSearch(item, q));
   }, [pendingRestock, restockSearch]);
 
+  const productsPage = pageOf(filteredProducts, productPage, productPageSize);
+  const restockPageData = pageOf(filteredRestock, restockPage, restockPageSize);
+
   const openProductModal = (product) => {
     setSelectedProduct(product);
     setProductModalOpen(true);
@@ -163,8 +188,32 @@ export default function StockAssignmentPage() {
         search={{
           placeholder: "Buscar por nombre o SKU",
           value: productSearch,
-          onChange: (e) => setProductSearch(e.target.value),
+          onChange: (e) => { setProductSearch(e.target.value); setProductPage(1); },
         }}
+        footer={
+          !renderStatus() && filteredProducts.length > 0 && (
+            <>
+              <span className="table-panel__showing">
+                Mostrando {productsPage.start + 1} a{" "}
+                {productsPage.start + productsPage.items.length} de{" "}
+                {filteredProducts.length} productos
+              </span>
+              <Pagination
+                current={productsPage.current}
+                total={productsPage.totalPages}
+                onChange={setProductPage}
+              />
+              <Select
+                value={String(productPageSize)}
+                onChange={(e) => {
+                  setProductPageSize(Number(e.target.value));
+                  setProductPage(1);
+                }}
+                options={PAGE_SIZE_OPTIONS}
+              />
+            </>
+          )
+        }
       >
         {renderStatus() ??
           (filteredProducts.length === 0 ? (
@@ -186,7 +235,7 @@ export default function StockAssignmentPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredProducts.map((product) => (
+                {productsPage.items.map((product) => (
                   <tr key={product.id}>
                     <td>{renderProductCell(product)}</td>
                     <td className="table-panel__nowrap">{product.sku}</td>
@@ -218,8 +267,32 @@ export default function StockAssignmentPage() {
         search={{
           placeholder: "Buscar por nombre o SKU",
           value: restockSearch,
-          onChange: (e) => setRestockSearch(e.target.value),
+          onChange: (e) => { setRestockSearch(e.target.value); setRestockPage(1); },
         }}
+        footer={
+          !renderStatus() && filteredRestock.length > 0 && (
+            <>
+              <span className="table-panel__showing">
+                Mostrando {restockPageData.start + 1} a{" "}
+                {restockPageData.start + restockPageData.items.length} de{" "}
+                {filteredRestock.length} productos
+              </span>
+              <Pagination
+                current={restockPageData.current}
+                total={restockPageData.totalPages}
+                onChange={setRestockPage}
+              />
+              <Select
+                value={String(restockPageSize)}
+                onChange={(e) => {
+                  setRestockPageSize(Number(e.target.value));
+                  setRestockPage(1);
+                }}
+                options={PAGE_SIZE_OPTIONS}
+              />
+            </>
+          )
+        }
       >
         {renderStatus() ??
           (filteredRestock.length === 0 ? (
@@ -242,7 +315,7 @@ export default function StockAssignmentPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredRestock.map((product) => (
+                {restockPageData.items.map((product) => (
                   <tr key={product.id}>
                     <td>{renderProductCell(product)}</td>
                     <td className="table-panel__nowrap">{product.sku}</td>

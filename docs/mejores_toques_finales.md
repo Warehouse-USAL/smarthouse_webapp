@@ -206,12 +206,28 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 12. Asignación de ubicación: paginación en las dos tablas
+
+- "Productos sin ubicación asignada" y "Productos de restock pendientes de
+  ubicación" tienen el mismo pie que Gestión de stock: "Mostrando X a Y de N
+  productos" a la izquierda, las páginas en el medio y el selector de 5 / 10 /
+  20 por página a la derecha.
+- Cada tabla pagina por separado; la búsqueda vuelve a la página 1, y si se
+  ubica el último producto de una página se muestra la anterior.
+- Verificado con captura a 1600 px (datos de prueba).
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Asignación de stock / Ventas** usan `productService.listAll()`
   (hasta 1000 productos en memoria) para cruzar el catálogo con órdenes y
   alertas. Funciona y avisa si se llega al tope, pero no escala con un catálogo
   muy grande. Resolverlo bien requiere agregaciones en el backend.
+- **Asignación de ubicación** además pide la ubicación de cada producto del
+  catálogo (una request por producto) para saber cuáles no tienen. Se puede
+  pasar al mismo esquema de Productos (posiciones en una sola request +
+  paginación en el servidor).
 - `productService.list` manda `is_active`, pero `GET /products` espera
   `isActive`: el parámetro se ignora y siempre llegan activos. Hoy no afecta a
   nadie (los que lo usan piden activos).
