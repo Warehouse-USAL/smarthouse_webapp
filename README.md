@@ -10,8 +10,7 @@ Aplicación web desarrollada en React + Vite para la gestión y monitoreo de un 
 - Vite
 - React Router DOM
 - Axios
-- WebSocket API
-- Vercel
+- Vitest
 
 ---
 
@@ -21,7 +20,7 @@ Aplicación web desarrollada en React + Vite para la gestión y monitoreo de un 
 
 | Rama | Uso | Regla |
 |---|---|---|
-| `main` | Producción | Solo contiene versiones estables. No se desarrolla directamente sobre esta rama. |
+| `master` | Producción | Solo contiene versiones estables. Solo recibe PRs desde `beta/*` o `hotfix/*` (lo valida el CI). |
 | `develop` | Desarrollo principal | Base para crear nuevas branches de trabajo. |
 
 ---
@@ -34,10 +33,21 @@ Aplicación web desarrollada en React + Vite para la gestión y monitoreo de un 
 | 2 | Actualizar `develop` | `git checkout develop`<br>`git pull origin develop` |
 | 3 | Crear branch nueva | `git checkout -b feature/nombre-feature` |
 | 4 | Desarrollar cambios | Trabajar normalmente sobre la nueva branch. |
-| 5 | Guardar cambios | `git add .`<br>`git commit -m "feat: descripcion"` |
+| 5 | Guardar cambios | `git add .`<br>`git commit -m "ADDED: descripcion"` |
 | 6 | Subir branch | `git push origin feature/nombre-feature` |
 | 7 | Crear Pull Request | El PR debe apuntar a `develop`. |
-| 8 | Merge final | Una vez probado y aprobado, recién pasa a `main`. |
+| 8 | Merge final | Una vez probado y aprobado, pasa a `master` vía una rama `beta/<versión>`. |
+
+---
+
+## Prefijos de commit
+
+| Prefijo | Uso |
+|---|---|
+| `ADDED:` | Nueva funcionalidad |
+| `FIX:` | Corrección de bug |
+| `HOTFIX:` | Fix urgente aplicado directo en producción |
+| `REFACTOR:` | Reorganización sin cambio de comportamiento (mover/renombrar/limpiar) |
 
 ---
 
@@ -81,7 +91,7 @@ git clone <URL_DEL_REPO>
 Entrar al proyecto:
 
 ```bash
-cd smartwarehouse-web
+cd smarthouse_webapp
 ```
 
 ---
@@ -139,7 +149,7 @@ git clone <URL_DEL_REPO>
 Entrar al proyecto:
 
 ```bash
-cd smartwarehouse-web
+cd smarthouse_webapp
 ```
 
 ---
@@ -172,6 +182,8 @@ http://localhost:5173
 npm run dev      # entorno desarrollo
 npm run build    # build producción
 npm run preview  # preview local
+npm run lint     # ESLint
+npm test         # tests unitarios (Vitest)
 ```
 
 ---

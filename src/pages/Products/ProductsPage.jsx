@@ -35,9 +35,7 @@ const PAGE_SIZE_OPTIONS = [
 ];
 
 // Tipos de ajuste manual. "conteo" setea el valor final absoluto; el resto
-// son deltas (+/-) sobre el stock de la posición. El motivo/auditoría no
-// existe en el backend (UpdatePositionRequest no tiene campo), así que no se
-// pide: queda documentado como gap en docs/sprint-gestion-ventas-stock.md §10.
+// son deltas (+/-) sobre el stock de la posición.
 const ADJUST_TYPES = [
   { value: "entrada", label: "Entrada (+)" },
   { value: "merma", label: "Merma (-)" },
