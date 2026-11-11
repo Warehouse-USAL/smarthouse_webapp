@@ -87,10 +87,13 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
   se pide con `GET /products/{id}?isActive=false` para las filas visibles, y la
   ubicación también. Costo por página: 1 + 2 × filas, igual con 20 o con
   100.000 productos.
-- **Columna "Activo"** entre SKU y Nombre: Sí/No con el mismo `Badge` que
-  Reponer. La tabla muestra activos e inactivos.
-- **Filtros:** Buscar por (Nombre / SKU), Activo (Todos / Sí / No), Ubicación
-  (Todas / Sin ubicación / Zona X) y Categoría.
+- **Columna "Activo"** antes de Reponer: Sí/No con el mismo `Badge`, así las
+  dos columnas de estado quedan juntas.
+- **Filtros:** Activo (Todos / Sí / No; por defecto **Sí**), Ubicación (Todas /
+  Sin ubicación / Zona X) y Categoría.
+- **Buscador único "nombre o SKU":** un texto con forma de SKU (letras + guion,
+  ej. `TEC-` o `TEC-001`) se busca por SKU; cualquier otro, por nombre. Sigue
+  siendo una sola consulta paginada en el servidor.
 - **Zona y Sin ubicación:** `GET /warehouse/positions` (1 request) da qué
   productos están en cada zona; se filtra con `id in` / `id nin`.
 - El contador "productos sin ubicación" de la tarjeta "Asignar stock" ahora es
@@ -100,8 +103,9 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 **Límites:**
 
-- La búsqueda es por nombre **o** por SKU (selector): el endpoint combina los
-  filtros con "Y", no puede buscar en los dos campos a la vez.
+- El endpoint combina los filtros con "Y" y no puede buscar en nombre y SKU a
+  la vez; por eso el buscador decide el campo por la forma del texto. Un SKU
+  sin el guion (ej. `001`) se busca como nombre.
 - Ubicación solo para `SUPERADMIN` / `ADMIN_WAREHOUSE` (los roles con acceso a
   `GET /warehouse/positions`); para el resto el filtro no aparece.
 - Una zona con más de 100 productos distintos, o más de ~700 productos con

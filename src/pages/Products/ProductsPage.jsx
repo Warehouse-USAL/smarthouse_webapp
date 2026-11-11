@@ -58,10 +58,11 @@ const HISTORY_PAGE_SIZE = 10;
 // Valor del filtro de ubicación para "Sin ubicación" (no choca con un zoneCode).
 const NO_LOCATION = "__sin_ubicacion__";
 
-const SEARCH_FIELD_OPTIONS = [
-  { value: "name", label: "Nombre" },
-  { value: "sku", label: "SKU" },
-];
+// El backend no puede buscar en nombre y SKU a la vez (POST /query/products
+// combina filtros con "y"). Un texto con forma de SKU ("TEC-", "TEC-001") se
+// busca por SKU; cualquier otro, por nombre.
+const SKU_PATTERN = /^[a-z]{2,5}-\d*$/i;
+const searchFieldFor = (text) => (SKU_PATTERN.test(text) ? "sku" : "name");
 
 const ACTIVE_OPTIONS = [
   { value: "", label: "Todos" },
@@ -109,8 +110,7 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
-  const [searchField, setSearchField] = useState("name");
-  const [activeFilter, setActiveFilter] = useState("");
+  const [activeFilter, setActiveFilter] = useState("true");
   // "" = todas, NO_LOCATION = sin ubicación, o el zoneCode de una zona.
   const [locationFilter, setLocationFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -185,11 +185,12 @@ export default function ProductsPage() {
     setLoading(true);
     setError(null);
     try {
+      const searchText = search.trim();
       const filters = {
         page,
         size: pageSize,
-        searchField,
-        search: search.trim() || undefined,
+        searchField: searchFieldFor(searchText),
+        search: searchText || undefined,
         category: categoryFilter || undefined,
         active: activeFilter === "" ? undefined : activeFilter === "true",
       };
@@ -234,7 +235,7 @@ export default function ProductsPage() {
     } finally {
       if (requestId === lastRequest.current) setLoading(false);
     }
-  }, [page, pageSize, searchField, search, categoryFilter, activeFilter, locationFilter]);
+  }, [page, pageSize, search, categoryFilter, activeFilter, locationFilter]);
 
   // Contador de la tarjeta "Asignar stock": productos activos sin ubicación.
   const fetchUnassignedCount = useCallback(async () => {
@@ -558,19 +559,13 @@ export default function ProductsPage() {
 
       <TablePanel
         search={{
-          placeholder: searchField === "sku" ? "Buscar por SKU" : "Buscar por nombre",
+          placeholder: "Buscar por nombre o SKU",
           value: search,
           onChange: (e) => { setSearch(e.target.value); setPage(1); },
         }}
         filtersClassName="table-panel__filters--auto"
         filters={
           <>
-            <Select
-              label="Buscar por"
-              value={searchField}
-              onChange={(e) => { setSearchField(e.target.value); setPage(1); }}
-              options={SEARCH_FIELD_OPTIONS}
-            />
             <Select
               label="Activo"
               value={activeFilter}
@@ -648,7 +643,6 @@ export default function ProductsPage() {
               <tr>
                 <th>Imagen</th>
                 <th>SKU</th>
-                <th>Activo</th>
                 <th>Nombre</th>
                 <th>Categoría</th>
                 <th>Precio</th>
@@ -657,6 +651,7 @@ export default function ProductsPage() {
                 <th>Stock disponible</th>
                 <th>Punto de reposición</th>
                 <th>Ubicación</th>
+                <th>Activo</th>
                 <th>Reponer</th>
                 <th>Acciones</th>
               </tr>
@@ -680,11 +675,6 @@ export default function ProductsPage() {
                     </td>
                     <td data-label="SKU" className="products-table__sku">
                       {product.sku}
-                    </td>
-                    <td data-label="Activo">
-                      <Badge variant={product.active ? "success" : "danger"} dot>
-                        {product.active ? "Sí" : "No"}
-                      </Badge>
                     </td>
                     <td data-label="Nombre">
                       <span className="products-table__name" title={product.name}>
@@ -735,6 +725,11 @@ export default function ProductsPage() {
                       ) : (
                         "Sin asignar"
                       )}
+                    </td>
+                    <td data-label="Activo">
+                      <Badge variant={product.active ? "success" : "danger"} dot>
+                        {product.active ? "Sí" : "No"}
+                      </Badge>
                     </td>
                     <td data-label="Reponer">
                       <Badge variant={underMinimum ? "danger" : "success"} dot>
