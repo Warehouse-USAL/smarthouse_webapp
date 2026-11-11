@@ -8,6 +8,7 @@ import Badge from "../../components/ui/Badge/Badge";
 import Button from "../../components/ui/Button/Button";
 import Modal from "../../components/ui/Modal/Modal";
 import EmptyState from "../../components/ui/EmptyState/EmptyState";
+import LoadError from "../../components/ui/LoadError/LoadError";
 import Pagination from "../../components/ui/Pagination/Pagination";
 import Spinner from "../../components/ui/Spinner/Spinner";
 import StatusBanner from "../../components/ui/StatusBanner/StatusBanner";
@@ -265,14 +266,6 @@ export default function SalesPage() {
         />
       )}
 
-      {loadError && (
-        <StatusBanner
-          statusBannerState="status-banner-error"
-          icon={<Icon name="alert" size={16} />}
-          text={loadError}
-        />
-      )}
-
       {/* ── Métricas ─────────────────────────────────────── */}
       <div className="sales__metrics">
         <div className="sales__metric sales__metric--pending">
@@ -364,6 +357,8 @@ export default function SalesPage() {
           <div className="table-panel__loading">
             <Spinner size={28} label="Cargando órdenes…" />
           </div>
+        ) : loadError ? (
+          <LoadError onRetry={() => setReloadKey((key) => key + 1)} />
         ) : items.length === 0 ? (
           <EmptyState
             icon="cart"

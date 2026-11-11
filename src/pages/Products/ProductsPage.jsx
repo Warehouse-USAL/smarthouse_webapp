@@ -9,6 +9,7 @@ import Icon from "../../components/ui/Icon/Icon";
 import TablePanel, { TablePanelTable } from "../../components/ui/TablePanel/TablePanel";
 import Spinner from "../../components/ui/Spinner/Spinner";
 import EmptyState from "../../components/ui/EmptyState/EmptyState";
+import LoadError from "../../components/ui/LoadError/LoadError";
 import Pagination from "../../components/ui/Pagination/Pagination";
 import Modal from "../../components/ui/Modal/Modal";
 import Badge from "../../components/ui/Badge/Badge";
@@ -226,12 +227,9 @@ export default function ProductsPage() {
       setTotalElements(result.totalElements);
     } catch (err) {
       if (requestId !== lastRequest.current) return;
-      // Los límites del filtro por ubicación llegan como Error propio, no de axios.
-      setError(
-        err.isAxiosError
-          ? errorText(err, {}, "No pudimos cargar los productos.")
-          : err.message || "No pudimos cargar los productos."
-      );
+      // Los límites del filtro por ubicación llegan como Error propio, con su
+      // explicación; un fallo del backend muestra el aviso genérico de conexión.
+      setError(err.isAxiosError ? true : err.message || true);
     } finally {
       if (requestId === lastRequest.current) setLoading(false);
     }
@@ -288,7 +286,7 @@ export default function ProductsPage() {
       .catch(() => {
         if (!stale) {
           setHistoryResult(null);
-          setHistoryError("No se pudo cargar el historial de ajustes. Revisá la conexión con el backend.");
+          setHistoryError(true);
         }
       })
       .finally(() => {
@@ -611,15 +609,9 @@ export default function ProductsPage() {
           <Spinner label="Cargando productos…" />
         </div>
       ) : error ? (
-        <EmptyState
-          icon="info"
-          title="Algo salió mal"
-          description={error}
-          action={
-            <Button variant="secondary" onClick={fetchProducts}>
-              Reintentar
-            </Button>
-          }
+        <LoadError
+          description={typeof error === "string" ? error : undefined}
+          onRetry={fetchProducts}
         />
       ) : products.length === 0 ? (
         <EmptyState
@@ -1034,7 +1026,7 @@ export default function ProductsPage() {
             <Spinner label="Cargando historial…" />
           </div>
         ) : historyError ? (
-          <p className="products-page__adjust-text">{historyError}</p>
+          <LoadError onRetry={() => setHistoryProduct({ ...historyProduct })} />
         ) : !historyResult || historyResult.items.length === 0 ? (
           <EmptyState
             icon="list"

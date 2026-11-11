@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
 import Card, { CardHeader } from "../../components/ui/Card/Card";
 import Select from "../../components/ui/Select/Select";
 import Icon from "../../components/ui/Icon/Icon";
 import Button from "../../components/ui/Button/Button";
 import Modal from "../../components/ui/Modal/Modal";
+import LoadError from "../../components/ui/LoadError/LoadError";
 import ZoneGrid from "../../components/warehouse/ZoneGrid/ZoneGrid";
 import InfoList from "../../components/warehouse/InfoList/InfoList";
 import ZonesEditModal from "../../components/warehouse/ZonesEditModal/ZonesEditModal";
@@ -20,26 +21,29 @@ const SIZE_LABEL = { PEQUEÑA: "Pequeña", MEDIANA: "Mediana", GRANDE: "Grande" 
 export default function WarehouseConfigPage() {
   const [config, setConfig] = useState({ zones: [] });
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [selected, setSelected] = useState(EMPTY_SELECTION);
   const [positionDetail, setPositionDetail] = useState(null);
   const [openModal, setOpenModal] = useState(null);
   const [clearOpen, setClearOpen] = useState(false);
   const [clearing, setClearing] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    warehouseConfigService
-      .get()
-      .then((next) => {
-        if (!cancelled) setConfig(next);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+  const loadConfig = useCallback(async () => {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      setConfig(await warehouseConfigService.get());
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- carga inicial contra el backend
+    loadConfig();
+  }, [loadConfig]);
 
   // Detalle de la posición seleccionada (incluye assignedProduct, que el
   // listado del árbol no trae). On-demand para evitar N+1 al cargar la página.
@@ -179,6 +183,7 @@ export default function WarehouseConfigPage() {
       <div className="warehouse-page__layout">
         <Card padding="lg" className="warehouse-page__map">
           <CardHeader icon={<Icon name="map" size={16} />} title="Mapa del warehouse" />
+          {loadError && <LoadError onRetry={loadConfig} />}
           <div className="warehouse-page__grids">
             {config.zones.map((zone) => (
               <ZoneGrid

@@ -9,6 +9,7 @@ import Modal from "../../components/ui/Modal/Modal";
 import Icon from "../../components/ui/Icon/Icon";
 import Spinner from "../../components/ui/Spinner/Spinner";
 import EmptyState from "../../components/ui/EmptyState/EmptyState";
+import LoadError from "../../components/ui/LoadError/LoadError";
 import ProgressBar from "../../components/ui/ProgressBar/ProgressBar";
 import Pagination from "../../components/ui/Pagination/Pagination";
 import { vehicleService } from "../../services/vehicleService";
@@ -156,12 +157,7 @@ export default function VehiclesPage() {
             <Spinner label="Cargando vehículos…" />
           </div>
         ) : error ? (
-          <EmptyState
-            icon="info"
-            title="Algo salió mal"
-            description={error}
-            action={<Button variant="secondary" onClick={fetchVehicles}>Reintentar</Button>}
-          />
+          <LoadError onRetry={fetchVehicles} />
         ) : vehicles.length === 0 ? (
           <EmptyState
             icon="truck"

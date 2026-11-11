@@ -4,6 +4,7 @@ import TablePanel, { TablePanelTable } from "../../components/ui/TablePanel/Tabl
 import Badge from "../../components/ui/Badge/Badge";
 import Button from "../../components/ui/Button/Button";
 import EmptyState from "../../components/ui/EmptyState/EmptyState";
+import LoadError from "../../components/ui/LoadError/LoadError";
 import Spinner from "../../components/ui/Spinner/Spinner";
 import Icon from "../../components/ui/Icon/Icon";
 import ProductLocationModal from "../../components/stock/ProductLocationModal/ProductLocationModal";
@@ -123,12 +124,7 @@ export default function StockAssignmentPage() {
   const renderStatus = () => {
     if (productsError) {
       return (
-        <EmptyState
-          icon="info"
-          title="Algo salió mal"
-          description={productsError}
-          action={<Button variant="secondary" onClick={load}>Reintentar</Button>}
-        />
+        <LoadError onRetry={load} />
       );
     }
     if (loadingProducts && products.length === 0 && pendingRestock.length === 0) {

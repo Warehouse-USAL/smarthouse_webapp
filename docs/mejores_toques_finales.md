@@ -132,6 +132,25 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 7. Errores de carga: aviso amigable en el lugar de los datos
+
+- **Antes:** Gestión de stock y Ventas mostraban un banner rojo arriba ("No se
+  pudo cargar… Revisá la conexión con el backend") y la tabla vacía, como si no
+  hubiera datos. Productos, Vehículos, Usuarios y Asignación mostraban "Algo
+  salió mal" con el texto técnico. Configuración del warehouse no avisaba nada.
+- **Ahora:** nuevo componente reutilizable `LoadError` (`src/components/ui/LoadError/`)
+  que se muestra **en el lugar de la tabla o el mapa** que no cargó: ícono de
+  sin conexión, "No pudimos cargar la información", un texto amable y el botón
+  **Reintentar**, que vuelve a pedir solo esa sección.
+- Usado en: Productos (tabla e historial de ajustes), Gestión de stock (alertas y
+  órdenes de restock), Ventas, Vehículos, Usuarios, Asignación de stock y
+  Configuración del warehouse.
+- Nuevo ícono `wifiOff` en `Icon.jsx` (trazo SVG, mismo set que el resto).
+- Los errores de acciones (crear, cancelar, ajustar) siguen mostrándose como
+  hasta ahora: este cambio es solo para la carga de datos.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Asignación de stock / Ventas** usan `productService.listAll()`

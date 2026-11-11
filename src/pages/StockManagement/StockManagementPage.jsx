@@ -8,6 +8,7 @@ import Badge from "../../components/ui/Badge/Badge";
 import Button from "../../components/ui/Button/Button";
 import Modal from "../../components/ui/Modal/Modal";
 import EmptyState from "../../components/ui/EmptyState/EmptyState";
+import LoadError from "../../components/ui/LoadError/LoadError";
 import Pagination from "../../components/ui/Pagination/Pagination";
 import Spinner from "../../components/ui/Spinner/Spinner";
 import StatusBanner from "../../components/ui/StatusBanner/StatusBanner";
@@ -428,22 +429,6 @@ export default function StockManagementPage() {
         />
       )}
 
-      {loadError && (
-        <StatusBanner
-          statusBannerState="status-banner-error"
-          icon={<Icon name="alert" size={16} />}
-          text={loadError}
-        />
-      )}
-
-      {ordersError && (
-        <StatusBanner
-          statusBannerState="status-banner-error"
-          icon={<Icon name="alert" size={16} />}
-          text={ordersError}
-        />
-      )}
-
       {catalogTruncated && (
         <StatusBanner
           statusBannerState="status-banner"
@@ -547,6 +532,8 @@ export default function StockManagementPage() {
             <div className="table-panel__loading">
               <Spinner size={28} label="Cargando productos…" />
             </div>
+          ) : loadError ? (
+            <LoadError onRetry={load} />
           ) : alertItems.length === 0 ? (
             <EmptyState
               icon="check"
@@ -697,6 +684,8 @@ export default function StockManagementPage() {
             <div className="table-panel__loading">
               <Spinner size={28} label="Cargando órdenes…" />
             </div>
+          ) : ordersError ? (
+            <LoadError onRetry={() => setOrdersReloadKey((key) => key + 1)} />
           ) : orderItems.length === 0 ? (
             <EmptyState
               icon="box"

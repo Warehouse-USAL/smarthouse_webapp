@@ -7,6 +7,7 @@ import TablePanel, { TablePanelTable } from "../../components/ui/TablePanel/Tabl
 import Badge from "../../components/ui/Badge/Badge";
 import Spinner from "../../components/ui/Spinner/Spinner";
 import EmptyState from "../../components/ui/EmptyState/EmptyState";
+import LoadError from "../../components/ui/LoadError/LoadError";
 import Pagination from "../../components/ui/Pagination/Pagination";
 import UserFormModal from "../../components/users/UserFormModal/UserFormModal";
 import ResetPasswordModal from "../../components/users/ResetPasswordModal/ResetPasswordModal";
@@ -248,16 +249,7 @@ export default function UsersPage() {
           <Spinner label="Cargando usuarios…" />
         </div>
       ) : error ? (
-        <EmptyState
-          icon="info"
-          title="Algo salió mal"
-          description={error}
-          action={
-            <Button variant="secondary" onClick={fetchUsers}>
-              Reintentar
-            </Button>
-          }
-        />
+        <LoadError onRetry={fetchUsers} />
       ) : visibleUsers.length === 0 ? (
         <EmptyState
           icon="user"
