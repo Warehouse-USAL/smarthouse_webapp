@@ -274,15 +274,6 @@ export default function LoginPage() {
 
             </Button>
 
-
-
-            <Link
-              to="/register-provider"
-              className="registrar_proveedor"
-            >
-              ¿Querés sumarte como proveedor?
-            </Link>
-
           </LoginForm>
 
         }
