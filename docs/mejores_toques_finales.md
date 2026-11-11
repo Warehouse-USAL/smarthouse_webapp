@@ -119,6 +119,15 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 6. Ventas: nombres de clientes completos
+
+- Para mostrar el nombre del cliente se pedían 200 usuarios, pero el backend
+  devuelve como máximo 50 por página: pasados 50 usuarios, algunos clientes se
+  veían como "—".
+- Ahora `userService.listAll()` recorre todas las páginas (`fetchAllPages`).
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Asignación de stock / Ventas** usan `productService.listAll()`

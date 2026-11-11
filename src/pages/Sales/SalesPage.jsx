@@ -94,8 +94,8 @@ export default function SalesPage() {
       .catch(() => setProducts([]));
     // El cruce de cliente es best-effort: requiere admin_system.
     userService
-      .list({ size: 200 })
-      .then(({ users }) => setUserNames(new Map(users.map((u) => [u.id, u.name]))))
+      .listAll()
+      .then((users) => setUserNames(new Map(users.map((u) => [u.id, u.name]))))
       .catch(() => setUserNames(new Map()));
   }, []);
 

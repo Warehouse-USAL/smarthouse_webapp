@@ -27,8 +27,7 @@
 */
 
 import { apiClient } from "../lib/apiClient";
-
-// Backend same-origin vía proxy de Vite: el único interruptor es el flag.
+import { fetchAllPages } from "../lib/pagination";
 
 /*
 |--------------------------------------------------------------------------
@@ -89,6 +88,12 @@ export const userService = {
       users: (data?.users || []).map(normalize),
       pagination: normalizePagination(data?.pagination, size),
     };
+  },
+
+  // Todos los usuarios (hasta el tope de fetchAllPages), para resolver nombres
+  // a partir de ids. El backend recorta `size` a 50 por página.
+  async listAll() {
+    return fetchAllPages("/users", {}, "users", normalize);
   },
 
   async get(id) {
