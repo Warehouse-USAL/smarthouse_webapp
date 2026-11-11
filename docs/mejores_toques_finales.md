@@ -159,6 +159,23 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 9. Modificar posiciones: se quita la opción "Inactiva"
+
+- **Problema:** en "Modificar posiciones" se podía marcar una posición como
+  inactiva (ej. P03). Al salir y volver a entrar, la posición desaparecía.
+- **Causa:** en el warehouse, `is_active=false` es el borrado lógico del backend:
+  el mapa y los editores solo muestran posiciones activas, así que "Inactiva"
+  equivalía a borrarla sin aviso.
+- **Cambio:** se quitó la columna "Estado" del editor; ahora solo se edita el
+  tamaño. Para quitar o agregar posiciones se usa "Líneas" (cantidad de
+  posiciones por línea).
+- Las posiciones que ya se desactivaron no se pierden: al aumentar la cantidad
+  de posiciones de su línea desde "Líneas", se reactivan antes de crear nuevas.
+- Archivos: `src/components/warehouse/PositionsEditModal/PositionsEditModal.jsx`
+  y `.css`.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Asignación de stock / Ventas** usan `productService.listAll()`
