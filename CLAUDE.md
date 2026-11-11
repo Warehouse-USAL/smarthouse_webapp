@@ -13,8 +13,8 @@ quirúrgicos, camelCase, design tokens, sin emojis, nombres de commit) están en
 - Backend: `wh-backend` en `:8080`, alcanzado vía proxy de Vite
   (`vite.config.js`). Swagger: `http://localhost:8080/swagger-ui/index.html#/`
   (fuente de verdad del contrato).
-- Mocks: `VITE_USE_MOCK=true` / `VITE_USE_MOCK_AUTH=true` en `.env` usan
-  `src/services/mocks/`.
+- Sin mocks: los services siempre van contra el backend. Los errores suben a
+  las páginas, que los muestran con `src/lib/apiError.js`.
 
 ## Comandos
 

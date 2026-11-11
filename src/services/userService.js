@@ -27,10 +27,8 @@
 */
 
 import { apiClient } from "../lib/apiClient";
-import { userMockService } from "./mocks/userMockService";
 
 // Backend same-origin vía proxy de Vite: el único interruptor es el flag.
-const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 
 /*
 |--------------------------------------------------------------------------
@@ -81,13 +79,6 @@ const normalizePagination = (raw, fallbackSize) => {
 
 export const userService = {
   async list({ role, isActive, page = 0, size = 10 } = {}) {
-    if (USE_MOCK) {
-      const data = await userMockService.list({ role, isActive, page, size });
-      return {
-        users: (data.users || []).map(normalize),
-        pagination: normalizePagination(data.pagination, size),
-      };
-    }
 
     const params = { page, size };
     if (role) params.role = role;
@@ -101,13 +92,11 @@ export const userService = {
   },
 
   async get(id) {
-    if (USE_MOCK) return normalize(await userMockService.get(id));
     const { data } = await apiClient.get(`/users/${id}`);
     return normalize(data);
   },
 
   async create({ email, name, role, initialPassword, supplier }) {
-    if (USE_MOCK) return normalize(await userMockService.create({ email, name, role, initialPassword, supplier }));
     const { data } = await apiClient.post("/users", {
       email,
       name,
@@ -121,7 +110,6 @@ export const userService = {
   // PATCH parcial: solo se mandan los campos presentes. El backend ignora los
   // null/ausentes y deja el valor previo (UpdateUserRequest).
   async update(id, { name, role, active, supplier } = {}) {
-    if (USE_MOCK) return normalize(await userMockService.update(id, { name, role, active, supplier }));
     const payload = {};
     if (name !== undefined) payload.name = name;
     if (role !== undefined) payload.role = role;
@@ -133,7 +121,6 @@ export const userService = {
 
   // Reset administrativo (no requiere la contraseña anterior). Responde 204.
   async resetPassword(id, newPassword) {
-    if (USE_MOCK) return userMockService.resetPassword(id, newPassword);
     await apiClient.post(`/users/${id}/reset-password`, { new_password: newPassword });
   },
 };

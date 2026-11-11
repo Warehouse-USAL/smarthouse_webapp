@@ -25,10 +25,8 @@
 */
 
 import { apiClient } from "../lib/apiClient";
-import { displayCode, fetchAllPages, fetchPage, paginate, toInstantRange } from "../lib/pagination";
-import { orderMockService } from "./mocks/orderMockService";
+import { displayCode, fetchAllPages, fetchPage, toInstantRange } from "../lib/pagination";
 
-const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 
 /*
 | Mapeo UI de estados (sprint §11, sin cambiar backend).
@@ -96,7 +94,6 @@ export const normalizeCancelledOrder = (raw) => ({
 const createdAtMs = (order) => new Date(order.createdAt ?? 0).getTime();
 
 const listByStatus = async (status) => {
-  if (USE_MOCK) return (await orderMockService.list({ status })).map(normalize);
   return fetchAllPages("/orders", { status }, "orders", normalize);
 };
 
@@ -148,29 +145,22 @@ export const orderService = {
   // Una página de órdenes, de la más nueva a la más vieja.
   // filters: { status, from, to, vehicleId } con from/to en yyyy-mm-dd.
   async listPage({ page = 1, size = 10, ...filters } = {}) {
-    if (USE_MOCK) {
-      const rows = (await orderMockService.list(filters)).map(normalize);
-      return paginate(newestFirst(rows), { page, size });
-    }
     return fetchNewestPage(toInstantRange(filters), page, size);
   },
 
   // Cuántas órdenes cumplen los filtros, sin traerlas (size=1).
   async count(filters = {}) {
-    if (USE_MOCK) return (await orderMockService.list(filters)).length;
     const { totalElements } = await fetchOrdersPage(toInstantRange(filters), 1, 1);
     return totalElements;
   },
 
   async get(id) {
-    if (USE_MOCK) return normalize(await orderMockService.get(id));
     const { data } = await apiClient.get(`/orders/${id}`);
     return normalize(data?.order ?? data);
   },
 
   // Cancela una orden pending o in_progress. Real: existe en el backend (§9.4).
   async cancel(id, reason) {
-    if (USE_MOCK) return normalize(await orderMockService.cancel(id, reason));
     const { data } = await apiClient.post(`/orders/${id}/cancel`, { reason });
     return normalize(data?.order ?? data);
   },

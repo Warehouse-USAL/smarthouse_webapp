@@ -52,3 +52,20 @@ reactivarlo hay que descomentar el link y volver a importar `Link` en
 
 Mientras tanto, la alternativa es que un admin restablezca la contraseña desde
 Usuarios.
+
+---
+
+## 3. Services: se eliminan los mocks y los flags `VITE_USE_MOCK`
+
+- Se borraron `src/services/mocks/` (7 archivos), `src/services/pruebasMockUp.js`
+  y `src/lib/localStore.js` (solo lo usaban los mocks).
+- En los 11 services se quitaron el import del mock, la constante `USE_MOCK` y
+  todas las ramas `if (USE_MOCK) ...`. Lo que hacen contra el backend no cambió.
+- También se quitaron los helpers que solo usaban los mocks: `paginate`
+  (`lib/pagination.js`) y `newestFirst` (`restockService.js`).
+- **Login (seguridad):** si el backend no respondía, `authService` entraba con un
+  usuario de prueba aunque `VITE_USE_MOCK` estuviera en `false`. Ahora se muestra
+  "No se pudo conectar con el servidor. Intentá de nuevo más tarde." (código
+  `NETWORK_ERROR`).
+- Los errores no se atrapan en los services: suben a las páginas, que los
+  muestran con `src/lib/apiError.js`.

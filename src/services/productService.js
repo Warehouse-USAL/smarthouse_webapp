@@ -34,10 +34,8 @@
 
 import { apiClient } from "../lib/apiClient";
 import { categoryService } from "./categoryService";
-import { productMockService } from "./mocks/productMockService";
 
 // Backend same-origin vía proxy de Vite: el único interruptor es el flag.
-const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 
 // El backend clampea `size` a 50 (ProductController).
 const PRODUCT_PAGE_SIZE = 50;
@@ -255,7 +253,6 @@ export const productService = {
   | más sin traer, y la pantalla lo avisa en vez de fallar.
   */
   async listAll(filters = {}) {
-    if (USE_MOCK) return this.list(filters);
 
     const out = [];
     for (let page = 0; page < MAX_PRODUCT_PAGES; page += 1) {
@@ -276,14 +273,6 @@ export const productService = {
     page = 0,
     size = 50,
   } = {}) {
-    if (USE_MOCK) {
-      const mocked = await productMockService.list({
-        category,
-        search,
-        isActive,
-      });
-      return mocked.map(normalize);
-    }
 
     const params = {
       page,
@@ -313,11 +302,6 @@ export const productService = {
   },
 
   async get(id) {
-    if (USE_MOCK) {
-      return normalize(
-        await productMockService.get(id)
-      );
-    }
 
     const { data } =
       await apiClient.get(
@@ -332,18 +316,10 @@ export const productService = {
   // Delegamos en categoryService, que llama a GET /products/categories y le
   // pone las etiquetas en castellano.
   async getCategories() {
-    if (USE_MOCK) {
-      return productMockService.getCategories();
-    }
     return categoryService.list();
   },
 
   async create(input) {
-    if (USE_MOCK) {
-      return normalize(
-        await productMockService.create(input)
-      );
-    }
 
     const { data } =
       await apiClient.post(
@@ -357,11 +333,6 @@ export const productService = {
   },
 
   async update(id, patch) {
-    if (USE_MOCK) {
-      return normalize(
-        await productMockService.update(id, patch)
-      );
-    }
 
     const { data } =
       await apiClient.patch(
@@ -381,23 +352,11 @@ export const productService = {
   // (PATCH /warehouse/positions/:id). Esto es solo lectura: devuelve dónde está
   // almacenado el producto (GET /products/:id/location → { locations: [...] }).
   async getLocations(id) {
-    if (USE_MOCK) {
-      const single = await productMockService
-        .get(id)
-        .then((p) => p?.location)
-        .catch(() => null);
-      return single ? [normalizeLocation(single)] : [];
-    }
     const { data } = await apiClient.get(`/products/${id}/location`);
     return (data?.locations || []).map(normalizeLocation);
   },
 
   async remove(id) {
-    if (USE_MOCK) {
-      return productMockService.remove(
-        id
-      );
-    }
 
     await apiClient.delete(
       `/products/${id}`

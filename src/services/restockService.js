@@ -65,14 +65,11 @@ import {
   displayCode,
   fetchAllPages,
   fetchPage,
-  paginate,
   toInstantRange,
 } from "../lib/pagination";
 import { fromStoredRestock, fromSuggestionRow } from "../lib/restockSuggestion";
 import { warehouseConfigService } from "./warehouseConfigService";
-import { restockMockService } from "./mocks/restockMockService";
 
-const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 
 // Una orden de restock vieja casi seguro ya se recibió; las abiertas que ofrece
 // el remito se buscan solo en esta ventana para no recorrer dos años de historial.
@@ -203,9 +200,6 @@ const toCreateReceptionPayload = (input) => ({
 | HELPERS
 |--------------------------------------------------------------------------
 */
-
-const newestFirst = (rows) =>
-  [...rows].sort((a, b) => new Date(b.createdAt ?? 0) - new Date(a.createdAt ?? 0));
 
 // Órdenes + progreso de recepción + estado derivado. `receptions` tiene que
 // incluir todas las de esas órdenes.
@@ -353,9 +347,6 @@ export const restockService = {
   // Listado acotado (fetchAllPages): pasar siempre un rango de fechas o un
   // producto. Para la tabla usar listOrdersPage.
   async listOrders(filters = {}) {
-    if (USE_MOCK) {
-      return newestFirst((await restockMockService.listOrders(filters)).map(normalizeOrder));
-    }
     return fetchAllPages(
       "/restock/orders",
       toInstantRange(filters),
@@ -367,17 +358,12 @@ export const restockService = {
   // Una página de órdenes (más nuevas primero) con su progreso de recepción.
   // filters: { productId, supplier, from, to } con from/to en yyyy-mm-dd.
   async listOrdersPage({ page = 1, size = 10, ...filters } = {}) {
-    const result = USE_MOCK
-      ? paginate(
-          newestFirst((await restockMockService.listOrders(filters)).map(normalizeOrder)),
-          { page, size }
-        )
-      : await fetchPage(
-          "/restock/orders",
-          { ...toInstantRange(filters), page, size },
-          "restock_orders",
-          normalizeOrder
-        );
+    const result = await fetchPage(
+      "/restock/orders",
+      { ...toInstantRange(filters), page, size },
+      "restock_orders",
+      normalizeOrder
+    );
     const receptions = await Promise.all(
       result.items.map((order) => this.listReceptions({ restockOrderId: order.id }))
     );
@@ -400,21 +386,19 @@ export const restockService = {
   },
 
   async getOrder(id) {
-    if (USE_MOCK) return restockMockService.getOrder(id);
     const { data } = await apiClient.get(`/restock/orders/${id}`);
     return normalizeOrder(data?.restock_order ?? data);
   },
 
   // input: { productId, quantityRequested, supplier }
   async createOrder(input) {
-    if (USE_MOCK) return restockMockService.createOrder(input);
     const { data } = await apiClient.post("/restock/orders", toCreateOrderPayload(input));
     return normalizeOrder(data?.restock_order ?? data);
   },
 
   // Cancela una orden de restock: POST /restock/orders/:id/cancel { reason }.
   // 409 RESTOCK_ORDER_ALREADY_CANCELLED / RESTOCK_ORDER_HAS_RECEPTIONS; contra
-  // un backend sin el endpoint responde 404. Sin rama de mock a propósito.
+  // un backend sin el endpoint responde 404.
   async cancelOrder(id, reason) {
     const { data } = await apiClient.post(`/restock/orders/${id}/cancel`, {
       reason,
@@ -427,7 +411,6 @@ export const restockService = {
   // filters admite `status` (PENDING_LOCATION | COMPLETED) desde la rama
   // feature/117; el backend viejo ignora el parámetro que no conoce.
   async listReceptions(filters = {}) {
-    if (USE_MOCK) return restockMockService.listReceptions(filters);
     return fetchAllPages(
       "/restock/receptions",
       toInstantRange(filters),
@@ -437,7 +420,6 @@ export const restockService = {
   },
 
   async getReception(id) {
-    if (USE_MOCK) return restockMockService.getReception(id);
     const { data } = await apiClient.get(`/restock/receptions/${id}`);
     return normalizeReception(data?.reception ?? data);
   },
@@ -446,7 +428,6 @@ export const restockService = {
   //          supplier, assignments: [{ positionId, quantity }] }
   // El backend valida sum(assignments.quantity) === quantityReceived (RN-07).
   async createReception(input) {
-    if (USE_MOCK) return restockMockService.createReception(input);
     const { data } = await apiClient.post(
       "/restock/receptions",
       toCreateReceptionPayload(input)
@@ -480,7 +461,6 @@ export const restockService = {
   // el backend desplegado. null ≠ [] a propósito: vacío es "no hay nada que
   // reponer", null es "no lo sabemos". La UI muestra cosas distintas.
   async listSuggestions({ params = RESTOCK_PARAMS, filters } = {}) {
-    if (USE_MOCK) return null;
     const metric = await this.findSuggestionsMetric();
     if (!metric) return null;
     const { data } = await apiClient.post(
@@ -533,11 +513,6 @@ export const restockService = {
   // cachea: una sola vez por sesión.
   async detectPendingLocationSupport() {
     if (pendingLocationCapability !== undefined) return pendingLocationCapability;
-    // El mock implementa el flujo completo, así que lo soporta por definición.
-    if (USE_MOCK) {
-      pendingLocationCapability = true;
-      return pendingLocationCapability;
-    }
     try {
       const { data } = await apiClient.get("/query/catalog");
       const entity = (data?.entities || []).find(
@@ -576,7 +551,6 @@ export const restockService = {
   // PATCH /restock/receptions/:id (rama feature/117-recepcion-sin-ubicacion).
   // Es incremental: se puede ubicar por partes hasta completar lo recibido.
   async assignReceptionPositions(id, assignments) {
-    if (USE_MOCK) return restockMockService.assignReceptionPositions(id, assignments);
     const { data } = await apiClient.patch(`/restock/receptions/${id}`, {
       assignments: toAssignmentsPayload(assignments),
     });

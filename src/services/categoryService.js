@@ -25,7 +25,6 @@
 
 import { apiClient } from "../lib/apiClient";
 
-const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 
 // Texto para mostrar. La clave es el nombre del enum tal como viaja.
 export const CATEGORY_LABELS = {
@@ -48,7 +47,6 @@ const humanize = (value) =>
 
 export const categoryService = {
   async list() {
-    if (USE_MOCK) return CATEGORIES;
     try {
       const { data } = await apiClient.get("/products/categories");
       const values = data?.categories ?? [];

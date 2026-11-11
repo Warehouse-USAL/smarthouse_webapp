@@ -23,7 +23,6 @@
 
 import { fetchPage } from "../lib/pagination";
 
-const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 
 const normalizeAdjustment = (raw) => ({
   id: raw.id,
@@ -43,7 +42,6 @@ export const stockAdjustmentService = {
   // page es 1-based (fetchPage lo traduce a 0-based para el backend).
   async listProductAdjustments(productId, { page = 1, size = 10 } = {}) {
     // Sin backend (modo demo) no se simulan ajustes: se devuelve vacío.
-    if (USE_MOCK) return { items: [], totalPages: 0, totalElements: 0 };
     return fetchPage(
       `/products/${productId}/stock-adjustments`,
       { page, size },
