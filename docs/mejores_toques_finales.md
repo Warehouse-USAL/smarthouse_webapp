@@ -151,6 +151,14 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 8. Gestión de stock: texto de la tarjeta de recepción
+
+- La tarjeta "Agregar remitos de recepción" pasa a llamarse **"Recibir
+  mercadería con remito"**, que describe la acción del usuario.
+- Archivo: `src/pages/StockManagement/StockManagementPage.jsx`.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Asignación de stock / Ventas** usan `productService.listAll()`

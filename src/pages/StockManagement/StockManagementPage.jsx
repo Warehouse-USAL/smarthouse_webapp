@@ -59,7 +59,7 @@ const ACTION_CARDS = [
   {
     key: "receiving",
     icon: "truck",
-    title: "Agregar remitos de recepción",
+    title: "Recibir mercadería con remito",
     description: "Registrá los remitos de entrega recibidos de tus proveedores.",
     note: "Al confirmar la recepción, el stock se actualizará automáticamente.",
     variant: "blue",
