@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
 import TablePanel, { TablePanelTable } from "../../components/ui/TablePanel/TablePanel";
 import Input from "../../components/ui/Input/Input";
@@ -10,6 +10,7 @@ import Icon from "../../components/ui/Icon/Icon";
 import Spinner from "../../components/ui/Spinner/Spinner";
 import EmptyState from "../../components/ui/EmptyState/EmptyState";
 import ProgressBar from "../../components/ui/ProgressBar/ProgressBar";
+import Pagination from "../../components/ui/Pagination/Pagination";
 import { vehicleService } from "../../services/vehicleService";
 import { can } from "../../lib/permissions";
 import "./VehiclesPage.css";
@@ -29,6 +30,8 @@ const STATUS_META = {
   ERROR: { label: "Mantenimiento", variant: "danger" },
 };
 
+const PAGE_SIZE = 10;
+
 const formatLocation = (v) => {
   if (v.location) return v.location;
   if (typeof v.positionX === "number" && typeof v.positionY === "number") {
@@ -44,6 +47,9 @@ export default function VehiclesPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -52,47 +58,37 @@ export default function VehiclesPage() {
   // entra a la pantalla (lectura) pero no puede dar de alta.
   const canCreate = can("vehicle.create");
 
+  // Solo se muestra la respuesta del último pedido (cambios rápidos de página o filtro).
+  const lastRequest = useRef(0);
+
+  // Paginación en el servidor: se pide solo la página visible con sus filtros.
   const fetchVehicles = useCallback(async () => {
+    const requestId = ++lastRequest.current;
     setLoading(true);
     setError(null);
     try {
-      const list = await vehicleService.list();
-      setVehicles(list);
+      const result = await vehicleService.listPage({
+        page,
+        size: PAGE_SIZE,
+        search: search.trim() || undefined,
+        status: statusFilter || undefined,
+      });
+      if (requestId !== lastRequest.current) return;
+      setVehicles(result.items);
+      setTotalPages(Math.max(1, result.totalPages));
+      setTotalElements(result.totalElements);
     } catch (err) {
+      if (requestId !== lastRequest.current) return;
       setError(err.response?.data?.error?.message || "No pudimos cargar los vehículos.");
     } finally {
-      setLoading(false);
+      if (requestId === lastRequest.current) setLoading(false);
     }
-  }, []);
+  }, [page, search, statusFilter]);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const list = await vehicleService.list();
-        if (!cancelled) setVehicles(list);
-      } catch (err) {
-        if (!cancelled) {
-          setError(err.response?.data?.error?.message || "No pudimos cargar los vehículos.");
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const filtered = useMemo(() => {
-    return vehicles.filter((v) => {
-      if (statusFilter && v.status !== statusFilter) return false;
-      if (search && !`${v.name}`.toLowerCase().includes(search.toLowerCase())) return false;
-      return true;
-    });
-  }, [vehicles, search, statusFilter]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- carga de la página contra el backend
+    fetchVehicles();
+  }, [fetchVehicles]);
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -129,7 +125,7 @@ export default function VehiclesPage() {
         search={{
           placeholder: "Buscar vehículo",
           value: search,
-          onChange: (e) => setSearch(e.target.value),
+          onChange: (e) => { setSearch(e.target.value); setPage(1); },
         }}
         filtersOpen={filtersOpen}
         onToggleFilters={() => setFiltersOpen((v) => !v)}
@@ -138,9 +134,20 @@ export default function VehiclesPage() {
             <Select
               label="Estado"
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
               options={STATUS_OPTIONS}
             />
+          )
+        }
+        footer={
+          !loading && !error && vehicles.length > 0 && (
+            <>
+              <span className="table-panel__showing">
+                Mostrando {(page - 1) * PAGE_SIZE + 1} a{" "}
+                {Math.min(page * PAGE_SIZE, totalElements)} de {totalElements} vehículos
+              </span>
+              <Pagination current={page} total={totalPages} onChange={setPage} />
+            </>
           )
         }
       >
@@ -155,7 +162,7 @@ export default function VehiclesPage() {
             description={error}
             action={<Button variant="secondary" onClick={fetchVehicles}>Reintentar</Button>}
           />
-        ) : filtered.length === 0 ? (
+        ) : vehicles.length === 0 ? (
           <EmptyState
             icon="truck"
             title="No hay vehículos"
@@ -180,7 +187,7 @@ export default function VehiclesPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((vehicle) => {
+              {vehicles.map((vehicle) => {
                 const meta = STATUS_META[vehicle.status] || STATUS_META.OFFLINE;
                 return (
                   <tr key={vehicle.id || vehicle.name}>

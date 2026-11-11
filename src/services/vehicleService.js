@@ -23,9 +23,30 @@ const normalize = (raw) => {
 };
 
 export const vehicleService = {
-  async list() {
-    const { data } = await apiClient.get("/vehicles");
-    return (data?.vehicles || []).map(normalize);
+  /*
+  | Una página de vehículos por nombre (A→Z). GET /vehicles pagina pero no filtra
+  | por nombre ni estado; POST /query/vehicles sí, y devuelve solo los ids que
+  | se piden: el detalle de cada fila sale de GET /vehicles/:id.
+  | page es 1-based; status en MAYÚSCULAS, como se guarda (IDLE, BUSY…).
+  */
+  async listPage({ page = 1, size = 10, search, status } = {}) {
+    const filters = [];
+    if (search) filters.push({ field: "name", op: "contains", value: search });
+    if (status) filters.push({ field: "status", op: "eq", value: status });
+    const { data } = await apiClient.post("/query/vehicles", {
+      filters,
+      sort: [{ field: "name", dir: "asc" }],
+      page: page - 1,
+      size,
+      fields: ["id"],
+    });
+    const items = await Promise.all((data?.items || []).map(({ id }) => this.get(id)));
+    const pagination = data?.pagination ?? {};
+    return {
+      items,
+      totalPages: pagination.total_pages ?? 0,
+      totalElements: pagination.total_elements ?? 0,
+    };
   },
 
   async get(id) {

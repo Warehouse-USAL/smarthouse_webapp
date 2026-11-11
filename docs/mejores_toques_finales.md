@@ -109,6 +109,16 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 5. Vehículos: paginación en el servidor
+
+- `GET /vehicles` sin parámetros devolvía solo 10 vehículos: el resto no
+  aparecía.
+- Ahora la tabla pagina de a 10 con `POST /query/vehicles` (búsqueda por nombre
+  y filtro de estado en el servidor, orden A→Z) y el detalle con
+  `GET /vehicles/{id}`. Se agregó el paginador al pie.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Asignación de stock / Ventas** usan `productService.listAll()`
