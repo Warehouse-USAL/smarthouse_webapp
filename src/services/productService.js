@@ -46,6 +46,35 @@ const MAX_PRODUCT_PAGES = 20;
 // necesita paginar de verdad. Quien lo consuma avisa, no explota.
 export const PRODUCT_CATALOG_LIMIT = PRODUCT_PAGE_SIZE * MAX_PRODUCT_PAGES;
 
+// Límites de POST /query (CriteriaTranslator): hasta 10 filtros por request y
+// de 1 a 100 valores por filtro `in` / `nin`.
+const QUERY_MAX_FILTERS = 10;
+const QUERY_IDS_PER_FILTER = 100;
+
+// Filtros de POST /query/products. includeIds / excludeIds acotan por id
+// (filtro por zona o "sin ubicación"); excludeIds se parte en varios `nin`.
+const buildQueryFilters = ({ searchField = "name", search, category, active, includeIds, excludeIds }) => {
+  const filters = [];
+  if (search) filters.push({ field: searchField, op: "contains", value: search });
+  if (category) filters.push({ field: "category", op: "eq", value: category });
+  if (active !== undefined) filters.push({ field: "active", op: "eq", value: active });
+  if (includeIds) {
+    if (includeIds.length > QUERY_IDS_PER_FILTER) {
+      throw new Error(
+        `La zona tiene más de ${QUERY_IDS_PER_FILTER} productos distintos; no se puede filtrar por ella.`
+      );
+    }
+    filters.push({ field: "id", op: "in", value: includeIds });
+  }
+  for (let i = 0; i < (excludeIds?.length ?? 0); i += QUERY_IDS_PER_FILTER) {
+    filters.push({ field: "id", op: "nin", value: excludeIds.slice(i, i + QUERY_IDS_PER_FILTER) });
+  }
+  if (filters.length > QUERY_MAX_FILTERS) {
+    throw new Error("Hay demasiados productos con ubicación para filtrar los que no la tienen.");
+  }
+  return filters;
+};
+
 /*
 |--------------------------------------------------------------------------
 | NORMALIZERS
@@ -264,6 +293,55 @@ export const productService = {
     // crezca es normal, y voltear la pantalla entera por eso es peor que
     // mostrarla con un aviso. Quien llama compara contra PRODUCT_CATALOG_LIMIT.
     return out;
+  },
+
+  /*
+  | Una página del catálogo (activos e inactivos), del más nuevo al más viejo.
+  | GET /products no alcanza: siempre filtra por activo y no filtra por
+  | ubicación. POST /query/products pagina en el servidor con esos filtros y,
+  | sin `sort`, ordena por createdAt descendente; solo devuelve campos básicos,
+  | así que el detalle (stock, restock) se pide por id para las filas visibles.
+  |
+  | page es 1-based. Filtros: ver buildQueryFilters. includeIds vacío (zona sin
+  | productos) → página vacía sin request.
+  */
+  async listPage({ page = 1, size = 8, ...filters } = {}) {
+    if (filters.includeIds?.length === 0) {
+      return { items: [], totalPages: 0, totalElements: 0 };
+    }
+    const { data } = await apiClient.post("/query/products", {
+      filters: buildQueryFilters(filters),
+      page: page - 1,
+      size,
+      fields: ["id"],
+    });
+    // isActive=false: sin ese parámetro el backend responde 404 a un inactivo.
+    const items = await Promise.all(
+      (data?.items || []).map(async ({ id }) => {
+        const { data: detail } = await apiClient.get(`/products/${id}`, {
+          params: { isActive: false },
+        });
+        return normalize(detail?.product ?? detail);
+      })
+    );
+    const pagination = data?.pagination ?? {};
+    return {
+      items,
+      totalPages: pagination.total_pages ?? 0,
+      totalElements: pagination.total_elements ?? 0,
+    };
+  },
+
+  // Cuántos productos cumplen los filtros de listPage, sin traerlos.
+  async count(filters = {}) {
+    if (filters.includeIds?.length === 0) return 0;
+    const { data } = await apiClient.post("/query/products", {
+      filters: buildQueryFilters(filters),
+      page: 0,
+      size: 1,
+      fields: ["id"],
+    });
+    return data?.pagination?.total_elements ?? 0;
   },
 
   async list({

@@ -111,6 +111,11 @@
   grid-template-columns: 1fr 1fr;
 }
 
+/* Cantidad variable de filtros: tantas columnas como entren. */
+.table-panel__filters--auto {
+  grid-template-columns: repeat(auto-fit, minmax(var(--filter-min-width), 1fr));
+}
+
 .table-panel__filters .select-group label,
 .table-panel__filters .date-range__label {
   font-size: var(--text-sm);

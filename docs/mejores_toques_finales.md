@@ -69,3 +69,52 @@ Usuarios.
   `NETWORK_ERROR`).
 - Los errores no se atrapan en los services: suben a las páginas, que los
   muestran con `src/lib/apiError.js`.
+
+---
+
+## 4. Productos: paginación en el servidor, columna y filtros nuevos
+
+**Problema:** la tabla pedía una sola página de 50 productos (solo activos, los
+más viejos primero) y paginaba en el navegador sobre esos 50. Pasados 50, el
+resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque.
+
+**Cómo quedó (sin cambios en el backend):**
+
+- Cada página se pide al servidor con `POST /query/products` (filtros, `page`,
+  `size`). Sin `sort`, el backend ordena por `createdAt` descendente: los
+  productos nuevos aparecen primero.
+- Ese endpoint devuelve solo campos básicos, así que el detalle (stock, Reponer)
+  se pide con `GET /products/{id}?isActive=false` para las filas visibles, y la
+  ubicación también. Costo por página: 1 + 2 × filas, igual con 20 o con
+  100.000 productos.
+- **Columna "Activo"** entre SKU y Nombre: Sí/No con el mismo `Badge` que
+  Reponer. La tabla muestra activos e inactivos.
+- **Filtros:** Buscar por (Nombre / SKU), Activo (Todos / Sí / No), Ubicación
+  (Todas / Sin ubicación / Zona X) y Categoría.
+- **Zona y Sin ubicación:** `GET /warehouse/positions` (1 request) da qué
+  productos están en cada zona; se filtra con `id in` / `id nin`.
+- El contador "productos sin ubicación" de la tarjeta "Asignar stock" ahora es
+  exacto (activos sin posición), con `productService.count`.
+- Nuevo token `--filter-min-width` y clase reutilizable
+  `.table-panel__filters--auto` para paneles con una cantidad variable de filtros.
+
+**Límites:**
+
+- La búsqueda es por nombre **o** por SKU (selector): el endpoint combina los
+  filtros con "Y", no puede buscar en los dos campos a la vez.
+- Ubicación solo para `SUPERADMIN` / `ADMIN_WAREHOUSE` (los roles con acceso a
+  `GET /warehouse/positions`); para el resto el filtro no aparece.
+- Una zona con más de 100 productos distintos, o más de ~700 productos con
+  ubicación en "Sin ubicación", muestran un error explicando el límite.
+
+---
+
+## Pendiente
+
+- **Gestión de stock / Asignación de stock / Ventas** usan `productService.listAll()`
+  (hasta 1000 productos en memoria) para cruzar el catálogo con órdenes y
+  alertas. Funciona y avisa si se llega al tope, pero no escala con un catálogo
+  muy grande. Resolverlo bien requiere agregaciones en el backend.
+- `productService.list` manda `is_active`, pero `GET /products` espera
+  `isActive`: el parámetro se ignora y siempre llegan activos. Hoy no afecta a
+  nadie (los que lo usan piden activos).

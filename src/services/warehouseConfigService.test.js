@@ -31,3 +31,27 @@ describe("updatePosition", () => {
     expect(apiClient.patch).toHaveBeenCalledWith("/warehouse/positions/P1", { current_stock: 1 });
   });
 });
+
+describe("getProductZones", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("arma producto → zonas con las posiciones activas en una sola request", async () => {
+    apiClient.get.mockResolvedValue({
+      data: {
+        positions: [
+          { product_id: "p1", zone_code: "A", is_active: true },
+          { product_id: "p1", zone_code: "B", is_active: true },
+          { product_id: "p2", zone_code: "A", is_active: false },
+          { product_id: null, zone_code: "A", is_active: true },
+        ],
+      },
+    });
+
+    const zones = await warehouseConfigService.getProductZones();
+
+    expect(apiClient.get).toHaveBeenCalledTimes(1);
+    expect(apiClient.get).toHaveBeenCalledWith("/warehouse/positions");
+    expect([...zones.keys()]).toEqual(["p1"]);
+    expect([...zones.get("p1")]).toEqual(["A", "B"]);
+  });
+});

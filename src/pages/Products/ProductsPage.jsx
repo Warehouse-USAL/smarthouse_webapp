@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
 import ActionCard from "../../components/ui/ActionCard/ActionCard";
@@ -55,6 +55,20 @@ const ADJUSTMENT_TYPE_LABEL = {
 
 const HISTORY_PAGE_SIZE = 10;
 
+// Valor del filtro de ubicación para "Sin ubicación" (no choca con un zoneCode).
+const NO_LOCATION = "__sin_ubicacion__";
+
+const SEARCH_FIELD_OPTIONS = [
+  { value: "name", label: "Nombre" },
+  { value: "sku", label: "SKU" },
+];
+
+const ACTIVE_OPTIONS = [
+  { value: "", label: "Todos" },
+  { value: "true", label: "Sí" },
+  { value: "false", label: "No" },
+];
+
 const formatDateTime = (iso) =>
   iso
     ? new Date(iso).toLocaleString("es-AR", {
@@ -95,10 +109,15 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
-  const [zone, setZone] = useState("");
+  const [searchField, setSearchField] = useState("name");
+  const [activeFilter, setActiveFilter] = useState("");
+  // "" = todas, NO_LOCATION = sin ubicación, o el zoneCode de una zona.
+  const [locationFilter, setLocationFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleting, setDeleting] = useState(null);
@@ -132,6 +151,8 @@ export default function ProductsPage() {
   const canDelete = can("product.delete");
   const canAssignStock = can("stock.assign");
   const canViewStockHistory = can("stock.history");
+  // Filtrar por zona / sin ubicación necesita GET /warehouse/positions.
+  const canFilterLocation = can("warehouse.read");
 
 
   // Carga de categorías — async para que sea intercambiable con el backend real
@@ -143,52 +164,98 @@ export default function ProductsPage() {
     return () => { cancelled = true; };
   }, []);
 
-  // Carga de zonas para el filtro
+  // Carga de zonas para el filtro (solo roles que ven el warehouse)
   useEffect(() => {
+    if (!canFilterLocation) return undefined;
     let cancelled = false;
     warehouseConfigService.get().then((data) => {
       if (!cancelled) setZones(data.zones || []);
     });
     return () => { cancelled = true; };
-  }, []);
+  }, [canFilterLocation]);
 
-  // Carga de productos — se re-ejecuta cuando cambian los filtros de API
+  // Solo se muestra la respuesta del último pedido: cambiar de página o de
+  // filtro rápido no puede pisar la tabla con una respuesta vieja.
+  const lastRequest = useRef(0);
+
+  // Carga de la página visible. Paginación en el servidor (productService.listPage):
+  // se piden solo las filas de la página y sus ubicaciones.
   const fetchProducts = useCallback(async () => {
+    const requestId = ++lastRequest.current;
     setLoading(true);
     setError(null);
     try {
-      // No filtramos por estado: se listan tanto activos como inactivos.
-      const list = await productService.list({
-        search: search || undefined,
+      const filters = {
+        page,
+        size: pageSize,
+        searchField,
+        search: search.trim() || undefined,
         category: categoryFilter || undefined,
-      });
-      // GET /products no trae ubicación; se consulta aparte por producto para
-      // poder filtrar por zona en cliente. Un producto puede estar en varias.
+        active: activeFilter === "" ? undefined : activeFilter === "true",
+      };
+      if (locationFilter) {
+        // Zona / sin ubicación: el backend no filtra productos por ubicación,
+        // así que se resuelve a una lista de ids con las posiciones.
+        const zonesByProduct = await warehouseConfigService.getProductZones();
+        if (locationFilter === NO_LOCATION) {
+          filters.excludeIds = [...zonesByProduct.keys()];
+        } else {
+          filters.includeIds = [...zonesByProduct]
+            .filter(([, productZones]) => productZones.has(locationFilter))
+            .map(([productId]) => productId);
+        }
+      }
+      const result = await productService.listPage(filters);
+      // GET /products/:id no trae ubicación; se consulta aparte para las filas
+      // visibles. Un producto puede estar en varias.
       const withLocations = await Promise.all(
-        list.map(async (p) => {
+        result.items.map(async (p) => {
           const locations = await productService.getLocations(p.id).catch(() => []);
           return { ...p, locations, location: locations[0] ?? null };
         })
       );
-      setProducts(withLocations);
-      // El contador solo es confiable sin filtros y con el catálogo completo:
-      // `list` trae una página de hasta 50 productos.
-      if (!search && !categoryFilter) {
-        setUnassignedCount(
-          list.length < 50
-            ? withLocations.filter((p) => p.locations.length === 0).length
-            : null
-        );
+      if (requestId !== lastRequest.current) return;
+      // Tras eliminar puede quedar una página menos: se vuelve a la última.
+      if (result.totalPages > 0 && page > result.totalPages) {
+        setPage(result.totalPages);
+        return;
       }
+      setProducts(withLocations);
+      setTotalPages(Math.max(1, result.totalPages));
+      setTotalElements(result.totalElements);
     } catch (err) {
+      if (requestId !== lastRequest.current) return;
+      // Los límites del filtro por ubicación llegan como Error propio, no de axios.
       setError(
-        err.response?.data?.error?.message ||
-        "No pudimos cargar los productos."
+        err.isAxiosError
+          ? errorText(err, {}, "No pudimos cargar los productos.")
+          : err.message || "No pudimos cargar los productos."
       );
     } finally {
-      setLoading(false);
+      if (requestId === lastRequest.current) setLoading(false);
     }
-  }, [search, categoryFilter]);
+  }, [page, pageSize, searchField, search, categoryFilter, activeFilter, locationFilter]);
+
+  // Contador de la tarjeta "Asignar stock": productos activos sin ubicación.
+  const fetchUnassignedCount = useCallback(async () => {
+    if (!canAssignStock) return;
+    try {
+      const zonesByProduct = await warehouseConfigService.getProductZones();
+      setUnassignedCount(
+        await productService.count({ active: true, excludeIds: [...zonesByProduct.keys()] })
+      );
+    } catch {
+      setUnassignedCount(null);
+    }
+  }, [canAssignStock]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- carga del contador contra el backend
+    fetchUnassignedCount();
+  }, [fetchUnassignedCount]);
+
+  // Tras crear, editar, eliminar o ajustar: la página y el contador.
+  const reloadProducts = () => Promise.all([fetchProducts(), fetchUnassignedCount()]);
 
   useEffect(() => {
     let cancelled = false;
@@ -229,24 +296,13 @@ export default function ProductsPage() {
     return () => { stale = true; };
   }, [historyProduct, historyPage]);
 
-  // El filtro de zona se aplica en cliente porque el contrato no expone
-  // un query param de zona en GET /products. Se compara contra zone_code de
-  // cualquiera de las ubicaciones del producto.
-  const filtered = useMemo(() => {
-    if (!zone) return products;
-    return products.filter((p) =>
-      (p.locations ?? []).some((loc) => loc.zoneCode === zone)
-    );
-  }, [products, zone]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const pageStart = (page - 1) * pageSize;
-  const pageItems = filtered.slice(pageStart, pageStart + pageSize);
 
   // zone_code es la clave del contrato; no hay campo "name" en Zone
-  const zoneOptions = useMemo(
+  const locationOptions = useMemo(
     () => [
-      { value: "", label: "Todas las zonas" },
+      { value: "", label: "Todas" },
+      { value: NO_LOCATION, label: "Sin ubicación" },
       ...zones.map((z) => ({
         value: z.zoneCode,
         label: `Zona ${z.zoneCode}`,
@@ -266,7 +322,7 @@ export default function ProductsPage() {
     try {
       await productService.create(values);
       setCreateOpen(false);
-      await fetchProducts();
+      await reloadProducts();
     } catch (err) {
       alert(
         err.response?.data?.error?.message ||
@@ -283,7 +339,7 @@ export default function ProductsPage() {
     try {
       await productService.update(editing.id, values);
       setEditing(null);
-      await fetchProducts();
+      await reloadProducts();
     } catch (err) {
       alert(
         err.response?.data?.error?.message ||
@@ -301,7 +357,7 @@ export default function ProductsPage() {
       await productService.remove(deleting.id);
       setDeleting(null);
       setDeleteStep(1);
-      await fetchProducts();
+      await reloadProducts();
     } catch (err) {
       alert(
         err.response?.data?.error?.message ||
@@ -448,7 +504,7 @@ export default function ProductsPage() {
         );
       }
       setAdjusting(null);
-      await fetchProducts();
+      await reloadProducts();
     } catch (err) {
       alert(
         "El ajuste de stock se registró, pero no pudimos actualizar las órdenes de compra afectadas: " +
@@ -502,19 +558,33 @@ export default function ProductsPage() {
 
       <TablePanel
         search={{
-          placeholder: "Buscar por nombre o SKU",
+          placeholder: searchField === "sku" ? "Buscar por SKU" : "Buscar por nombre",
           value: search,
           onChange: (e) => { setSearch(e.target.value); setPage(1); },
         }}
-        filtersClassName="table-panel__filters--two"
+        filtersClassName="table-panel__filters--auto"
         filters={
           <>
             <Select
-              label="Zonas"
-              value={zone}
-              onChange={(e) => { setZone(e.target.value); setPage(1); }}
-              options={zoneOptions}
+              label="Buscar por"
+              value={searchField}
+              onChange={(e) => { setSearchField(e.target.value); setPage(1); }}
+              options={SEARCH_FIELD_OPTIONS}
             />
+            <Select
+              label="Activo"
+              value={activeFilter}
+              onChange={(e) => { setActiveFilter(e.target.value); setPage(1); }}
+              options={ACTIVE_OPTIONS}
+            />
+            {canFilterLocation && (
+              <Select
+                label="Ubicación"
+                value={locationFilter}
+                onChange={(e) => { setLocationFilter(e.target.value); setPage(1); }}
+                options={locationOptions}
+              />
+            )}
             <Select
               label="Categoría"
               value={categoryFilter}
@@ -524,12 +594,12 @@ export default function ProductsPage() {
           </>
         }
         footer={
-          !loading && !error && filtered.length > 0 && (
+          !loading && !error && products.length > 0 && (
             <>
               <span className="table-panel__showing">
                 Mostrando {pageStart + 1} a{" "}
-                {Math.min(pageStart + pageSize, filtered.length)} de{" "}
-                {filtered.length} productos
+                {Math.min(pageStart + pageSize, totalElements)} de{" "}
+                {totalElements} productos
               </span>
               <Pagination current={page} total={totalPages} onChange={setPage} />
               <Select
@@ -556,7 +626,7 @@ export default function ProductsPage() {
             </Button>
           }
         />
-      ) : filtered.length === 0 ? (
+      ) : products.length === 0 ? (
         <EmptyState
           icon="box"
           title="No hay productos"
@@ -578,6 +648,7 @@ export default function ProductsPage() {
               <tr>
                 <th>Imagen</th>
                 <th>SKU</th>
+                <th>Activo</th>
                 <th>Nombre</th>
                 <th>Categoría</th>
                 <th>Precio</th>
@@ -591,7 +662,7 @@ export default function ProductsPage() {
               </tr>
             </thead>
             <tbody>
-              {pageItems.map((product) => {
+              {products.map((product) => {
                 const first = product.location;
                 const firstLabel = first
                   ? [first.zoneCode, first.positionName].filter(Boolean).join(" · ")
@@ -609,6 +680,11 @@ export default function ProductsPage() {
                     </td>
                     <td data-label="SKU" className="products-table__sku">
                       {product.sku}
+                    </td>
+                    <td data-label="Activo">
+                      <Badge variant={product.active ? "success" : "danger"} dot>
+                        {product.active ? "Sí" : "No"}
+                      </Badge>
                     </td>
                     <td data-label="Nombre">
                       <span className="products-table__name" title={product.name}>

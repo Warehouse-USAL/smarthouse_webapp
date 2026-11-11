@@ -283,6 +283,23 @@ export const warehouseConfigService = {
     return fetchTree();
   },
 
+  // Zonas de cada producto ubicado, en una sola request: GET /warehouse/positions
+  // trae todas las posiciones (solo SUPERADMIN / ADMIN_WAREHOUSE). Como
+  // GET /products/:id/location, cuenta solo posiciones activas.
+  // Devuelve Map productId → Set de zoneCode.
+  async getProductZones() {
+    const { data } = await apiClient.get("/warehouse/positions");
+    const zonesByProduct = new Map();
+    for (const position of data?.positions || []) {
+      if (!position.product_id || !position.is_active) continue;
+      if (!zonesByProduct.has(position.product_id)) {
+        zonesByProduct.set(position.product_id, new Set());
+      }
+      zonesByProduct.get(position.product_id).add(position.zone_code);
+    }
+    return zonesByProduct;
+  },
+
   // Códigos de zonas soft-deleted (is_active=false): el árbol que ve la UI no
   // las muestra, pero el índice único de zone_code en el backend sigue ocupado.
   // La UI usa esto para no reasignar un código borrado y chocar con un 409.
