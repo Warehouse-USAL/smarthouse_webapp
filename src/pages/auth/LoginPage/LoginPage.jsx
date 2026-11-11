@@ -13,7 +13,7 @@ import hero from "../../../assets/auth/ImagenInicioLogin.png";
 import mail from "../../../assets/icons/mail.svg";
 import lock from "../../../assets/icons/lock.svg";
 
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 import { login } from "../../../services/authService";
 
@@ -252,12 +252,18 @@ export default function LoginPage() {
 
 
 
+            {/*
+              Oculto: el backend no tiene endpoints para recuperar contraseña
+              (ver docs/mejores_toques_finales.md §2). La página
+              /forgot-password sigue existiendo. Para reactivarlo, volver a
+              importar Link de react-router-dom.
             <Link
               to="/forgot-password"
               className="olvido_contrasenia"
             >
               ¿Olvidaste tu contraseña?
             </Link>
+            */}
 
 
 
