@@ -706,7 +706,9 @@ export default function ProductsPage() {
                 <th>Nombre</th>
                 <th>Categoría</th>
                 <th>Precio</th>
-                <th>Stock</th>
+                <th>Stock físico</th>
+                <th>Stock reservado</th>
+                <th>Stock disponible</th>
                 <th>Ubicación</th>
                 <th>Reponer</th>
                 <th>Acciones</th>
@@ -739,19 +741,26 @@ export default function ProductsPage() {
                     <td data-label="Precio" className="products-table__num">
                       ${formatPrice(product.price)}
                     </td>
+                    <td data-label="Stock físico" className="products-table__num">
+                      <span>
+                        {product.stock?.physical ?? 0}{" "}
+                        <span className="products-table__unit">unidades</span>
+                      </span>
+                    </td>
+                    <td data-label="Stock reservado" className="products-table__num">
+                      <span>
+                        {product.reservedStock}{" "}
+                        <span className="products-table__unit">unidades</span>
+                      </span>
+                    </td>
                     <td
-                      data-label="Stock"
+                      data-label="Stock disponible"
                       className="products-table__num"
                       title="Disponible = Stock físico − Stock reservado"
                     >
-                      <span className="products-table__stock">
-                        <span>
-                          {product.availableStock}{" "}
-                          <span className="products-table__unit">disponibles</span>
-                        </span>
-                        <span className="products-table__stock-detail">
-                          Físico {product.stock?.physical ?? 0} · Reservado {product.reservedStock}
-                        </span>
+                      <span>
+                        {product.availableStock}{" "}
+                        <span className="products-table__unit">unidades</span>
                       </span>
                     </td>
                     <td data-label="Ubicación" className="products-table__loc">

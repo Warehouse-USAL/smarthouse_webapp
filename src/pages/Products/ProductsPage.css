@@ -56,17 +56,6 @@
   white-space: nowrap;
 }
 
-/* Stock: disponible como dato principal, físico y reservado debajo. */
-.products-table__stock {
-  display: inline-flex;
-  flex-direction: column;
-}
-
-.products-table__stock-detail {
-  font-size: var(--text-2xs);
-  color: var(--color-text-secondary-alt);
-}
-
 /* "unidades" al lado de cada valor de stock: acompañante chico y apagado para
    no ensanchar las columnas. */
 .products-table__unit {

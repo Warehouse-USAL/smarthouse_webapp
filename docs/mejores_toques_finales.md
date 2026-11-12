@@ -362,6 +362,19 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 25. Productos: vuelven las tres columnas de stock
+
+- La columna única "Stock" (disponible arriba, "Físico X · Reservado Y" abajo)
+  se vuelve a separar en **Stock físico**, **Stock reservado** y **Stock
+  disponible**, como antes de la entrada 10. El punto de reposición sigue en el
+  tooltip de "Reponer". Se quitó el CSS de la columna agrupada.
+- En mobile el número y "unidades" van juntos en un `<span>`: la celda es flex
+  con `space-between` y, sueltos, quedaban separados.
+- Verificado con capturas a 1600 px y 375 px (seed de demo, rol
+  ADMIN_WAREHOUSE): las 11 columnas entran sin scroll horizontal.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`
