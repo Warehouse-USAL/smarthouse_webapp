@@ -425,6 +425,23 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 31. Asignación de ubicación: solo mercadería recibida con remito
+
+- **Antes:** la pantalla tenía también "Productos sin ubicación asignada", que
+  ubicaba un producto nuevo cargándole un stock inicial directo en una posición:
+  stock sin ninguna contrapartida (ni orden ni remito).
+- **Ahora:** el flujo es alta del producto → orden de restock → remito →
+  ubicación. La pantalla muestra solo "Productos de restock pendientes de
+  ubicación", a lo ancho. El stock inicial de un producto que ya estaba en el
+  depósito entra con un remito sin orden de restock.
+- Se borró `ProductLocationModal`, junto con `restockService.getAvailablePositions`
+  y `warehouseConfigService.assignProductToPosition`, que solo usaba ese modal.
+- La tarjeta "Asignar stock" de Productos cuenta los remitos pendientes de
+  ubicación (antes, productos sin ubicación). La de "Dar de alta producto" avisa
+  que el stock entra con una orden de restock y su remito.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`

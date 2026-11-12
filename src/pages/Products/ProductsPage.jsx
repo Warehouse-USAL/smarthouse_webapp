@@ -109,7 +109,7 @@ const fullLocationLabel = (loc) => {
 export default function ProductsPage() {
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
-  const [unassignedCount, setUnassignedCount] = useState(null);
+  const [pendingLocationCount, setPendingLocationCount] = useState(null);
   const [zones, setZones] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -250,26 +250,23 @@ export default function ProductsPage() {
     }
   }, [page, pageSize, search, categoryFilter, locationFilter]);
 
-  // Contador de la tarjeta "Asignar stock": productos activos sin ubicación.
-  const fetchUnassignedCount = useCallback(async () => {
+  // Contador de la tarjeta "Asignar stock": remitos con mercadería sin ubicar.
+  const fetchPendingLocationCount = useCallback(async () => {
     if (!canAssignStock) return;
     try {
-      const zonesByProduct = await warehouseConfigService.getProductZones();
-      setUnassignedCount(
-        await productService.count({ active: true, excludeIds: [...zonesByProduct.keys()] })
-      );
+      setPendingLocationCount((await restockService.listPendingLocation()).length);
     } catch {
-      setUnassignedCount(null);
+      setPendingLocationCount(null);
     }
   }, [canAssignStock]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- carga del contador contra el backend
-    fetchUnassignedCount();
-  }, [fetchUnassignedCount]);
+    fetchPendingLocationCount();
+  }, [fetchPendingLocationCount]);
 
   // Tras crear, editar, eliminar o ajustar: la página y el contador.
-  const reloadProducts = () => Promise.all([fetchProducts(), fetchUnassignedCount()]);
+  const reloadProducts = () => Promise.all([fetchProducts(), fetchPendingLocationCount()]);
 
   useEffect(() => {
     let cancelled = false;
@@ -593,7 +590,7 @@ export default function ProductsPage() {
               icon="plus"
               title="Dar de alta producto"
               description="Registrá un producto nuevo en el catálogo."
-              note="Después podés asignarle una ubicación en el warehouse."
+              note="El stock entra después, con una orden de restock y su remito."
               variant="yellow"
               onClick={() => setCreateOpen(true)}
             />
@@ -602,13 +599,13 @@ export default function ProductsPage() {
             <ActionCard
               icon="pin"
               title="Asignar stock"
-              description="Ubicá los productos nuevos y la mercadería de restock."
+              description="Ubicá la mercadería recibida con remito."
               note={
-                unassignedCount === null
+                pendingLocationCount === null
                   ? null
-                  : unassignedCount === 0
-                    ? "Todos los productos tienen ubicación."
-                    : `${unassignedCount} producto${unassignedCount === 1 ? "" : "s"} sin ubicación.`
+                  : pendingLocationCount === 0
+                    ? "No hay mercadería pendiente de ubicación."
+                    : `${pendingLocationCount} remito${pendingLocationCount === 1 ? "" : "s"} pendiente${pendingLocationCount === 1 ? "" : "s"} de ubicación.`
               }
               variant="blue"
               onClick={() => navigate("/asignacion-stock")}

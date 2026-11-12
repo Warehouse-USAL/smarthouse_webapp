@@ -21,7 +21,7 @@
 |
 | NO existe en el backend (se ignora / se resuelve en el front):
 |   - PATCH /products/:id/location  → la asignación se hace por posición
-|     (warehouseConfigService.assignProductToPosition / PATCH positions)
+|     (la ubicación de un remito: PATCH /restock/receptions/:id)
 |   - stock no se envía: el backend lo computa desde current_stock de las
 |     posiciones. Solo `minimum_stock` viaja en el alta/edición.
 |

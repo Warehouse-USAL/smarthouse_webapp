@@ -72,7 +72,6 @@ import {
   fromSuggestionRow,
   toRestockAlert,
 } from "../lib/restockSuggestion";
-import { warehouseConfigService } from "./warehouseConfigService";
 
 
 // Una orden de restock vieja casi seguro ya se recibió; las abiertas que ofrece
@@ -503,17 +502,6 @@ export const restockService = {
     const rows = await this.listSuggestions({ filters: { productIds: [product.id] } });
     const row = rows?.find((r) => r.productId === product.id && r.shouldRestock);
     return row ? fromSuggestionRow(row, product) : toRestockAlert(product);
-  },
-
-  // Posiciones candidatas para ubicar mercadería. La implementación vive en
-  // warehouseConfigService (el endpoint es /warehouse/positions/available); se
-  // reexpone acá porque ProductLocationModal la consume por este service.
-  async getAvailablePositions({ productId, deliveryUnit, quantity }) {
-    return warehouseConfigService.getAvailablePositions({
-      productId,
-      deliveryUnit,
-      quantity,
-    });
   },
 
   /* ---------- Ubicación diferida de un remito ---------- */

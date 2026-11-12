@@ -444,20 +444,6 @@ export const warehouseConfigService = {
     }));
   },
 
-  // Asigna un producto a una posición. La fuente de verdad en el backend es la
-  // propia Position (product_id + current_stock). Se activa la posición al
-  // ocuparla. El backend rechaza con 409 si ya tiene OTRO producto: en ese caso
-  // hay que limpiar primero (la UI filtra posiciones ocupadas, así que no
-  // debería pasar en el flujo normal).
-  async assignProductToPosition(idPosition, productSummary, currentStock) {
-    await apiClient.patch(`/warehouse/positions/${idPosition}`, {
-      product_id: productSummary?.id,
-      current_stock: currentStock ?? 0,
-      is_active: true,
-    });
-    return null;
-  },
-
   // Libera la posición: el backend pone product_id=null y current_stock=0. El
   // available del producto baja solo (se computa de las posiciones).
   async clearProductFromPosition(idPosition) {
