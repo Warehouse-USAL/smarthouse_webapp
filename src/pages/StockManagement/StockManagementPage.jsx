@@ -24,6 +24,7 @@ import {
 import { restockService } from "../../services/restockService";
 import { buildRestockAlerts } from "../../lib/restockSuggestion";
 import { errorText } from "../../lib/apiError";
+import { categoryLabel } from "../../services/categoryService";
 import { STORAGE_UNIT_LABEL } from "../../lib/storageCompatibility";
 import "./StockManagementPage.css";
 
@@ -263,7 +264,7 @@ export default function StockManagementPage() {
       { value: "", label: "Todas las categorías" },
       ...[...new Set(alerts.map((a) => a.category).filter(Boolean))]
         .sort((a, b) => a.localeCompare(b, "es"))
-        .map((category) => ({ value: category, label: category })),
+        .map((category) => ({ value: category, label: categoryLabel(category) })),
     ],
     [alerts]
   );

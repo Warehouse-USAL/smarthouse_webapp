@@ -375,6 +375,14 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 26. Gestión de stock: categorías capitalizadas en el filtro de alertas
+
+- El filtro "Categoría" de "Productos con alerta de reestock" mostraba el valor
+  crudo del backend ("TECNOLOGIA"). Ahora usa `categoryLabel`, igual que la
+  tabla de Productos ("Tecnología").
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`
