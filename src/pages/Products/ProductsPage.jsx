@@ -15,6 +15,7 @@ import Modal from "../../components/ui/Modal/Modal";
 import Badge from "../../components/ui/Badge/Badge";
 import CreateProductForm from "../../components/products/CreateProductForm/CreateProductForm";
 import RestockOrderModal from "../../components/stock/RestockOrderModal/RestockOrderModal";
+import ProductSummaryCard from "../../components/stock/ProductSummaryCard/ProductSummaryCard";
 import StatusBanner from "../../components/ui/StatusBanner/StatusBanner";
 import { productService, searchFieldFor } from "../../services/productService";
 import { warehouseConfigService } from "../../services/warehouseConfigService";
@@ -923,7 +924,7 @@ export default function ProductsPage() {
         open={!!adjusting}
         onClose={() => !adjustSubmitting && setAdjusting(null)}
         title="Ajustar stock"
-        size="sm"
+        size="md"
         footer={
           adjustLocations.length === 0 ? (
             <Button variant="secondary" onClick={() => setAdjusting(null)}>
@@ -953,58 +954,64 @@ export default function ProductsPage() {
           )
         }
       >
-        {adjusting &&
-          (adjustLocations.length === 0 ? (
-            <p className="products-page__adjust-text">
-              Este producto no tiene posiciones asignadas. El stock se carga
-              desde la pantalla Asignación de stock.
-            </p>
-          ) : (
-            <div className="products-page__adjust">
-              <p className="products-page__adjust-product">
-                <strong>{adjusting.name}</strong> · SKU {adjusting.sku}
+        {adjusting && (
+          <div className="products-page__adjust">
+            <ProductSummaryCard
+              imageUrl={adjusting.imageUrl}
+              name={adjusting.name}
+              sku={adjusting.sku}
+              category={adjusting.category}
+            />
+            {adjustLocations.length === 0 ? (
+              <p className="products-page__adjust-text">
+                Este producto no tiene posiciones asignadas. El stock se carga
+                desde la pantalla Asignación de stock.
               </p>
-              <Select
-                label="Posición"
-                value={adjustPosition}
-                onChange={(e) => setAdjustPosition(e.target.value)}
-                options={adjustLocations.map((loc) => ({
-                  value: loc.idPosition,
-                  label: `${fullLocationLabel(loc)} (${loc.currentStock} un.)`,
-                }))}
-              />
-              <Select
-                label="Tipo de ajuste"
-                value={adjustType}
-                onChange={(e) => setAdjustType(e.target.value)}
-                options={ADJUST_TYPES}
-              />
-              <Input
-                label={
-                  adjustType === "conteo" ? "Stock final contado" : "Cantidad de unidades"
-                }
-                type="number"
-                min={0}
-                step={1}
-                value={adjustQty}
-                onChange={(e) => setAdjustQty(e.target.value)}
-                error={adjustResult.error}
-              />
-              <Input
-                label="Motivo (opcional)"
-                type="text"
-                placeholder="Ej. rotura de caja, conteo físico"
-                maxLength={500}
-                hint="Se guarda en el historial de ajustes."
-                value={adjustReason}
-                onChange={(e) => setAdjustReason(e.target.value)}
-              />
-              <p className="products-page__adjust-preview">
-                Stock actual: <strong>{adjustCurrent}</strong> → Stock
-                resultante: <strong>{adjustResult.next ?? "—"}</strong>
-              </p>
-            </div>
-          ))}
+            ) : (
+              <>
+                <Select
+                  label="Posición"
+                  value={adjustPosition}
+                  onChange={(e) => setAdjustPosition(e.target.value)}
+                  options={adjustLocations.map((loc) => ({
+                    value: loc.idPosition,
+                    label: `${fullLocationLabel(loc)} (${loc.currentStock} un.)`,
+                  }))}
+                />
+                <Select
+                  label="Tipo de ajuste"
+                  value={adjustType}
+                  onChange={(e) => setAdjustType(e.target.value)}
+                  options={ADJUST_TYPES}
+                />
+                <Input
+                  label={
+                    adjustType === "conteo" ? "Stock final contado" : "Cantidad de unidades"
+                  }
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={adjustQty}
+                  onChange={(e) => setAdjustQty(e.target.value)}
+                  error={adjustResult.error}
+                />
+                <Input
+                  label="Motivo (opcional)"
+                  type="text"
+                  placeholder="Ej. rotura de caja, conteo físico"
+                  maxLength={500}
+                  hint="Se guarda en el historial de ajustes."
+                  value={adjustReason}
+                  onChange={(e) => setAdjustReason(e.target.value)}
+                />
+                <p className="products-page__adjust-preview">
+                  Stock actual: <strong>{adjustCurrent}</strong> → Stock
+                  resultante: <strong>{adjustResult.next ?? "—"}</strong>
+                </p>
+              </>
+            )}
+          </div>
+        )}
       </Modal>
 
       <Modal
@@ -1064,7 +1071,7 @@ export default function ProductsPage() {
       <Modal
         open={!!historyProduct}
         onClose={closeHistory}
-        title={historyProduct ? `Historial de ajustes — ${historyProduct.name}` : ""}
+        title="Historial de ajustes"
         subtitle="Quién ajustó el stock, cuándo y por qué, en todas las posiciones del producto."
         size="lg"
         footer={
@@ -1073,6 +1080,16 @@ export default function ProductsPage() {
           </Button>
         }
       >
+        {historyProduct && (
+          <div className="products-page__history-product">
+            <ProductSummaryCard
+              imageUrl={historyProduct.imageUrl}
+              name={historyProduct.name}
+              sku={historyProduct.sku}
+              category={historyProduct.category}
+            />
+          </div>
+        )}
         {historyLoading ? (
           <div className="products-page__loading">
             <Spinner label="Cargando historial…" />

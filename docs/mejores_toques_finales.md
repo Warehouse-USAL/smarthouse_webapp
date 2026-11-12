@@ -278,6 +278,15 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 17. Productos: tarjeta de producto en Ajustar stock y en el historial
+
+- Los modales "Ajustar stock" e "Historial de ajustes" muestran arriba la misma
+  `ProductSummaryCard` que Asignar ubicación (imagen, nombre, SKU y categoría),
+  en lugar del texto "nombre · SKU" y del nombre en el título.
+- "Ajustar stock" pasa a tamaño `md` para que la tarjeta entre cómoda.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`
