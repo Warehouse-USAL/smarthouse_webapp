@@ -417,6 +417,14 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 30. Asignación de ubicación: botón "Ubicar"
+
+- En "Productos de restock pendientes de ubicación", el botón "Ubicar
+  mercadería" quedaba cortado. Pasa a "Ubicar".
+- Verificado con capturas a 1366 px (seed de demo) de las dos pantallas.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`

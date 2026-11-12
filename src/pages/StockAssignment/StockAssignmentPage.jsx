@@ -387,7 +387,7 @@ export default function StockAssignmentPage() {
                         iconLeft={<Icon name="pin" size={14} />}
                         onClick={() => setLocateReception(product)}
                       >
-                        Ubicar mercadería
+                        Ubicar
                       </Button>
                     </td>
                   </tr>
