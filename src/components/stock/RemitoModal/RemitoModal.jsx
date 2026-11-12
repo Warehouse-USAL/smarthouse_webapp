@@ -227,7 +227,7 @@ export default function RemitoModal({
       open={open}
       onClose={onClose}
       title="Nuevo remito de recepción"
-      subtitle="Registrá la mercadería recibida. Queda pendiente de ubicación y suma stock cuando la ubicás desde Asignación de ubicación."
+      subtitle="Registrá la mercadería recibida. Queda pendiente de ubicación y suma stock cuando la ubicás desde Asignación de stock."
       size="lg"
       footer={
         <>

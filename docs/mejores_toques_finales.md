@@ -485,6 +485,14 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 35. Asignación de stock: mismo título en el menú y en la pantalla
+
+- La pantalla se llamaba "Asignación de ubicación" y el menú "Asignación de
+  stock". Ahora las dos dicen "Asignación de stock", y el subtítulo coincide con
+  la tarjeta de Productos.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`

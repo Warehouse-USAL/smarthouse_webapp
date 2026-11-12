@@ -337,7 +337,7 @@ export default function StockManagementPage() {
   const handleReceptionCreated = async (reception) => {
     setFeedback({
       type: "ok",
-      text: `Remito registrado con ${reception?.quantityPendingLocation ?? 0} unidades pendientes de ubicación. Ubicalas desde Asignación de ubicación.`,
+      text: `Remito registrado con ${reception?.quantityPendingLocation ?? 0} unidades pendientes de ubicación. Ubicalas desde Asignación de stock.`,
     });
     await reload();
   };

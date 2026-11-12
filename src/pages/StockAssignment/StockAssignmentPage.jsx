@@ -133,8 +133,8 @@ export default function StockAssignmentPage() {
   return (
     <div className="stock-assignment">
       <PageHeader
-        title="Asignación de ubicación"
-        subtitle="Mercadería recibida con remito que todavía no tiene posición. Asigná una ubicación disponible para cada una."
+        title="Asignación de stock"
+        subtitle="Ubicá la mercadería recibida con remito y la que hay que reubicar. Suma stock recién cuando tiene posición."
       />
 
       <TablePanel
