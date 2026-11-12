@@ -188,3 +188,85 @@ En el listado conviene resolver los nombres de la página de una sola vez (un
 `findAllById` con los ids de esa página), no un pedido por orden.
 
 - **Errores:** ninguno nuevo.
+
+---
+
+## 4. "Quitar producto" de una posición con stock: reubicación
+
+### Por qué
+
+Hoy `PATCH /warehouse/positions/{id}` con `{ "unassign_product": true }` pone la
+posición en 0 y registra un ajuste `UNASSIGNED`: para el sistema, esas unidades
+salieron del depósito. Pero sacar un producto de una posición no significa que
+la mercadería desaparezca: sigue físicamente en el depósito y hay que ubicarla
+en otra posición.
+
+Ejemplo: un producto tiene 150 unidades, 100 en la posición 001. Al quitarlo de
+la 001, hoy queda con 50 y las 100 se pierden del registro.
+
+Hacerlo desde el front con dos pedidos (quitar + crear un remito sin orden) no
+es seguro: si el segundo falla, las 100 unidades se pierden, y además quedaría
+registrado un remito de proveedor que no existió.
+
+### Comportamiento pedido
+
+Al quitar el producto de una posición con stock, en **la misma transacción**:
+
+1. La posición queda sin producto y en 0, como hoy.
+2. Se crea un pendiente de ubicación de tipo **reubicación** por esas unidades,
+   que se ubica igual que un remito: `PATCH /restock/receptions/{id}` con
+   `assignments`.
+3. El historial de ajustes registra la salida (`UNASSIGNED`) como hoy, y la
+   reubicación queda vinculada a la posición de origen.
+
+Las unidades pendientes de ubicación **no cuentan** en el stock del producto
+hasta que se ubican, igual que un remito `PENDING_LOCATION`. La reconciliación
+de pedidos sigue funcionando como hoy.
+
+Para dar de baja unidades de verdad (rotura, pérdida) ya existe
+`POST /warehouse/positions/{id}/stock-adjustments`.
+
+### Contrato pedido
+
+- **Roles:** sin cambios (los de `PATCH /warehouse/positions/{id}`).
+- **`Reception`** suma dos campos:
+
+| Campo | Tipo | Notas |
+| --- | --- | --- |
+| `type` | `SUPPLIER` o `RELOCATION` | `SUPPLIER` para los remitos de siempre (valor por defecto, también para los existentes) |
+| `source_position_id` | texto o `null` | Posición de la que salió una reubicación. `null` en un remito de proveedor |
+
+Una reubicación tiene `restock_order_id: null`, `supplier: null`,
+`quantity_received` = el stock que tenía la posición, `delivery_unit` = el
+`size_stock_to_save` de la posición y `status: PENDING_LOCATION`.
+
+**`PATCH /warehouse/positions/{id}`** con `unassign_product: true`: si la
+posición tenía stock, la respuesta suma el remito creado.
+
+```json
+{
+  "...": "posición actualizada, como hoy",
+  "cancelled_orders": [],
+  "relocation": {
+    "id": "r9",
+    "type": "RELOCATION",
+    "product_id": "p1",
+    "quantity_received": 100,
+    "delivery_unit": "CAJA",
+    "status": "PENDING_LOCATION",
+    "source_position_id": "pos-001",
+    "restock_order_id": null,
+    "supplier": null
+  }
+}
+```
+
+Con la posición en 0, `relocation` es `null`.
+
+**`GET /restock/receptions`** (y `GET /restock/receptions/{id}`): cada remito
+suma `type` y `source_position_id`. Así la tabla de Asignación de ubicación
+muestra las reubicaciones junto a los remitos, con estado "Reubicación". Se
+pide además el filtro `type` en el listado, para que los reportes de compras a
+proveedores puedan excluir las reubicaciones.
+
+- **Errores:** ninguno nuevo.
