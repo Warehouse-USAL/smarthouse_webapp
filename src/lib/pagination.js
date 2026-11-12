@@ -45,13 +45,6 @@ export const fetchAllPages = async (url, params, key, normalizer) => {
   );
 };
 
-// Misma forma que fetchPage, sobre un array ya en memoria (mocks).
-export const paginate = (rows, { page = 1, size = MAX_PAGE_SIZE } = {}) => ({
-  items: rows.slice((page - 1) * size, page * size),
-  totalPages: Math.ceil(rows.length / size),
-  totalElements: rows.length,
-});
-
 // La UI filtra por día (yyyy-mm-dd, hora local); el backend espera instantes
 // ISO-8601 (Instant.parse) y los dos extremos son inclusivos.
 export const toInstantRange = ({ from, to, ...rest } = {}) => ({

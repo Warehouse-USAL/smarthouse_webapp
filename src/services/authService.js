@@ -11,64 +11,13 @@
 | - Manejo de JWT
 | - Requests autenticadas
 |
-| Cuando exista el backend:
-| - Reemplazar mock por fetch real
-| - Configurar URL desde .env
-| - Manejar refresh tokens si existen
-|
 */
 
-
-
-
-
-
-
-/*
-|--------------------------------------------------------------------------
-| FUTURA IMPLEMENTACIÓN REAL
-|--------------------------------------------------------------------------
-|
-| Cuando el backend esté listo:
-|
-| 1. Descomentar esta función
-| 2. Eliminar el mock superior
-| 3. Configurar VITE_API_BASE_URL
-|
-*/
-
-
-
-
-import { login as mockLogin } from "./pruebasMockUp";
-
-// Auth tiene su propio interruptor: VITE_USE_MOCK_AUTH. Así podemos tener
-// login contra backend real mientras el resto de la app sigue en mock.
-// Si VITE_USE_MOCK_AUTH no está seteado, cae al flag global VITE_USE_MOCK.
 const API_URL = import.meta.env.VITE_API_BASE_URL ?? "";
-const AUTH_MOCK_FLAG = import.meta.env.VITE_USE_MOCK_AUTH;
-const USE_MOCK =
-  AUTH_MOCK_FLAG !== undefined
-    ? AUTH_MOCK_FLAG === "true"
-    : import.meta.env.VITE_USE_MOCK === "true";
 
 export async function login(email, password) {
 
   try {
-
-    // fallback al mock si no hay backend configurado
-    if (USE_MOCK) {
-
-      const data = await mockLogin(email, password);
-
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-
-      return data;
-
-    }
-
-
 
     let response;
 
@@ -94,20 +43,13 @@ export async function login(email, password) {
 
     }
 
-    // backend caído / inalcanzable → fallback al mock
-    catch (networkError) {
+    // backend caído / inalcanzable: se informa, no se entra con datos falsos
+    catch {
 
-      console.warn(
-        "AUTH: backend inalcanzable, usando mock.",
-        networkError
-      );
-
-      const data = await mockLogin(email, password);
-
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-
-      return data;
+      throw {
+        code: "NETWORK_ERROR",
+        message: "No se pudo conectar con el servidor. Intentá de nuevo más tarde.",
+      };
 
     }
 
@@ -228,6 +170,33 @@ export function getUser() {
   return user
     ? JSON.parse(user)
     : null;
+
+}
+
+
+
+
+
+/*
+|--------------------------------------------------------------------------
+| UPDATE STORED USER
+|--------------------------------------------------------------------------
+|
+| Mezcla cambios en el usuario guardado al loguearse (ej. el nombre editado en
+| Mi perfil), para que el resto de la app lo muestre sin volver a loguearse.
+|
+*/
+
+export function updateStoredUser(patch) {
+
+  const user = getUser();
+
+  if (!user) return;
+
+  localStorage.setItem(
+    "user",
+    JSON.stringify({ ...user, ...patch })
+  );
 
 }
 

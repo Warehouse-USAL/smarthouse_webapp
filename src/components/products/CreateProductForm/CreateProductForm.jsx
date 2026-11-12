@@ -30,7 +30,6 @@ const EMPTY = {
   length: "",
   weight: "",
   specs: [],
-  active: true,
 };
 
 const buildInitial = (initial) => {
@@ -40,7 +39,6 @@ const buildInitial = (initial) => {
     name: initial.name ?? "",
     sku: initial.sku ?? "",
     category: initial.category ?? "",
-    active: initial.active ?? true,
     description: initial.description ?? "",
     images: initial.images ?? [],
     price:
@@ -104,7 +102,6 @@ const buildSubmitValues = (values, coverImageIndex) => ({
   name: values.name.trim(),
   description: values.description.trim(),
   category: values.category.trim(),
-  active: values.active,
   currency: CURRENCY,
   includesTaxes: values.includesTaxes,
   price: values.price,
@@ -297,19 +294,6 @@ export default function CreateProductForm({
             error={errors.category} required
           />
 
-          {/* ── Estado ── */}
-          <Select
-            name="active"
-            label="Estado"
-            value={values.active ? "true" : "false"}
-            onChange={(e) =>
-              setValues((v) => ({ ...v, active: e.target.value === "true" }))
-            }
-            options={[
-              { value: "true", label: "Activo" },
-              { value: "false", label: "Inactivo" },
-            ]}
-          />
           <div className="cpf-description">
             <label className="cpf-description__label" htmlFor="description">
               Descripción
@@ -522,8 +506,9 @@ export default function CreateProductForm({
 
       {!isEdit && (
         <p className="cpf-hint">
-          El producto se crea con stock 0 y sin ubicación. Asigná stock más
-          tarde desde la pantalla <strong>Asignación de stock</strong>.
+          El producto se crea con stock 0 y sin ubicación. El stock entra
+          después con un remito y se ubica desde{" "}
+          <strong>Asignación de stock</strong>.
         </p>
       )}
 

@@ -16,14 +16,12 @@ const draftFromPosition = (p) => ({
   idPosition: p.idPosition,
   positionName: p.positionName,
   sizeStockToSave: p.sizeStockToSave,
-  isActive: p.isActive ?? true,
   occupied: !!p.assignedProduct,
-  // Valores originales para detectar cambios.
+  // Valor original para detectar cambios.
   _size: p.sizeStockToSave,
-  _active: p.isActive ?? true,
 });
 
-// Editor de tamaños/estado por línea: se eligen zona y línea, y se editan TODAS
+// Editor de tamaños por línea: se eligen zona y línea, y se editan TODAS
 // sus posiciones de una sola vez. Reemplaza el viejo flujo de-a-una con dropdowns
 // en cascada.
 function PositionsEditBody({ onClose, onSaved, initialSelection }) {
@@ -85,8 +83,8 @@ function PositionsEditBody({ onClose, onSaved, initialSelection }) {
   return (
     <>
       <p className="positions-edit__subtitle">
-        Elegí una línea y ajustá el tamaño y el estado de cada posición. El tamaño
-        define qué unidad de almacenamiento acepta. Los cambios se aplican al guardar.
+        Elegí una línea y ajustá el tamaño de cada posición. El tamaño define qué
+        unidad de almacenamiento acepta. Los cambios se aplican al guardar.
       </p>
 
       <div className="positions-edit__pickers">
@@ -143,9 +141,10 @@ function LinePositionsTable({ idZone, idLine, positions, onSaved, onClose }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
-  const changed = drafts.filter(
-    (d) => d.sizeStockToSave !== d._size || d.isActive !== d._active
-  );
+  // No se ofrece desactivar posiciones: en el warehouse una posición inactiva
+  // es una posición borrada (el mapa solo muestra las activas), así que
+  // desaparecía de la configuración. Para quitar posiciones se usa "Líneas".
+  const changed = drafts.filter((d) => d.sizeStockToSave !== d._size);
 
   const updateDraft = (idPosition, patch) => {
     setDrafts((list) => list.map((d) => (d.idPosition === idPosition ? { ...d, ...patch } : d)));
@@ -166,7 +165,6 @@ function LinePositionsTable({ idZone, idLine, positions, onSaved, onClose }) {
       for (const d of changed) {
         await warehouseConfigService.updatePosition(idZone, idLine, d.idPosition, {
           sizeStockToSave: d.sizeStockToSave,
-          isActive: d.isActive,
         });
       }
       const fresh = await warehouseConfigService.get();
@@ -218,11 +216,10 @@ function LinePositionsTable({ idZone, idLine, positions, onSaved, onClose }) {
           <span role="columnheader">Posición</span>
           <span role="columnheader">Tamaño</span>
           <span role="columnheader">Acepta</span>
-          <span role="columnheader">Estado</span>
         </div>
         <div className="positions-edit__rows">
           {drafts.map((d) => {
-            const rowChanged = d.sizeStockToSave !== d._size || d.isActive !== d._active;
+            const rowChanged = d.sizeStockToSave !== d._size;
             return (
               <div
                 className={`positions-edit__row ${rowChanged ? "positions-edit__row--changed" : ""}`}
@@ -246,16 +243,6 @@ function LinePositionsTable({ idZone, idLine, positions, onSaved, onClose }) {
                 </span>
                 <span className="positions-edit__unit" role="cell">
                   {STORAGE_UNIT_LABEL[SIZE_TO_UNIT[d.sizeStockToSave]]}
-                </span>
-                <span role="cell">
-                  <Select
-                    value={d.isActive ? "true" : "false"}
-                    onChange={(e) => updateDraft(d.idPosition, { isActive: e.target.value === "true" })}
-                    options={[
-                      { value: "true", label: "Activa" },
-                      { value: "false", label: "Inactiva" },
-                    ]}
-                  />
                 </span>
               </div>
             );

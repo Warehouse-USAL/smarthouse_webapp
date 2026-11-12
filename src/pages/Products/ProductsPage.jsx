@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
 import ActionCard from "../../components/ui/ActionCard/ActionCard";
@@ -9,11 +9,16 @@ import Icon from "../../components/ui/Icon/Icon";
 import TablePanel, { TablePanelTable } from "../../components/ui/TablePanel/TablePanel";
 import Spinner from "../../components/ui/Spinner/Spinner";
 import EmptyState from "../../components/ui/EmptyState/EmptyState";
+import LoadError from "../../components/ui/LoadError/LoadError";
 import Pagination from "../../components/ui/Pagination/Pagination";
 import Modal from "../../components/ui/Modal/Modal";
 import Badge from "../../components/ui/Badge/Badge";
 import CreateProductForm from "../../components/products/CreateProductForm/CreateProductForm";
-import { productService } from "../../services/productService";
+import RestockOrderModal from "../../components/stock/RestockOrderModal/RestockOrderModal";
+import ProductSummaryCard from "../../components/stock/ProductSummaryCard/ProductSummaryCard";
+import StatusBanner from "../../components/ui/StatusBanner/StatusBanner";
+import SortableHeader from "../../components/ui/SortableHeader/SortableHeader";
+import { productService, searchFieldFor } from "../../services/productService";
 import { warehouseConfigService } from "../../services/warehouseConfigService";
 import { stockAdjustmentService } from "../../services/stockAdjustmentService";
 import {
@@ -22,9 +27,10 @@ import {
   normalizeCancelledOrder,
 } from "../../services/orderService";
 import { getUser } from "../../services/authService";
-import { errorText } from "../../lib/apiError";
+import { errorMessage, errorText } from "../../lib/apiError";
 import { can } from "../../lib/permissions";
-import { needsRestock } from "../../lib/restockSuggestion";
+import { needsRestock, toRestockAlert } from "../../lib/restockSuggestion";
+import { restockService } from "../../services/restockService";
 import { displayCode } from "../../lib/pagination";
 import "./ProductsPage.css";
 
@@ -35,9 +41,7 @@ const PAGE_SIZE_OPTIONS = [
 ];
 
 // Tipos de ajuste manual. "conteo" setea el valor final absoluto; el resto
-// son deltas (+/-) sobre el stock de la posición. El motivo/auditoría no
-// existe en el backend (UpdatePositionRequest no tiene campo), así que no se
-// pide: queda documentado como gap en docs/sprint-gestion-ventas-stock.md §10.
+// son deltas (+/-) sobre el stock de la posición.
 const ADJUST_TYPES = [
   { value: "entrada", label: "Entrada (+)" },
   { value: "merma", label: "Merma (-)" },
@@ -45,6 +49,17 @@ const ADJUST_TYPES = [
   { value: "vencimiento", label: "Vencimiento (-)" },
   { value: "conteo", label: "Conteo (stock final)" },
 ];
+
+// Tope de `current_stock` en el backend (Integer de Java).
+const MAX_POSITION_STOCK = 2147483647;
+
+// Las reducciones se mandan como "restá N" (POST stock-adjustments) con el tipo
+// del backend; entrada y conteo fijan el stock final con PATCH.
+const DECREASE_TYPE = {
+  merma: "MANUAL_DECREASE",
+  rotura: "DAMAGE",
+  vencimiento: "MANUAL_DECREASE",
+};
 
 // Etiquetas del enum StockAdjustmentType que devuelve el backend en el historial.
 const ADJUSTMENT_TYPE_LABEL = {
@@ -56,6 +71,10 @@ const ADJUSTMENT_TYPE_LABEL = {
 };
 
 const HISTORY_PAGE_SIZE = 10;
+
+// Valor del filtro de ubicación para "Sin ubicación" (no choca con un zoneCode).
+const NO_LOCATION = "__sin_ubicacion__";
+
 
 const formatDateTime = (iso) =>
   iso
@@ -91,16 +110,24 @@ const fullLocationLabel = (loc) => {
 export default function ProductsPage() {
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
-  const [unassignedCount, setUnassignedCount] = useState(null);
+  const [pendingLocationCount, setPendingLocationCount] = useState(null);
   const [zones, setZones] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
-  const [zone, setZone] = useState("");
+  // "" = todas, NO_LOCATION = sin ubicación, o el zoneCode de una zona.
+  const [locationFilter, setLocationFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  // Orden de la tabla: { field, dir } o null (más nuevos primero). Lo aplica el
+  // backend sobre todo el catálogo, no solo sobre la página visible.
+  const [sort, setSort] = useState(null);
+  // Filtros escondidos detrás del botón "Filtros", como en Gestión de ventas.
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleting, setDeleting] = useState(null);
@@ -116,11 +143,19 @@ export default function ProductsPage() {
   const [adjustQty, setAdjustQty] = useState("");
   const [adjustReason, setAdjustReason] = useState("");
   const [adjustSubmitting, setAdjustSubmitting] = useState(false);
+  // Error del backend al aplicar el ajuste; se muestra debajo del stock
+  // resultante y se limpia al cambiar posición, tipo o cantidad.
+  const [adjustError, setAdjustError] = useState(null);
   // Resultado de una reducción: { cancelled, notCancelled } de failShortOfStock.
   const [reductionResult, setReductionResult] = useState(null);
 
   // Historial/auditoría de ajustes (GET /products/:id/stock-adjustments).
   const [historyProduct, setHistoryProduct] = useState(null);
+
+  // Orden de restock desde la fila: el producto ya viene elegido y la sugerida
+  // sale de la misma cadena que Gestión de stock (restockService.alertFor).
+  const [restockAlert, setRestockAlert] = useState(null);
+  const [feedback, setFeedback] = useState(null);
   const [historyPage, setHistoryPage] = useState(1);
   const [historyResult, setHistoryResult] = useState(null);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -134,6 +169,9 @@ export default function ProductsPage() {
   const canDelete = can("product.delete");
   const canAssignStock = can("stock.assign");
   const canViewStockHistory = can("stock.history");
+  const canCreateRestock = can("restock.create");
+  // Filtrar por zona / sin ubicación necesita GET /warehouse/positions.
+  const canFilterLocation = can("warehouse.read");
 
 
   // Carga de categorías — async para que sea intercambiable con el backend real
@@ -145,52 +183,108 @@ export default function ProductsPage() {
     return () => { cancelled = true; };
   }, []);
 
-  // Carga de zonas para el filtro
+  // Carga de zonas para el filtro (solo roles que ven el warehouse)
   useEffect(() => {
+    if (!canFilterLocation) return undefined;
     let cancelled = false;
     warehouseConfigService.get().then((data) => {
       if (!cancelled) setZones(data.zones || []);
     });
     return () => { cancelled = true; };
-  }, []);
+  }, [canFilterLocation]);
 
-  // Carga de productos — se re-ejecuta cuando cambian los filtros de API
+  // Solo se muestra la respuesta del último pedido: cambiar de página o de
+  // filtro rápido no puede pisar la tabla con una respuesta vieja.
+  const lastRequest = useRef(0);
+
+  // Carga de la página visible. Paginación en el servidor (productService.listPage):
+  // se piden solo las filas de la página y sus ubicaciones.
   const fetchProducts = useCallback(async () => {
+    const requestId = ++lastRequest.current;
     setLoading(true);
     setError(null);
     try {
-      // No filtramos por estado: se listan tanto activos como inactivos.
-      const list = await productService.list({
-        search: search || undefined,
+      const searchText = search.trim();
+      const filters = {
+        page,
+        size: pageSize,
+        searchField: searchFieldFor(searchText),
+        search: searchText || undefined,
         category: categoryFilter || undefined,
-      });
-      // GET /products no trae ubicación; se consulta aparte por producto para
-      // poder filtrar por zona en cliente. Un producto puede estar en varias.
+        // Solo activos: un producto dado de baja no se muestra en ningún lado.
+        active: true,
+        sort: sort ?? undefined,
+      };
+      if (locationFilter) {
+        // Zona / sin ubicación: el backend no filtra productos por ubicación,
+        // así que se resuelve a una lista de ids con las posiciones.
+        const zonesByProduct = await warehouseConfigService.getProductZones();
+        if (locationFilter === NO_LOCATION) {
+          filters.excludeIds = [...zonesByProduct.keys()];
+        } else {
+          filters.includeIds = [...zonesByProduct]
+            .filter(([, productZones]) => productZones.has(locationFilter))
+            .map(([productId]) => productId);
+        }
+      }
+      const result = await productService.listPage(filters);
+      // GET /products/:id no trae ubicación; se consulta aparte para las filas
+      // visibles. Un producto puede estar en varias.
       const withLocations = await Promise.all(
-        list.map(async (p) => {
+        result.items.map(async (p) => {
           const locations = await productService.getLocations(p.id).catch(() => []);
           return { ...p, locations, location: locations[0] ?? null };
         })
       );
-      setProducts(withLocations);
-      // El contador solo es confiable sin filtros y con el catálogo completo:
-      // `list` trae una página de hasta 50 productos.
-      if (!search && !categoryFilter) {
-        setUnassignedCount(
-          list.length < 50
-            ? withLocations.filter((p) => p.locations.length === 0).length
-            : null
-        );
+      if (requestId !== lastRequest.current) return;
+      // Tras eliminar puede quedar una página menos: se vuelve a la última.
+      if (result.totalPages > 0 && page > result.totalPages) {
+        setPage(result.totalPages);
+        return;
       }
+      setProducts(withLocations);
+      setTotalPages(Math.max(1, result.totalPages));
+      setTotalElements(result.totalElements);
     } catch (err) {
-      setError(
-        err.response?.data?.error?.message ||
-        "No pudimos cargar los productos."
-      );
+      if (requestId !== lastRequest.current) return;
+      // Los límites del filtro por ubicación llegan como Error propio, con su
+      // explicación; un fallo del backend muestra el aviso genérico de conexión.
+      setError(err.isAxiosError ? true : err.message || true);
     } finally {
-      setLoading(false);
+      if (requestId === lastRequest.current) setLoading(false);
     }
-  }, [search, categoryFilter]);
+  }, [page, pageSize, search, categoryFilter, locationFilter, sort]);
+
+  // Cada clic en un encabezado: A→Z, Z→A y vuelta al orden por defecto.
+  const toggleSort = (field) => {
+    setSort((prev) =>
+      prev?.field !== field
+        ? { field, dir: "asc" }
+        : prev.dir === "asc"
+          ? { field, dir: "desc" }
+          : null
+    );
+    setPage(1);
+  };
+
+  // Contador de la tarjeta "Asignar stock": todo lo pendiente de ubicación
+  // (remitos y reubicaciones).
+  const fetchPendingLocationCount = useCallback(async () => {
+    if (!canAssignStock) return;
+    try {
+      setPendingLocationCount((await restockService.listPendingLocation()).length);
+    } catch {
+      setPendingLocationCount(null);
+    }
+  }, [canAssignStock]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- carga del contador contra el backend
+    fetchPendingLocationCount();
+  }, [fetchPendingLocationCount]);
+
+  // Tras crear, editar, eliminar o ajustar: la página y el contador.
+  const reloadProducts = () => Promise.all([fetchProducts(), fetchPendingLocationCount()]);
 
   useEffect(() => {
     let cancelled = false;
@@ -222,7 +316,7 @@ export default function ProductsPage() {
       .catch(() => {
         if (!stale) {
           setHistoryResult(null);
-          setHistoryError("No se pudo cargar el historial de ajustes. Revisá la conexión con el backend.");
+          setHistoryError(true);
         }
       })
       .finally(() => {
@@ -231,24 +325,13 @@ export default function ProductsPage() {
     return () => { stale = true; };
   }, [historyProduct, historyPage]);
 
-  // El filtro de zona se aplica en cliente porque el contrato no expone
-  // un query param de zona en GET /products. Se compara contra zone_code de
-  // cualquiera de las ubicaciones del producto.
-  const filtered = useMemo(() => {
-    if (!zone) return products;
-    return products.filter((p) =>
-      (p.locations ?? []).some((loc) => loc.zoneCode === zone)
-    );
-  }, [products, zone]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const pageStart = (page - 1) * pageSize;
-  const pageItems = filtered.slice(pageStart, pageStart + pageSize);
 
   // zone_code es la clave del contrato; no hay campo "name" en Zone
-  const zoneOptions = useMemo(
+  const locationOptions = useMemo(
     () => [
-      { value: "", label: "Todas las zonas" },
+      { value: "", label: "Todas" },
+      { value: NO_LOCATION, label: "Sin ubicación" },
       ...zones.map((z) => ({
         value: z.zoneCode,
         label: `Zona ${z.zoneCode}`,
@@ -268,7 +351,7 @@ export default function ProductsPage() {
     try {
       await productService.create(values);
       setCreateOpen(false);
-      await fetchProducts();
+      await reloadProducts();
     } catch (err) {
       alert(
         err.response?.data?.error?.message ||
@@ -285,7 +368,7 @@ export default function ProductsPage() {
     try {
       await productService.update(editing.id, values);
       setEditing(null);
-      await fetchProducts();
+      await reloadProducts();
     } catch (err) {
       alert(
         err.response?.data?.error?.message ||
@@ -303,7 +386,7 @@ export default function ProductsPage() {
       await productService.remove(deleting.id);
       setDeleting(null);
       setDeleteStep(1);
-      await fetchProducts();
+      await reloadProducts();
     } catch (err) {
       alert(
         err.response?.data?.error?.message ||
@@ -332,6 +415,20 @@ export default function ProductsPage() {
     setAdjustType("entrada");
     setAdjustQty("");
     setAdjustReason("");
+    setAdjustError(null);
+  };
+
+  // Si la sugerencia en vivo falla, el modal abre igual sin cantidad sugerida:
+  // el operador la escribe a mano, como cuando el backend no la calcula.
+  const openRestock = async (product) => {
+    setFeedback(null);
+    let alertRow;
+    try {
+      alertRow = await restockService.alertFor(product);
+    } catch {
+      alertRow = toRestockAlert(product);
+    }
+    setRestockAlert(alertRow);
   };
 
   const openHistory = (product) => {
@@ -366,8 +463,9 @@ export default function ProductsPage() {
   // Stock resultante del ajuste + validación previa al PATCH. Sin cantidad
   // cargada no hay error (el botón queda deshabilitado hasta que haya un next).
   // Una reducción puede dejar el stock por debajo de la reserva o del mínimo:
-  // registra una pérdida real. El backend solo rechaza superar la capacidad
-  // de la posición (400), que se muestra en el alert del handleAdjust.
+  // registra una pérdida real. El backend rechaza superar la capacidad de la
+  // posición o descontar más que su stock real (400), y se muestra en el alert
+  // del handleAdjust.
   const computeAdjust = () => {
     if (adjustQty === "") return { next: null };
     const qty = Number(adjustQty);
@@ -391,6 +489,14 @@ export default function ProductsPage() {
         : adjustType === "conteo"
           ? qty
           : adjustCurrent - qty;
+    // current_stock es un int de Java en el backend: por encima de ese tope el
+    // PATCH ni se lee (MALFORMED_REQUEST) y no llega a validar la capacidad.
+    if (next > MAX_POSITION_STOCK) {
+      return {
+        next: null,
+        error: "La cantidad es demasiado grande. Ingresá una cantidad menor.",
+      };
+    }
     return { next };
   };
 
@@ -401,6 +507,7 @@ export default function ProductsPage() {
     const { next, error } = computeAdjust();
     if (error || next == null) return;
     setAdjustSubmitting(true);
+    setAdjustError(null);
     const typeLabel = ADJUST_TYPES.find((t) => t.value === adjustType).label;
     // Motivo escrito por el operador; si lo deja vacío, se guarda un resumen
     // automático para que el historial nunca quede sin contexto.
@@ -413,14 +520,37 @@ export default function ProductsPage() {
     try {
       // El backend recalcula físico/reserva/disponible del producto desde las
       // posiciones; el solo hecho de setear acá el stock es el ajuste.
-      response = await warehouseConfigService.updatePosition(
-        adjustLocation.idZone,
-        adjustLocation.idLine,
-        adjustLocation.idPosition,
-        { currentStock: next, reason }
-      );
+      const decreaseType = DECREASE_TYPE[adjustType];
+      response = decreaseType
+        ? await stockAdjustmentService.createDecrease(adjustLocation.idPosition, {
+            quantity: adjustCurrent - next,
+            type: decreaseType,
+            reason,
+          })
+        : await warehouseConfigService.updatePosition(
+            adjustLocation.idZone,
+            adjustLocation.idLine,
+            adjustLocation.idPosition,
+            { currentStock: next, reason }
+          );
     } catch (err) {
-      alert(errorText(err, {}, "No pudimos aplicar el ajuste de stock."));
+      // STOCK_EXCEEDS_CAPACITY llega con el mensaje en inglés ("Stock 10553
+      // exceeds capacity 563"): se rescata la capacidad para el texto. La valida
+      // el backend (capacidad máxima y volumen), así que el front no la conoce.
+      const capacity = errorMessage(err)?.match(/capacity (\d+)/)?.[1];
+      setAdjustError(
+        errorText(
+          err,
+          {
+            QUANTITY_EXCEEDS_POSITION_STOCK:
+              "La cantidad supera el stock real de la posición: puede que otro usuario lo haya cambiado. Cerrá el ajuste y volvé a abrirlo para ver el stock actualizado.",
+            STOCK_EXCEEDS_CAPACITY: capacity
+              ? `La posición admite hasta ${capacity} unidades de este producto y quedaría con ${next}. Ingresá una cantidad menor.`
+              : "La cantidad supera la capacidad de la posición. Ingresá una cantidad menor.",
+          },
+          "No pudimos aplicar el ajuste de stock."
+        )
+      );
       setAdjustSubmitting(false);
       return;
     }
@@ -450,7 +580,7 @@ export default function ProductsPage() {
         );
       }
       setAdjusting(null);
-      await fetchProducts();
+      await reloadProducts();
     } catch (err) {
       alert(
         "El ajuste de stock se registró, pero no pudimos actualizar las órdenes de compra afectadas: " +
@@ -478,7 +608,7 @@ export default function ProductsPage() {
               icon="plus"
               title="Dar de alta producto"
               description="Registrá un producto nuevo en el catálogo."
-              note="Después podés asignarle una ubicación en el warehouse."
+              note="El stock entra después, con una orden de restock y su remito."
               variant="yellow"
               onClick={() => setCreateOpen(true)}
             />
@@ -487,13 +617,13 @@ export default function ProductsPage() {
             <ActionCard
               icon="pin"
               title="Asignar stock"
-              description="Ubicá los productos nuevos y la mercadería de restock."
+              description="Ubicá la mercadería recibida con remito y la que hay que reubicar."
               note={
-                unassignedCount === null
+                pendingLocationCount === null
                   ? null
-                  : unassignedCount === 0
-                    ? "Todos los productos tienen ubicación."
-                    : `${unassignedCount} producto${unassignedCount === 1 ? "" : "s"} sin ubicación.`
+                  : pendingLocationCount === 0
+                    ? "No hay mercadería pendiente de ubicación."
+                    : `${pendingLocationCount} pendiente${pendingLocationCount === 1 ? "" : "s"} de ubicación.`
               }
               variant="blue"
               onClick={() => navigate("/asignacion-stock")}
@@ -502,36 +632,50 @@ export default function ProductsPage() {
         </div>
       )}
 
+      {feedback && (
+        <StatusBanner
+          statusBannerState="status-banner-exito"
+          icon={<Icon name="check" size={16} />}
+          text={feedback}
+        />
+      )}
+
       <TablePanel
         search={{
           placeholder: "Buscar por nombre o SKU",
           value: search,
           onChange: (e) => { setSearch(e.target.value); setPage(1); },
         }}
-        filtersClassName="table-panel__filters--two"
+        filtersOpen={filtersOpen}
+        onToggleFilters={() => setFiltersOpen((v) => !v)}
+        filtersClassName="table-panel__filters--auto"
         filters={
-          <>
-            <Select
-              label="Zonas"
-              value={zone}
-              onChange={(e) => { setZone(e.target.value); setPage(1); }}
-              options={zoneOptions}
-            />
-            <Select
-              label="Categoría"
-              value={categoryFilter}
-              onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
-              options={categoryOptions}
-            />
-          </>
+          filtersOpen && (
+            <>
+              {canFilterLocation && (
+                <Select
+                  label="Ubicación"
+                  value={locationFilter}
+                  onChange={(e) => { setLocationFilter(e.target.value); setPage(1); }}
+                  options={locationOptions}
+                />
+              )}
+              <Select
+                label="Categoría"
+                value={categoryFilter}
+                onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
+                options={categoryOptions}
+              />
+            </>
+          )
         }
         footer={
-          !loading && !error && filtered.length > 0 && (
+          !loading && !error && products.length > 0 && (
             <>
               <span className="table-panel__showing">
                 Mostrando {pageStart + 1} a{" "}
-                {Math.min(pageStart + pageSize, filtered.length)} de{" "}
-                {filtered.length} productos
+                {Math.min(pageStart + pageSize, totalElements)} de{" "}
+                {totalElements} productos
               </span>
               <Pagination current={page} total={totalPages} onChange={setPage} />
               <Select
@@ -548,17 +692,11 @@ export default function ProductsPage() {
           <Spinner label="Cargando productos…" />
         </div>
       ) : error ? (
-        <EmptyState
-          icon="info"
-          title="Algo salió mal"
-          description={error}
-          action={
-            <Button variant="secondary" onClick={fetchProducts}>
-              Reintentar
-            </Button>
-          }
+        <LoadError
+          description={typeof error === "string" ? error : undefined}
+          onRetry={fetchProducts}
         />
-      ) : filtered.length === 0 ? (
+      ) : products.length === 0 ? (
         <EmptyState
           icon="box"
           title="No hay productos"
@@ -579,21 +717,25 @@ export default function ProductsPage() {
             <thead>
               <tr>
                 <th>Imagen</th>
-                <th>SKU</th>
-                <th>Nombre</th>
-                <th>Categoría</th>
+                <SortableHeader label="SKU" field="sku" sort={sort} onSort={toggleSort} />
+                <SortableHeader label="Nombre" field="name" sort={sort} onSort={toggleSort} />
+                <SortableHeader
+                  label="Categoría"
+                  field="category"
+                  sort={sort}
+                  onSort={toggleSort}
+                />
                 <th>Precio</th>
                 <th>Stock físico</th>
                 <th>Stock reservado</th>
                 <th>Stock disponible</th>
-                <th>Punto de reposición</th>
                 <th>Ubicación</th>
                 <th>Reponer</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {pageItems.map((product) => {
+              {products.map((product) => {
                 const first = product.location;
                 const firstLabel = first
                   ? [first.zoneCode, first.positionName].filter(Boolean).join(" · ")
@@ -603,7 +745,7 @@ export default function ProductsPage() {
                   <tr key={product.id || product.sku}>
                     <td data-label="Imagen" className="products-table__img">
                       <span className="products-table__thumb">
-                        <Icon name="box" size={16} />
+                        <Icon name="box" size={20} />
                         {product.imageUrl && (
                           <img src={product.imageUrl} alt="" loading="lazy" />
                         )}
@@ -612,40 +754,34 @@ export default function ProductsPage() {
                     <td data-label="SKU" className="products-table__sku">
                       {product.sku}
                     </td>
-                    <td data-label="Nombre">
-                      <span className="products-table__name" title={product.name}>
-                        {product.name}
-                      </span>
+                    <td data-label="Nombre" className="products-table__name">
+                      {product.name}
                     </td>
                     <td data-label="Categoría">{categoryLabel(product.category)}</td>
                     <td data-label="Precio" className="products-table__num">
                       ${formatPrice(product.price)}
                     </td>
                     <td data-label="Stock físico" className="products-table__num">
-                      {product.stock?.physical ?? 0}{" "}
-                      <span className="products-table__unit">unidades</span>
+                      <span>
+                        {product.stock?.physical ?? 0}{" "}
+                        <span className="products-table__unit">unidades</span>
+                      </span>
                     </td>
                     <td data-label="Stock reservado" className="products-table__num">
-                      {product.reservedStock}{" "}
-                      <span className="products-table__unit">unidades</span>
+                      <span>
+                        {product.reservedStock}{" "}
+                        <span className="products-table__unit">unidades</span>
+                      </span>
                     </td>
                     <td
                       data-label="Stock disponible"
                       className="products-table__num"
                       title="Disponible = Stock físico − Stock reservado"
                     >
-                      {product.availableStock}{" "}
-                      <span className="products-table__unit">unidades</span>
-                    </td>
-                    <td data-label="Punto de reposición" className="products-table__num">
-                      {product.reorderPoint != null ? (
-                        <>
-                          {product.reorderPoint}{" "}
-                          <span className="products-table__unit">unidades</span>
-                        </>
-                      ) : (
-                        "Sin calcular"
-                      )}
+                      <span>
+                        {product.availableStock}{" "}
+                        <span className="products-table__unit">unidades</span>
+                      </span>
                     </td>
                     <td data-label="Ubicación" className="products-table__loc">
                       {first ? (
@@ -662,7 +798,14 @@ export default function ProductsPage() {
                         "Sin asignar"
                       )}
                     </td>
-                    <td data-label="Reponer">
+                    <td
+                      data-label="Reponer"
+                      title={
+                        product.reorderPoint != null
+                          ? `Punto de reposición: ${product.reorderPoint} unidades`
+                          : "Punto de reposición: sin calcular"
+                      }
+                    >
                       <Badge variant={underMinimum ? "danger" : "success"} dot>
                         {underMinimum ? "Sí" : "No"}
                       </Badge>
@@ -700,6 +843,17 @@ export default function ProductsPage() {
                             title="Historial de ajustes"
                           >
                             <Icon name="list" size={15} />
+                          </button>
+                        )}
+                        {canCreateRestock && (
+                          <button
+                            type="button"
+                            className="products-table__action"
+                            onClick={() => openRestock(product)}
+                            aria-label="Generar orden de restock"
+                            title="Generar orden de restock"
+                          >
+                            <Icon name="cart" size={15} />
                           </button>
                         )}
                         {canDelete && (
@@ -810,7 +964,7 @@ export default function ProductsPage() {
         open={!!adjusting}
         onClose={() => !adjustSubmitting && setAdjusting(null)}
         title="Ajustar stock"
-        size="sm"
+        size="md"
         footer={
           adjustLocations.length === 0 ? (
             <Button variant="secondary" onClick={() => setAdjusting(null)}>
@@ -840,58 +994,80 @@ export default function ProductsPage() {
           )
         }
       >
-        {adjusting &&
-          (adjustLocations.length === 0 ? (
-            <p className="products-page__adjust-text">
-              Este producto no tiene posiciones asignadas. El stock se carga
-              desde la pantalla Asignación de stock.
-            </p>
-          ) : (
-            <div className="products-page__adjust">
-              <p className="products-page__adjust-product">
-                <strong>{adjusting.name}</strong> · SKU {adjusting.sku}
+        {adjusting && (
+          <div className="products-page__adjust">
+            <ProductSummaryCard
+              imageUrl={adjusting.imageUrl}
+              name={adjusting.name}
+              sku={adjusting.sku}
+              category={adjusting.category}
+            />
+            {adjustLocations.length === 0 ? (
+              <p className="products-page__adjust-text">
+                Este producto no tiene posiciones asignadas. El stock entra con un
+                remito y se ubica desde la pantalla Asignación de stock.
               </p>
-              <Select
-                label="Posición"
-                value={adjustPosition}
-                onChange={(e) => setAdjustPosition(e.target.value)}
-                options={adjustLocations.map((loc) => ({
-                  value: loc.idPosition,
-                  label: `${fullLocationLabel(loc)} (${loc.currentStock} un.)`,
-                }))}
-              />
-              <Select
-                label="Tipo de ajuste"
-                value={adjustType}
-                onChange={(e) => setAdjustType(e.target.value)}
-                options={ADJUST_TYPES}
-              />
-              <Input
-                label={
-                  adjustType === "conteo" ? "Stock final contado" : "Cantidad de unidades"
-                }
-                type="number"
-                min={0}
-                step={1}
-                value={adjustQty}
-                onChange={(e) => setAdjustQty(e.target.value)}
-                error={adjustResult.error}
-              />
-              <Input
-                label="Motivo (opcional)"
-                type="text"
-                placeholder="Ej. rotura de caja, conteo físico"
-                maxLength={500}
-                hint="Se guarda en el historial de ajustes."
-                value={adjustReason}
-                onChange={(e) => setAdjustReason(e.target.value)}
-              />
-              <p className="products-page__adjust-preview">
-                Stock actual: <strong>{adjustCurrent}</strong> → Stock
-                resultante: <strong>{adjustResult.next ?? "—"}</strong>
-              </p>
-            </div>
-          ))}
+            ) : (
+              <>
+                <Select
+                  label="Posición"
+                  value={adjustPosition}
+                  onChange={(e) => {
+                    setAdjustPosition(e.target.value);
+                    setAdjustError(null);
+                  }}
+                  options={adjustLocations.map((loc) => ({
+                    value: loc.idPosition,
+                    label: `${fullLocationLabel(loc)} (${loc.currentStock} un.)`,
+                  }))}
+                />
+                <Select
+                  label="Tipo de ajuste"
+                  value={adjustType}
+                  onChange={(e) => {
+                    setAdjustType(e.target.value);
+                    setAdjustError(null);
+                  }}
+                  options={ADJUST_TYPES}
+                />
+                <Input
+                  label={
+                    adjustType === "conteo" ? "Stock final contado" : "Cantidad de unidades"
+                  }
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={adjustQty}
+                  onChange={(e) => {
+                    setAdjustQty(e.target.value);
+                    setAdjustError(null);
+                  }}
+                  error={adjustResult.error}
+                />
+                <Input
+                  label="Motivo (opcional)"
+                  type="text"
+                  placeholder="Ej. rotura de caja, conteo físico"
+                  maxLength={500}
+                  hint="Se guarda en el historial de ajustes."
+                  value={adjustReason}
+                  onChange={(e) => setAdjustReason(e.target.value)}
+                />
+                <p className="products-page__adjust-preview">
+                  Stock actual: <strong>{adjustCurrent}</strong> → Stock
+                  resultante: <strong>{adjustResult.next ?? "—"}</strong>
+                </p>
+                {adjustError && (
+                  <StatusBanner
+                    statusBannerState="status-banner-error"
+                    icon={<Icon name="alert" size={16} />}
+                    text={adjustError}
+                  />
+                )}
+              </>
+            )}
+          </div>
+        )}
       </Modal>
 
       <Modal
@@ -951,7 +1127,7 @@ export default function ProductsPage() {
       <Modal
         open={!!historyProduct}
         onClose={closeHistory}
-        title={historyProduct ? `Historial de ajustes — ${historyProduct.name}` : ""}
+        title="Historial de ajustes"
         subtitle="Quién ajustó el stock, cuándo y por qué, en todas las posiciones del producto."
         size="lg"
         footer={
@@ -960,12 +1136,22 @@ export default function ProductsPage() {
           </Button>
         }
       >
+        {historyProduct && (
+          <div className="products-page__history-product">
+            <ProductSummaryCard
+              imageUrl={historyProduct.imageUrl}
+              name={historyProduct.name}
+              sku={historyProduct.sku}
+              category={historyProduct.category}
+            />
+          </div>
+        )}
         {historyLoading ? (
           <div className="products-page__loading">
             <Spinner label="Cargando historial…" />
           </div>
         ) : historyError ? (
-          <p className="products-page__adjust-text">{historyError}</p>
+          <LoadError onRetry={() => setHistoryProduct({ ...historyProduct })} />
         ) : !historyResult || historyResult.items.length === 0 ? (
           <EmptyState
             icon="list"
@@ -1026,6 +1212,15 @@ export default function ProductsPage() {
           </>
         )}
       </Modal>
+      <RestockOrderModal
+        open={restockAlert !== null}
+        alert={restockAlert}
+        onClose={() => setRestockAlert(null)}
+        onCreated={async () => {
+          setFeedback("Orden de restock creada correctamente.");
+          await reloadProducts();
+        }}
+      />
     </div>
   );
 }

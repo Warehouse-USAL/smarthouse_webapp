@@ -29,22 +29,6 @@
   max-width: 140px;
 }
 
-.vehicles-table__action {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  color: var(--color-primary-dark);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-.vehicles-table__action:hover {
-  color: var(--color-text-primary);
-}
-
 .vehicles-page__create-form {
   display: flex;
   flex-direction: column;

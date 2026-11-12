@@ -67,7 +67,7 @@
 .positions-edit__head,
 .positions-edit__row {
   display: grid;
-  grid-template-columns: minmax(120px, 1.4fr) minmax(120px, 1fr) minmax(90px, 0.9fr) minmax(110px, 1fr);
+  grid-template-columns: minmax(120px, 1.4fr) minmax(120px, 1fr) minmax(90px, 0.9fr);
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-2) var(--space-4);
@@ -157,9 +157,7 @@
   .positions-edit__pickers { grid-template-columns: 1fr; }
   .positions-edit__head { display: none; }
   .positions-edit__row {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     row-gap: var(--space-2);
   }
-  .positions-edit__name { grid-column: 1 / -1; }
-  .positions-edit__unit { grid-column: 1 / -1; }
 }

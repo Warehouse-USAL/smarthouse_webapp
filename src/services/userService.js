@@ -13,7 +13,11 @@
 |   PATCH  /users/:id             UpdateUserRequest  { name?, role?, active?, supplier? }   ← modificación
 |   POST   /users/:id/reset-password   { new_password }                          (204)
 |   POST   /users/me/change-password   { current_password, new_password }        (self)
-|   PATCH  /users/me                   { name, address }                         (self)
+|   PATCH  /users/me                   { name?, address? } → UserResponse        (self)
+|
+| No existe GET /users/me (pedido en docs/nuevos_requisitos.md) y GET /users/:id
+| es solo admin: el perfil propio se lee con PATCH /users/me y cuerpo vacío
+| (ver getMe).
 |
 | El backend serializa en snake_case (JacksonConfig SNAKE_CASE). Este service
 | es el único dueño de la traducción camelCase (UI) ↔ snake_case (cable):
@@ -27,10 +31,7 @@
 */
 
 import { apiClient } from "../lib/apiClient";
-import { userMockService } from "./mocks/userMockService";
-
-// Backend same-origin vía proxy de Vite: el único interruptor es el flag.
-const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
+import { fetchAllPages } from "../lib/pagination";
 
 /*
 |--------------------------------------------------------------------------
@@ -81,13 +82,6 @@ const normalizePagination = (raw, fallbackSize) => {
 
 export const userService = {
   async list({ role, isActive, page = 0, size = 10 } = {}) {
-    if (USE_MOCK) {
-      const data = await userMockService.list({ role, isActive, page, size });
-      return {
-        users: (data.users || []).map(normalize),
-        pagination: normalizePagination(data.pagination, size),
-      };
-    }
 
     const params = { page, size };
     if (role) params.role = role;
@@ -100,14 +94,18 @@ export const userService = {
     };
   },
 
+  // Todos los usuarios (hasta el tope de fetchAllPages), para resolver nombres
+  // a partir de ids. El backend recorta `size` a 50 por página.
+  async listAll() {
+    return fetchAllPages("/users", {}, "users", normalize);
+  },
+
   async get(id) {
-    if (USE_MOCK) return normalize(await userMockService.get(id));
     const { data } = await apiClient.get(`/users/${id}`);
     return normalize(data);
   },
 
   async create({ email, name, role, initialPassword, supplier }) {
-    if (USE_MOCK) return normalize(await userMockService.create({ email, name, role, initialPassword, supplier }));
     const { data } = await apiClient.post("/users", {
       email,
       name,
@@ -121,7 +119,6 @@ export const userService = {
   // PATCH parcial: solo se mandan los campos presentes. El backend ignora los
   // null/ausentes y deja el valor previo (UpdateUserRequest).
   async update(id, { name, role, active, supplier } = {}) {
-    if (USE_MOCK) return normalize(await userMockService.update(id, { name, role, active, supplier }));
     const payload = {};
     if (name !== undefined) payload.name = name;
     if (role !== undefined) payload.role = role;
@@ -131,9 +128,41 @@ export const userService = {
     return normalize(data);
   },
 
+  // Perfil del usuario logueado, para cualquier rol. Se lee con PATCH /users/me
+  // y cuerpo vacío: updateMe solo toca los campos no nulos, así que no cambia
+  // nada y devuelve el usuario completo (con address y supplier). Cuando exista
+  // GET /users/me, cambia solo esta función.
+  async getMe() {
+    const { data } = await apiClient.patch("/users/me", {});
+    return normalize(data);
+  },
+
+  // Edición propia. `address`, si viene, reemplaza la dirección entera.
+  async updateMe({ name, address } = {}) {
+    const payload = {};
+    if (name !== undefined) payload.name = name;
+    if (address !== undefined) {
+      payload.address = {
+        street: address.street,
+        department: address.department,
+        floor: address.floor,
+        postal_code: address.postalCode,
+      };
+    }
+    const { data } = await apiClient.patch("/users/me", payload);
+    return normalize(data);
+  },
+
+  // 400 WRONG_CURRENT_PASSWORD / SAME_PASSWORD.
+  async changeMyPassword(currentPassword, newPassword) {
+    await apiClient.post("/users/me/change-password", {
+      current_password: currentPassword,
+      new_password: newPassword,
+    });
+  },
+
   // Reset administrativo (no requiere la contraseña anterior). Responde 204.
   async resetPassword(id, newPassword) {
-    if (USE_MOCK) return userMockService.resetPassword(id, newPassword);
     await apiClient.post(`/users/${id}/reset-password`, { new_password: newPassword });
   },
 };

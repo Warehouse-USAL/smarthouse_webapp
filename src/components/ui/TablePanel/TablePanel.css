@@ -111,6 +111,11 @@
   grid-template-columns: 1fr 1fr;
 }
 
+/* Cantidad variable de filtros: tantas columnas como entren. */
+.table-panel__filters--auto {
+  grid-template-columns: repeat(auto-fit, minmax(var(--filter-min-width), 1fr));
+}
+
 .table-panel__filters .select-group label,
 .table-panel__filters .date-range__label {
   font-size: var(--text-sm);
@@ -229,6 +234,12 @@
   justify-content: center;
   gap: var(--space-2);
   color: var(--color-text-primary);
+}
+
+/* Celda que solo lleva una miniatura: la centra como el resto de las celdas
+   (la miniatura es un bloque y no responde a text-align). */
+.table-panel__thumb-cell > * {
+  margin-inline: auto;
 }
 
 .table-panel__thumb {

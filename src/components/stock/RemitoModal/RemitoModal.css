@@ -104,35 +104,3 @@
     grid-template-columns: 1fr;
   }
 }
-
-/* Sección que deja de ser obligatoria cuando el backend acepta remitos sin
-   ubicar (feature/117). */
-.remito-modal__section-optional {
-  margin-left: var(--space-2);
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-full);
-  background: var(--color-surface-muted);
-  font-size: var(--text-2xs);
-  font-weight: var(--weight-medium);
-  color: var(--color-text-secondary-alt);
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-
-.remito-modal__pending-note {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin: 0;
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--color-warning-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-warning-bg);
-  font-size: var(--text-sm);
-  line-height: 1.45;
-  color: var(--color-yellow-dark);
-}
-
-.remito-modal__pending-note svg {
-  flex-shrink: 0;
-}

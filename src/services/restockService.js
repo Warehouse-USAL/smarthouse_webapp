@@ -65,14 +65,14 @@ import {
   displayCode,
   fetchAllPages,
   fetchPage,
-  paginate,
   toInstantRange,
 } from "../lib/pagination";
-import { fromStoredRestock, fromSuggestionRow } from "../lib/restockSuggestion";
-import { warehouseConfigService } from "./warehouseConfigService";
-import { restockMockService } from "./mocks/restockMockService";
+import {
+  fromStoredRestock,
+  fromSuggestionRow,
+  toRestockAlert,
+} from "../lib/restockSuggestion";
 
-const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 
 // Una orden de restock vieja casi seguro ya se recibió; las abiertas que ofrece
 // el remito se buscan solo en esta ventana para no recorrer dos años de historial.
@@ -98,6 +98,14 @@ export const ORDER_STATUS = {
 export const RECEPTION_STATUS = {
   PENDING_LOCATION: "PENDING_LOCATION",
   COMPLETED: "COMPLETED",
+};
+
+// Origen de un pendiente de ubicación. RELOCATION lo crea el backend al quitar
+// un producto de una posición con stock (pedido en docs/nuevos_requisitos.md,
+// sección 1); hasta entonces todo llega como SUPPLIER (un remito).
+export const RECEPTION_TYPE = {
+  SUPPLIER: "SUPPLIER",
+  RELOCATION: "RELOCATION",
 };
 
 export const deriveStatus = (quantityRequested, quantityReceived) => {
@@ -139,9 +147,6 @@ export const restockOrderCode = (id) => displayCode("RST", id);
 
 const normalizeReception = (raw) => {
   if (!raw) return null;
-  if (raw.status !== undefined || raw.reception_status !== undefined) {
-    pendingLocationSupported = true;
-  }
   const assignments = (raw.assignments || []).map((a) => ({
     positionId: a.position_id ?? a.positionId,
     quantity: a.quantity ?? 0,
@@ -151,6 +156,7 @@ const normalizeReception = (raw) => {
   return {
     id: raw.id,
     restockOrderId: raw.restock_order_id ?? raw.restockOrderId ?? null,
+    type: raw.type ?? RECEPTION_TYPE.SUPPLIER,
     productId: raw.product_id ?? raw.productId,
     quantityReceived,
     deliveryUnit: raw.delivery_unit ?? raw.deliveryUnit ?? null,
@@ -192,9 +198,8 @@ const toCreateReceptionPayload = (input) => ({
   quantity_received: Number(input.quantityReceived) || 0,
   delivery_unit: input.deliveryUnit,
   supplier: input.supplier,
-  // Con la rama feature/117 `assignments` es opcional: un remito sin ubicar
-  // nace PENDING_LOCATION. Contra el backend viejo es @NotEmpty, así que la UI
-  // solo ofrece guardar sin ubicar cuando detecta la capacidad.
+  // Vacío desde el modal de remito: nace PENDING_LOCATION y se ubica después
+  // desde Asignación de stock (assignReceptionPositions).
   assignments: toAssignmentsPayload(input.assignments),
 });
 
@@ -203,9 +208,6 @@ const toCreateReceptionPayload = (input) => ({
 | HELPERS
 |--------------------------------------------------------------------------
 */
-
-const newestFirst = (rows) =>
-  [...rows].sort((a, b) => new Date(b.createdAt ?? 0) - new Date(a.createdAt ?? 0));
 
 // Órdenes + progreso de recepción + estado derivado. `receptions` tiene que
 // incluir todas las de esas órdenes.
@@ -274,32 +276,6 @@ const SUGGESTIONS_PATH = "/metrics/restock-suggestions";
 // undefined = no se preguntó todavía; null = el backend no la tiene.
 let suggestionsMetric;
 
-/*
-| ¿El backend desplegado ya maneja remitos sin ubicar?
-|
-| Se pregunta al catálogo de entidades (GET /query/catalog), que se autodescribe
-| campo por campo y existe en las dos versiones: feature/117 agregó `status` a
-| la entidad `receptions`, antes no estaba. Es la fuente confiable, porque
-| responde igual con la base vacía.
-|
-| El fallback mira si alguna recepción trajo `status`. Sirve cuando el rol del
-| usuario no ve la entidad en el catálogo (WAREHOUSE_ADMINS), pero NO alcanza
-| solo: con cero recepciones nunca se prendería y el primer remito sin ubicar
-| sería imposible de crear.
-|
-| Arranca apagado para no ofrecer "guardar sin ubicar" contra un backend que lo
-| rechazaría con 400 (assignments es @NotEmpty en la versión vieja).
-*/
-const RECEPTIONS_ENTITY = "receptions";
-const PENDING_LOCATION_FIELD = "status";
-
-// undefined = no se preguntó; true/false = respuesta del catálogo;
-// null = el catálogo no lo dice (rol sin permiso, o error de red).
-let pendingLocationCapability;
-
-// Señal secundaria: alguna recepción llegó con `status`.
-let pendingLocationSupported = false;
-
 export const RESTOCK_PARAMS = {
   alpha: 0.3,
   recentDays: 7,
@@ -353,9 +329,6 @@ export const restockService = {
   // Listado acotado (fetchAllPages): pasar siempre un rango de fechas o un
   // producto. Para la tabla usar listOrdersPage.
   async listOrders(filters = {}) {
-    if (USE_MOCK) {
-      return newestFirst((await restockMockService.listOrders(filters)).map(normalizeOrder));
-    }
     return fetchAllPages(
       "/restock/orders",
       toInstantRange(filters),
@@ -367,17 +340,12 @@ export const restockService = {
   // Una página de órdenes (más nuevas primero) con su progreso de recepción.
   // filters: { productId, supplier, from, to } con from/to en yyyy-mm-dd.
   async listOrdersPage({ page = 1, size = 10, ...filters } = {}) {
-    const result = USE_MOCK
-      ? paginate(
-          newestFirst((await restockMockService.listOrders(filters)).map(normalizeOrder)),
-          { page, size }
-        )
-      : await fetchPage(
-          "/restock/orders",
-          { ...toInstantRange(filters), page, size },
-          "restock_orders",
-          normalizeOrder
-        );
+    const result = await fetchPage(
+      "/restock/orders",
+      { ...toInstantRange(filters), page, size },
+      "restock_orders",
+      normalizeOrder
+    );
     const receptions = await Promise.all(
       result.items.map((order) => this.listReceptions({ restockOrderId: order.id }))
     );
@@ -400,21 +368,19 @@ export const restockService = {
   },
 
   async getOrder(id) {
-    if (USE_MOCK) return restockMockService.getOrder(id);
     const { data } = await apiClient.get(`/restock/orders/${id}`);
     return normalizeOrder(data?.restock_order ?? data);
   },
 
   // input: { productId, quantityRequested, supplier }
   async createOrder(input) {
-    if (USE_MOCK) return restockMockService.createOrder(input);
     const { data } = await apiClient.post("/restock/orders", toCreateOrderPayload(input));
     return normalizeOrder(data?.restock_order ?? data);
   },
 
   // Cancela una orden de restock: POST /restock/orders/:id/cancel { reason }.
   // 409 RESTOCK_ORDER_ALREADY_CANCELLED / RESTOCK_ORDER_HAS_RECEPTIONS; contra
-  // un backend sin el endpoint responde 404. Sin rama de mock a propósito.
+  // un backend sin el endpoint responde 404.
   async cancelOrder(id, reason) {
     const { data } = await apiClient.post(`/restock/orders/${id}/cancel`, {
       reason,
@@ -427,7 +393,6 @@ export const restockService = {
   // filters admite `status` (PENDING_LOCATION | COMPLETED) desde la rama
   // feature/117; el backend viejo ignora el parámetro que no conoce.
   async listReceptions(filters = {}) {
-    if (USE_MOCK) return restockMockService.listReceptions(filters);
     return fetchAllPages(
       "/restock/receptions",
       toInstantRange(filters),
@@ -437,7 +402,6 @@ export const restockService = {
   },
 
   async getReception(id) {
-    if (USE_MOCK) return restockMockService.getReception(id);
     const { data } = await apiClient.get(`/restock/receptions/${id}`);
     return normalizeReception(data?.reception ?? data);
   },
@@ -446,7 +410,6 @@ export const restockService = {
   //          supplier, assignments: [{ positionId, quantity }] }
   // El backend valida sum(assignments.quantity) === quantityReceived (RN-07).
   async createReception(input) {
-    if (USE_MOCK) return restockMockService.createReception(input);
     const { data } = await apiClient.post(
       "/restock/receptions",
       toCreateReceptionPayload(input)
@@ -480,7 +443,6 @@ export const restockService = {
   // el backend desplegado. null ≠ [] a propósito: vacío es "no hay nada que
   // reponer", null es "no lo sabemos". La UI muestra cosas distintas.
   async listSuggestions({ params = RESTOCK_PARAMS, filters } = {}) {
-    if (USE_MOCK) return null;
     const metric = await this.findSuggestionsMetric();
     if (!metric) return null;
     const { data } = await apiClient.post(
@@ -510,58 +472,23 @@ export const restockService = {
       .map((row) => fromSuggestionRow(row, byId.get(row.productId)));
   },
 
-  // Posiciones candidatas para ubicar mercadería. La implementación vive en
-  // warehouseConfigService (el endpoint es /warehouse/positions/available); se
-  // reexpone acá porque ProductLocationModal la consume por este service.
-  async getAvailablePositions({ productId, deliveryUnit, quantity }) {
-    return warehouseConfigService.getAvailablePositions({
-      productId,
-      deliveryUnit,
-      quantity,
-    });
+  // Alerta de un solo producto (botón de restock en Productos), con la misma
+  // cadena que listAlerts para que la sugerida coincida con Gestión de stock:
+  // `restock` guardado si la corrida diaria ya lo calculó; si no, simulación en
+  // vivo filtrada a ese producto; si no hay ninguna, sin cantidad sugerida.
+  async alertFor(product) {
+    if (product.restock) return fromStoredRestock(product) ?? toRestockAlert(product);
+    const rows = await this.listSuggestions({ filters: { productIds: [product.id] } });
+    const row = rows?.find((r) => r.productId === product.id && r.shouldRestock);
+    return row ? fromSuggestionRow(row, product) : toRestockAlert(product);
   },
 
   /* ---------- Ubicación diferida de un remito ---------- */
-
-  // Si el backend ya devolvió alguna recepción con `status`, maneja remitos sin
-  // ubicar. Hasta entonces la UI exige repartir todo al registrar el remito.
-  supportsPendingLocation() {
-    return pendingLocationCapability === true || pendingLocationSupported;
-  },
-
-  // Pregunta al catálogo si `receptions` ya declara el campo `status`. Se
-  // cachea: una sola vez por sesión.
-  async detectPendingLocationSupport() {
-    if (pendingLocationCapability !== undefined) return pendingLocationCapability;
-    // El mock implementa el flujo completo, así que lo soporta por definición.
-    if (USE_MOCK) {
-      pendingLocationCapability = true;
-      return pendingLocationCapability;
-    }
-    try {
-      const { data } = await apiClient.get("/query/catalog");
-      const entity = (data?.entities || []).find(
-        (e) => e.name === RECEPTIONS_ENTITY
-      );
-      // Sin la entidad no se concluye nada: puede ser un backend viejo o un rol
-      // que no la ve. En los dos casos queda el fallback.
-      pendingLocationCapability = entity
-        ? (entity.fields || []).some((f) => f.name === PENDING_LOCATION_FIELD)
-        : null;
-    } catch {
-      pendingLocationCapability = null;
-    }
-    return pendingLocationCapability;
-  },
 
   // Remitos que todavía tienen mercadería sin posición. El backend filtra por
   // `status` desde feature/117; el viejo ignora el parámetro, pero ahí todas
   // las recepciones se normalizan como COMPLETED y el filtro local las descarta.
   async listPendingLocation() {
-    // Antes de listar, se resuelve la capacidad: es lo que decide si el modal
-    // de remito puede ofrecer "guardar sin ubicar", y la pantalla re-renderiza
-    // recién cuando esta carga termina.
-    await this.detectPendingLocationSupport();
     const receptions = await this.listReceptions({
       status: RECEPTION_STATUS.PENDING_LOCATION,
     });
@@ -576,7 +503,6 @@ export const restockService = {
   // PATCH /restock/receptions/:id (rama feature/117-recepcion-sin-ubicacion).
   // Es incremental: se puede ubicar por partes hasta completar lo recibido.
   async assignReceptionPositions(id, assignments) {
-    if (USE_MOCK) return restockMockService.assignReceptionPositions(id, assignments);
     const { data } = await apiClient.patch(`/restock/receptions/${id}`, {
       assignments: toAssignmentsPayload(assignments),
     });

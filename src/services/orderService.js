@@ -5,7 +5,10 @@
 |
 | Contrato REAL del backend (wh-backend, OrderController, RFC §9.4):
 |   GET    /orders            params: status, from, to, vehicleId, page, size
-|   GET    /orders/:id
+|                             (no ordena: se usa solo para contar)
+|   POST   /query/orders      página ordenada en el servidor; solo campos
+|                             básicos, sin los productos (items)
+|   GET    /orders/:id        detalle completo, con items
 |   POST   /orders            { items: [{ product_id, quantity }], destination_area }
 |   POST   /orders/:id/cancel { reason }  (pending o in_progress → cancelled)
 |
@@ -25,10 +28,19 @@
 */
 
 import { apiClient } from "../lib/apiClient";
-import { displayCode, fetchAllPages, fetchPage, paginate, toInstantRange } from "../lib/pagination";
-import { orderMockService } from "./mocks/orderMockService";
+import { displayCode, fetchAllPages, fetchPage, toInstantRange } from "../lib/pagination";
 
-const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
+// Campos que trae una fila del listado (POST /query/orders). Los productos no
+// se pueden pedir ahí: se traen con get(id) al expandir o ver el detalle.
+const QUERY_FIELDS = [
+  "id",
+  "status",
+  "created_at",
+  "completed_at",
+  "requested_by_user_id",
+  "cancel_reason",
+];
+
 
 /*
 | Mapeo UI de estados (sprint §11, sin cambiar backend).
@@ -96,7 +108,6 @@ export const normalizeCancelledOrder = (raw) => ({
 const createdAtMs = (order) => new Date(order.createdAt ?? 0).getTime();
 
 const listByStatus = async (status) => {
-  if (USE_MOCK) return (await orderMockService.list({ status })).map(normalize);
   return fetchAllPages("/orders", { status }, "orders", normalize);
 };
 
@@ -105,72 +116,63 @@ const quantityOf = (order, productId) =>
     .filter((item) => item.productId === productId)
     .reduce((sum, item) => sum + item.quantity, 0);
 
-const newestFirst = (orders) =>
-  [...orders].sort((a, b) => createdAtMs(b) - createdAtMs(a));
-
 const fetchOrdersPage = (params, page, size) =>
   fetchPage("/orders", { ...params, page, size }, "orders", normalize);
 
-/*
-| GET /orders no ordena (OrderRepository.findByFilters sin Sort): el orden lo
-| decide el índice que elige Mongo. Medido con el seed de 2 años: filtrando por
-| `status` llega de la más nueva a la más vieja; sin `status`, en orden de
-| inserción (de la más vieja a la más nueva). En el segundo caso la página N
-| "más nuevas primero" se arma leyendo el listado desde el final.
-*/
-const fetchNewestPage = async (params, page, size) => {
-  const first = await fetchOrdersPage(params, 1, size);
-  const [head] = first.items;
-  const tail = first.items[first.items.length - 1];
-  const oldestFirst = first.items.length > 1 && createdAtMs(head) < createdAtMs(tail);
-  if (!oldestFirst) {
-    const result = page === 1 ? first : await fetchOrdersPage(params, page, size);
-    return { ...result, items: newestFirst(result.items) };
-  }
+// Fila del listado: el estado llega en mayúsculas (PENDING) y se pasa al
+// vocabulario de ORDER_STATUS; `items` queda en null hasta pedir el detalle.
+const normalizeQueryRow = (raw) => ({
+  ...normalize(raw),
+  status: raw.status ? String(raw.status).toLowerCase() : raw.status,
+  createdAt: raw.created_at ?? null,
+  completedAt: raw.completed_at ?? null,
+  items: null,
+});
 
-  const total = first.totalElements;
-  const start = Math.max(0, total - page * size);
-  const end = total - (page - 1) * size;
-  if (end <= 0) return { ...first, items: [] };
-  const firstChunk = Math.floor(start / size) + 1;
-  const lastChunk = Math.floor((end - 1) / size) + 1;
-  const chunks = await Promise.all(
-    Array.from({ length: lastChunk - firstChunk + 1 }, (_, i) =>
-      fetchOrdersPage(params, firstChunk + i, size)
-    )
-  );
-  const offset = (firstChunk - 1) * size;
-  const rows = chunks.flatMap((chunk) => chunk.items).slice(start - offset, end - offset);
-  return { ...first, items: newestFirst(rows) };
+// Filtros de la tabla → condiciones de /query. from/to en yyyy-mm-dd.
+const toQueryFilters = ({ status, from, to }) => {
+  const range = toInstantRange({ from, to });
+  return [
+    ...(status ? [{ field: "status", op: "eq", value: status.toUpperCase() }] : []),
+    ...(range.from ? [{ field: "created_at", op: "gte", value: range.from }] : []),
+    ...(range.to ? [{ field: "created_at", op: "lte", value: range.to }] : []),
+  ];
 };
 
 export const orderService = {
-  // Una página de órdenes, de la más nueva a la más vieja.
-  // filters: { status, from, to, vehicleId } con from/to en yyyy-mm-dd.
-  async listPage({ page = 1, size = 10, ...filters } = {}) {
-    if (USE_MOCK) {
-      const rows = (await orderMockService.list(filters)).map(normalize);
-      return paginate(newestFirst(rows), { page, size });
-    }
-    return fetchNewestPage(toInstantRange(filters), page, size);
+  // Una página de órdenes ordenada en el servidor (por defecto, más nuevas
+  // primero). filters: { status, from, to } con from/to en yyyy-mm-dd; sort:
+  // { field, dir } sobre created_at, completed_at o status. Las filas no
+  // traen productos (items: null).
+  async listPage({ page = 1, size = 10, sort, ...filters } = {}) {
+    const { data } = await apiClient.post("/query/orders", {
+      filters: toQueryFilters(filters),
+      sort: [sort ?? { field: "created_at", dir: "desc" }],
+      page: page - 1,
+      size,
+      fields: QUERY_FIELDS,
+    });
+    const pagination = data?.pagination ?? {};
+    return {
+      items: (data?.items || []).map(normalizeQueryRow),
+      totalPages: pagination.total_pages ?? 0,
+      totalElements: pagination.total_elements ?? 0,
+    };
   },
 
   // Cuántas órdenes cumplen los filtros, sin traerlas (size=1).
   async count(filters = {}) {
-    if (USE_MOCK) return (await orderMockService.list(filters)).length;
     const { totalElements } = await fetchOrdersPage(toInstantRange(filters), 1, 1);
     return totalElements;
   },
 
   async get(id) {
-    if (USE_MOCK) return normalize(await orderMockService.get(id));
     const { data } = await apiClient.get(`/orders/${id}`);
     return normalize(data?.order ?? data);
   },
 
   // Cancela una orden pending o in_progress. Real: existe en el backend (§9.4).
   async cancel(id, reason) {
-    if (USE_MOCK) return normalize(await orderMockService.cancel(id, reason));
     const { data } = await apiClient.post(`/orders/${id}/cancel`, { reason });
     return normalize(data?.order ?? data);
   },

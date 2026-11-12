@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../lib/apiClient", () => ({ apiClient: { get: vi.fn() } }));
+vi.mock("../lib/apiClient", () => ({ apiClient: { get: vi.fn(), post: vi.fn() } }));
 
 import { apiClient } from "../lib/apiClient";
 import { stockAdjustmentService } from "./stockAdjustmentService";
@@ -61,5 +61,23 @@ describe("listProductAdjustments", () => {
     expect(apiClient.get).toHaveBeenCalledWith("/products/p1/stock-adjustments", {
       params: { page: 2, size: 5 },
     });
+  });
+});
+
+describe("createDecrease", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("manda la cantidad a descontar, no el stock final", async () => {
+    apiClient.post.mockResolvedValue({ data: { adjustment: {}, cancelled_orders: [] } });
+    const response = await stockAdjustmentService.createDecrease("pos-1", {
+      quantity: 5,
+      type: "DAMAGE",
+      reason: "Rotura (-): caja golpeada",
+    });
+    expect(apiClient.post).toHaveBeenCalledWith(
+      "/warehouse/positions/pos-1/stock-adjustments",
+      { quantity: 5, type: "DAMAGE", reason: "Rotura (-): caja golpeada" }
+    );
+    expect(response.cancelled_orders).toEqual([]);
   });
 });
