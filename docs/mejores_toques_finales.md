@@ -320,6 +320,14 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 21. Vehículos: sin columna "Acciones"
+
+- El botón "Ver detalle" no tenía acción. `GET /vehicles/{id}` existe, pero
+  solo agrega orden actual, última conexión y "en operación desde" a lo que ya
+  muestra la fila, así que se quitó la columna (y su CSS).
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`

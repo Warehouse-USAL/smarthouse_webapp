@@ -179,7 +179,6 @@ export default function VehiclesPage() {
                 <th>Estado</th>
                 <th>Batería</th>
                 <th>Ubicación actual</th>
-                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -198,12 +197,6 @@ export default function VehiclesPage() {
                       </div>
                     </td>
                     <td>{formatLocation(vehicle)}</td>
-                    <td>
-                      <button className="vehicles-table__action" type="button">
-                        Ver detalle
-                        <Icon name="chevronRight" size={14} />
-                      </button>
-                    </td>
                   </tr>
                 );
               })}
