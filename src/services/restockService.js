@@ -102,7 +102,7 @@ export const RECEPTION_STATUS = {
 
 // Origen de un pendiente de ubicación. RELOCATION lo crea el backend al quitar
 // un producto de una posición con stock (pedido en docs/nuevos_requisitos.md,
-// sección 4); hasta entonces todo llega como SUPPLIER (un remito).
+// sección 1); hasta entonces todo llega como SUPPLIER (un remito).
 export const RECEPTION_TYPE = {
   SUPPLIER: "SUPPLIER",
   RELOCATION: "RELOCATION",
