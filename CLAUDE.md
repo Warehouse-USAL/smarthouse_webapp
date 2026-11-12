@@ -52,7 +52,6 @@ jobs del CI en `.github/workflows/ci.yml`).
 - Tokens de `padding` y `margin`.
 - Sugerencias de restock: manejo de `[]` vs `null` en `listAlerts` /
   `StockManagementPage` y regla de negocio cuando no hay demanda.
-- Opcional: migrar reducción a `POST /warehouse/positions/{id}/stock-adjustments`.
 
 ## Notas
 
