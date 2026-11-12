@@ -344,6 +344,16 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 23. Inicio: accesos directos según el rol
+
+- **Antes:** las 6 tarjetas de Inicio se mostraban a todos los roles, aunque la
+  ruta después los rechazara (un ADMIN_SALES veía "Usuarios" o "Vehículos").
+- **Ahora:** cada tarjeta lleva la misma capacidad que exige su ruta en
+  `AppRoutes` y su ítem del Navbar, y solo se muestran las que el rol puede
+  abrir.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`
