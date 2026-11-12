@@ -93,3 +93,18 @@ describe("productService.count", () => {
     expect(apiClient.get).not.toHaveBeenCalled();
   });
 });
+
+describe("listPage con orden", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("manda sort al backend solo si viene", async () => {
+    apiClient.post.mockResolvedValue({ data: { items: [], pagination: {} } });
+    await productService.listPage({ page: 1, size: 8, active: true });
+    expect(apiClient.post.mock.calls[0][1].sort).toBeUndefined();
+    await productService.listPage({ page: 2, size: 8, active: true, sort: { field: "name", dir: "desc" } });
+    expect(apiClient.post.mock.calls[1][1]).toMatchObject({
+      sort: [{ field: "name", dir: "desc" }],
+      page: 1,
+    });
+  });
+});

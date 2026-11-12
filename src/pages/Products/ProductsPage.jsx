@@ -17,6 +17,7 @@ import CreateProductForm from "../../components/products/CreateProductForm/Creat
 import RestockOrderModal from "../../components/stock/RestockOrderModal/RestockOrderModal";
 import ProductSummaryCard from "../../components/stock/ProductSummaryCard/ProductSummaryCard";
 import StatusBanner from "../../components/ui/StatusBanner/StatusBanner";
+import SortableHeader from "../../components/ui/SortableHeader/SortableHeader";
 import { productService, searchFieldFor } from "../../services/productService";
 import { warehouseConfigService } from "../../services/warehouseConfigService";
 import { stockAdjustmentService } from "../../services/stockAdjustmentService";
@@ -118,6 +119,9 @@ export default function ProductsPage() {
   // "" = todas, NO_LOCATION = sin ubicación, o el zoneCode de una zona.
   const [locationFilter, setLocationFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  // Orden de la tabla: { field, dir } o null (más nuevos primero). Lo aplica el
+  // backend sobre todo el catálogo, no solo sobre la página visible.
+  const [sort, setSort] = useState(null);
   // Filtros escondidos detrás del botón "Filtros", como en Gestión de ventas.
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [page, setPage] = useState(1);
@@ -209,6 +213,7 @@ export default function ProductsPage() {
         category: categoryFilter || undefined,
         // Solo activos: un producto dado de baja no se muestra en ningún lado.
         active: true,
+        sort: sort ?? undefined,
       };
       if (locationFilter) {
         // Zona / sin ubicación: el backend no filtra productos por ubicación,
@@ -248,7 +253,19 @@ export default function ProductsPage() {
     } finally {
       if (requestId === lastRequest.current) setLoading(false);
     }
-  }, [page, pageSize, search, categoryFilter, locationFilter]);
+  }, [page, pageSize, search, categoryFilter, locationFilter, sort]);
+
+  // Cada clic en un encabezado: A→Z, Z→A y vuelta al orden por defecto.
+  const toggleSort = (field) => {
+    setSort((prev) =>
+      prev?.field !== field
+        ? { field, dir: "asc" }
+        : prev.dir === "asc"
+          ? { field, dir: "desc" }
+          : null
+    );
+    setPage(1);
+  };
 
   // Contador de la tarjeta "Asignar stock": todo lo pendiente de ubicación
   // (remitos y reubicaciones).
@@ -700,9 +717,14 @@ export default function ProductsPage() {
             <thead>
               <tr>
                 <th>Imagen</th>
-                <th>SKU</th>
-                <th>Nombre</th>
-                <th>Categoría</th>
+                <SortableHeader label="SKU" field="sku" sort={sort} onSort={toggleSort} />
+                <SortableHeader label="Nombre" field="name" sort={sort} onSort={toggleSort} />
+                <SortableHeader
+                  label="Categoría"
+                  field="category"
+                  sort={sort}
+                  onSort={toggleSort}
+                />
                 <th>Precio</th>
                 <th>Stock físico</th>
                 <th>Stock reservado</th>

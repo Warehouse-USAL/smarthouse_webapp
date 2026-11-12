@@ -309,14 +309,17 @@ export const productService = {
   | así que el detalle (stock, restock) se pide por id para las filas visibles.
   |
   | page es 1-based. Filtros: ver buildQueryFilters. includeIds vacío (zona sin
-  | productos) → página vacía sin request.
+  | productos) → página vacía sin request. `sort` ({ field, dir }) ordena todo
+  | el catálogo en el backend; solo acepta campos guardados (name, sku,
+  | category, createdAt…), no precio ni stock.
   */
-  async listPage({ page = 1, size = 8, ...filters } = {}) {
+  async listPage({ page = 1, size = 8, sort, ...filters } = {}) {
     if (filters.includeIds?.length === 0) {
       return { items: [], totalPages: 0, totalElements: 0 };
     }
     const { data } = await apiClient.post("/query/products", {
       filters: buildQueryFilters(filters),
+      ...(sort ? { sort: [{ field: sort.field, dir: sort.dir }] } : {}),
       page: page - 1,
       size,
       fields: ["id"],

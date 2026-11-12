@@ -503,6 +503,23 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 37. Productos: ordenar por SKU, Nombre y Categoría
+
+- Los encabezados SKU, Nombre y Categoría son clickeables (flechas ▲▼): A→Z,
+  Z→A y vuelta al orden por defecto (más nuevos primero). Ordena el backend
+  (`sort` en `POST /query/products`) sobre todo el catálogo y vuelve a la
+  página 1.
+- Nuevo componente reutilizable `SortableHeader` (`src/components/ui/`), con
+  `aria-sort`.
+- Precio y stock no se pueden ordenar todavía: no están expuestos en la
+  consulta. Quedó pedido en `docs/nuevos_requisitos.md`, sección 5, junto con
+  ordenar los textos sin distinguir mayúsculas.
+- En mobile la tabla se apila sin encabezados, así que ahí no se ordena.
+- Verificado contra el backend (seed de demo): Nombre A→Z ordena el catálogo
+  entero.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`
