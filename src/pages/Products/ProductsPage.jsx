@@ -250,7 +250,8 @@ export default function ProductsPage() {
     }
   }, [page, pageSize, search, categoryFilter, locationFilter]);
 
-  // Contador de la tarjeta "Asignar stock": remitos con mercadería sin ubicar.
+  // Contador de la tarjeta "Asignar stock": todo lo pendiente de ubicación
+  // (remitos y reubicaciones).
   const fetchPendingLocationCount = useCallback(async () => {
     if (!canAssignStock) return;
     try {
@@ -599,13 +600,13 @@ export default function ProductsPage() {
             <ActionCard
               icon="pin"
               title="Asignar stock"
-              description="Ubicá la mercadería recibida con remito."
+              description="Ubicá la mercadería recibida con remito y la que hay que reubicar."
               note={
                 pendingLocationCount === null
                   ? null
                   : pendingLocationCount === 0
                     ? "No hay mercadería pendiente de ubicación."
-                    : `${pendingLocationCount} remito${pendingLocationCount === 1 ? "" : "s"} pendiente${pendingLocationCount === 1 ? "" : "s"} de ubicación.`
+                    : `${pendingLocationCount} pendiente${pendingLocationCount === 1 ? "" : "s"} de ubicación.`
               }
               variant="blue"
               onClick={() => navigate("/asignacion-stock")}
@@ -981,8 +982,8 @@ export default function ProductsPage() {
             />
             {adjustLocations.length === 0 ? (
               <p className="products-page__adjust-text">
-                Este producto no tiene posiciones asignadas. El stock se carga
-                desde la pantalla Asignación de stock.
+                Este producto no tiene posiciones asignadas. El stock entra con un
+                remito y se ubica desde la pantalla Asignación de stock.
               </p>
             ) : (
               <>

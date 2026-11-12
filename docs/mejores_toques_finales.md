@@ -458,6 +458,18 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 33. Productos: tarjeta "Asignar stock" con todo lo pendiente de ubicación
+
+- Descripción: "Ubicá la mercadería recibida con remito y la que hay que
+  reubicar". El contador dice "N pendientes de ubicación" y cuenta todo lo que
+  devuelve `listPendingLocation`: remitos y, cuando el backend las tenga,
+  reubicaciones.
+- Los textos que mandaban a cargar stock desde Asignación (alta de producto,
+  ajuste sin posiciones) ahora dicen que el stock entra con un remito y se
+  ubica desde Asignación de stock.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`

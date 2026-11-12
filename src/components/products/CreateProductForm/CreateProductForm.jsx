@@ -506,8 +506,9 @@ export default function CreateProductForm({
 
       {!isEdit && (
         <p className="cpf-hint">
-          El producto se crea con stock 0 y sin ubicación. Asigná stock más
-          tarde desde la pantalla <strong>Asignación de stock</strong>.
+          El producto se crea con stock 0 y sin ubicación. El stock entra
+          después con un remito y se ubica desde{" "}
+          <strong>Asignación de stock</strong>.
         </p>
       )}
 
