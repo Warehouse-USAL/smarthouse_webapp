@@ -75,12 +75,6 @@ const HISTORY_PAGE_SIZE = 10;
 const NO_LOCATION = "__sin_ubicacion__";
 
 
-const ACTIVE_OPTIONS = [
-  { value: "", label: "Todos" },
-  { value: "true", label: "Sí" },
-  { value: "false", label: "No" },
-];
-
 const formatDateTime = (iso) =>
   iso
     ? new Date(iso).toLocaleString("es-AR", {
@@ -121,7 +115,6 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
-  const [activeFilter, setActiveFilter] = useState("true");
   // "" = todas, NO_LOCATION = sin ubicación, o el zoneCode de una zona.
   const [locationFilter, setLocationFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -212,7 +205,8 @@ export default function ProductsPage() {
         searchField: searchFieldFor(searchText),
         search: searchText || undefined,
         category: categoryFilter || undefined,
-        active: activeFilter === "" ? undefined : activeFilter === "true",
+        // Solo activos: un producto dado de baja no se muestra en ningún lado.
+        active: true,
       };
       if (locationFilter) {
         // Zona / sin ubicación: el backend no filtra productos por ubicación,
@@ -252,7 +246,7 @@ export default function ProductsPage() {
     } finally {
       if (requestId === lastRequest.current) setLoading(false);
     }
-  }, [page, pageSize, search, categoryFilter, activeFilter, locationFilter]);
+  }, [page, pageSize, search, categoryFilter, locationFilter]);
 
   // Contador de la tarjeta "Asignar stock": productos activos sin ubicación.
   const fetchUnassignedCount = useCallback(async () => {
@@ -638,12 +632,6 @@ export default function ProductsPage() {
         filtersClassName="table-panel__filters--auto"
         filters={
           <>
-            <Select
-              label="Activo"
-              value={activeFilter}
-              onChange={(e) => { setActiveFilter(e.target.value); setPage(1); }}
-              options={ACTIVE_OPTIONS}
-            />
             {canFilterLocation && (
               <Select
                 label="Ubicación"
@@ -740,12 +728,6 @@ export default function ProductsPage() {
                     </td>
                     <td data-label="Nombre" className="products-table__name">
                       {product.name}
-                      {!product.active && (
-                        <>
-                          {" "}
-                          <Badge variant="neutral">Inactivo</Badge>
-                        </>
-                      )}
                     </td>
                     <td data-label="Categoría">{categoryLabel(product.category)}</td>
                     <td data-label="Precio" className="products-table__num">
@@ -828,7 +810,7 @@ export default function ProductsPage() {
                             <Icon name="list" size={15} />
                           </button>
                         )}
-                        {canCreateRestock && product.active && (
+                        {canCreateRestock && (
                           <button
                             type="button"
                             className="products-table__action"

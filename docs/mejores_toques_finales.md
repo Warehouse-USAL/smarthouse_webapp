@@ -303,6 +303,16 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 19. Productos: sin estado "Inactivo"
+
+- La tabla de Productos pide siempre solo los activos (`active: true`); se
+  quitó el filtro "Activo" y el badge "Inactivo" de la fila.
+- El formulario de alta/edición ya no tiene el selector "Estado": el backend
+  crea los productos activos y, sin `is_active` en el PATCH, la edición no lo
+  toca. Dar de baja sigue siendo "Eliminar".
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`
