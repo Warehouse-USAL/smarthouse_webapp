@@ -240,6 +240,10 @@ Una reubicación tiene `restock_order_id: null`, `supplier: null`,
 `quantity_received` = el stock que tenía la posición, `delivery_unit` = el
 `size_stock_to_save` de la posición y `status: PENDING_LOCATION`.
 
+Su `created_at` es **el momento en que se quitó el producto de la posición**.
+La tabla de Asignación de stock muestra esa fecha en la columna "Fecha", igual
+que la de recepción para un remito.
+
 **`PATCH /warehouse/positions/{id}`** con `unassign_product: true`: si la
 posición tenía stock, la respuesta suma el remito creado.
 
@@ -254,6 +258,7 @@ posición tenía stock, la respuesta suma el remito creado.
     "quantity_received": 100,
     "delivery_unit": "CAJA",
     "status": "PENDING_LOCATION",
+    "created_at": "2026-11-12T15:30:00Z",
     "source_position_id": "pos-001",
     "restock_order_id": null,
     "supplier": null
