@@ -236,6 +236,12 @@
   color: var(--color-text-primary);
 }
 
+/* Celda que solo lleva una miniatura: la centra como el resto de las celdas
+   (la miniatura es un bloque y no responde a text-align). */
+.table-panel__thumb-cell > * {
+  margin-inline: auto;
+}
+
 .table-panel__thumb {
   position: relative;
   flex: 0 0 auto;

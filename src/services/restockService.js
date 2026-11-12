@@ -100,6 +100,14 @@ export const RECEPTION_STATUS = {
   COMPLETED: "COMPLETED",
 };
 
+// Origen de un pendiente de ubicación. RELOCATION lo crea el backend al quitar
+// un producto de una posición con stock (pedido en docs/nuevos_requisitos.md,
+// sección 4); hasta entonces todo llega como SUPPLIER (un remito).
+export const RECEPTION_TYPE = {
+  SUPPLIER: "SUPPLIER",
+  RELOCATION: "RELOCATION",
+};
+
 export const deriveStatus = (quantityRequested, quantityReceived) => {
   if (!quantityReceived) return ORDER_STATUS.PENDIENTE;
   if (quantityReceived < quantityRequested) return ORDER_STATUS.RECIBIDO_PARCIAL;
@@ -148,6 +156,7 @@ const normalizeReception = (raw) => {
   return {
     id: raw.id,
     restockOrderId: raw.restock_order_id ?? raw.restockOrderId ?? null,
+    type: raw.type ?? RECEPTION_TYPE.SUPPLIER,
     productId: raw.product_id ?? raw.productId,
     quantityReceived,
     deliveryUnit: raw.delivery_unit ?? raw.deliveryUnit ?? null,
@@ -190,7 +199,7 @@ const toCreateReceptionPayload = (input) => ({
   delivery_unit: input.deliveryUnit,
   supplier: input.supplier,
   // Vacío desde el modal de remito: nace PENDING_LOCATION y se ubica después
-  // desde Asignación de ubicación (assignReceptionPositions).
+  // desde Asignación de stock (assignReceptionPositions).
   assignments: toAssignmentsPayload(input.assignments),
 });
 

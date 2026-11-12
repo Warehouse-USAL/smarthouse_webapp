@@ -11,7 +11,12 @@ import Pagination from "../../components/ui/Pagination/Pagination";
 import Select from "../../components/ui/Select/Select";
 import LocateReceptionModal from "../../components/stock/LocateReceptionModal/LocateReceptionModal";
 import { productService } from "../../services/productService";
-import { restockService, restockOrderCode } from "../../services/restockService";
+import {
+  RECEPTION_TYPE,
+  restockService,
+  restockOrderCode,
+} from "../../services/restockService";
+import { STORAGE_UNIT_LABEL } from "../../lib/storageCompatibility";
 import "./StockAssignmentPage.css";
 
 const matchesSearch = (item, q) =>
@@ -77,9 +82,14 @@ export default function StockAssignmentPage() {
             // La tabla lee imageUrl del producto; sin este cruce la fila
             // mostraría el placeholder en lugar de la foto.
             imageUrl: product?.imageUrl ?? "",
-            orderId: reception.restockOrderId
-              ? restockOrderCode(reception.restockOrderId)
-              : "Sin orden",
+            relocation: reception.type === RECEPTION_TYPE.RELOCATION,
+            // Una reubicación no viene de una compra: no tiene orden.
+            orderId:
+              reception.type === RECEPTION_TYPE.RELOCATION
+                ? "—"
+                : reception.restockOrderId
+                  ? restockOrderCode(reception.restockOrderId)
+                  : "Sin orden",
             received: reception.quantityPendingLocation,
             receivedAt: reception.createdAt
               ? new Date(reception.createdAt).toLocaleDateString("es-AR")
@@ -113,16 +123,11 @@ export default function StockAssignmentPage() {
     </div>
   );
 
-  const renderProductCell = (item) => (
-    <div className="table-panel__product">
-      <span className="table-panel__thumb">
-        <Icon name="box" size={18} />
-        {item.imageUrl && <img src={item.imageUrl} alt="" loading="lazy" />}
-      </span>
-      <span className="table-panel__product-name" title={item.name}>
-        {item.name}
-      </span>
-    </div>
+  const renderThumb = (item) => (
+    <span className="table-panel__thumb">
+      <Icon name="box" size={18} />
+      {item.imageUrl && <img src={item.imageUrl} alt="" loading="lazy" />}
+    </span>
   );
 
   return (
@@ -133,7 +138,7 @@ export default function StockAssignmentPage() {
       />
 
       <TablePanel
-        title="Productos de restock pendientes de ubicación"
+        title="Productos pendientes de ubicación"
         count={`(${loadingRestock ? "…" : filteredRestock.length})`}
         search={{
           placeholder: "Buscar por nombre o SKU",
@@ -174,32 +179,40 @@ export default function StockAssignmentPage() {
             <EmptyState
               icon="box"
               title="Sin productos"
-              description="No hay productos de restock pendientes de ubicación."
+              description="No hay mercadería pendiente de ubicación."
             />
           ) : (
             <TablePanelTable className="table-panel__table--compact">
               <thead>
                 <tr>
-                  <th>Producto</th>
-                  <th>SKU</th>
                   <th>Orden</th>
-                  <th>Cantidad pendiente</th>
-                  <th>Fecha recepción</th>
+                  <th>Fecha</th>
+                  <th>Imagen</th>
+                  <th>Nombre</th>
+                  <th>SKU</th>
+                  <th>Cantidad a ubicar</th>
                   <th>Estado</th>
+                  <th>Unidad</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {restockPageData.items.map((product) => (
                   <tr key={product.id}>
-                    <td>{renderProductCell(product)}</td>
-                    <td className="table-panel__nowrap">{product.sku}</td>
                     <td className="table-panel__nowrap">{product.orderId}</td>
-                    <td>{product.received} unidades</td>
                     <td className="table-panel__nowrap">{product.receivedAt}</td>
+                    <td className="table-panel__thumb-cell">{renderThumb(product)}</td>
+                    <td>{product.name}</td>
+                    <td className="table-panel__nowrap">{product.sku}</td>
+                    <td>{product.received} unidades</td>
                     <td>
-                      <Badge variant="success" dot>Restock aceptado</Badge>
+                      {product.relocation ? (
+                        <Badge variant="info" dot>Reubicación</Badge>
+                      ) : (
+                        <Badge variant="success" dot>Restock aceptado</Badge>
+                      )}
                     </td>
+                    <td>{STORAGE_UNIT_LABEL[product.deliveryUnit] ?? "—"}</td>
                     <td>
                       <Button
                         variant="warning-outline"
@@ -207,7 +220,7 @@ export default function StockAssignmentPage() {
                         iconLeft={<Icon name="pin" size={14} />}
                         onClick={() => setLocateReception(product)}
                       >
-                        Ubicar
+                        Asignar ubicación
                       </Button>
                     </td>
                   </tr>

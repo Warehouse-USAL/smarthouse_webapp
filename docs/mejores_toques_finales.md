@@ -470,6 +470,21 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 34. Asignación de stock: tabla "Productos pendientes de ubicación"
+
+- Columnas como en Productos: Orden, Fecha, Imagen, Nombre, SKU, Cantidad a
+  ubicar, Estado, Unidad y Acciones ("Asignar ubicación").
+- Estado: "Restock aceptado" (verde) para un remito y "Reubicación" (azul) para
+  lo que sale de quitar un producto de una posición. Una reubicación no tiene
+  orden ("—"). El service ya lee `type` del remito (`RECEPTION_TYPE`); hasta
+  que el backend lo mande, todo llega como remito. La fecha de una reubicación
+  es la del momento en que se quitó el producto (pedido en
+  `docs/nuevos_requisitos.md`, sección 4).
+- La foto va centrada en su columna: nueva clase reutilizable
+  `table-panel__thumb-cell` en `TablePanel.css`.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`
