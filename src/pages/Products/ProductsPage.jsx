@@ -26,7 +26,7 @@ import {
   normalizeCancelledOrder,
 } from "../../services/orderService";
 import { getUser } from "../../services/authService";
-import { errorText } from "../../lib/apiError";
+import { errorMessage, errorText } from "../../lib/apiError";
 import { can } from "../../lib/permissions";
 import { needsRestock, toRestockAlert } from "../../lib/restockSuggestion";
 import { restockService } from "../../services/restockService";
@@ -48,6 +48,9 @@ const ADJUST_TYPES = [
   { value: "vencimiento", label: "Vencimiento (-)" },
   { value: "conteo", label: "Conteo (stock final)" },
 ];
+
+// Tope de `current_stock` en el backend (Integer de Java).
+const MAX_POSITION_STOCK = 2147483647;
 
 // Las reducciones se mandan como "restá N" (POST stock-adjustments) con el tipo
 // del backend; entrada y conteo fijan el stock final con PATCH.
@@ -141,6 +144,9 @@ export default function ProductsPage() {
   const [adjustQty, setAdjustQty] = useState("");
   const [adjustReason, setAdjustReason] = useState("");
   const [adjustSubmitting, setAdjustSubmitting] = useState(false);
+  // Error del backend al aplicar el ajuste; se muestra debajo del stock
+  // resultante y se limpia al cambiar posición, tipo o cantidad.
+  const [adjustError, setAdjustError] = useState(null);
   // Resultado de una reducción: { cancelled, notCancelled } de failShortOfStock.
   const [reductionResult, setReductionResult] = useState(null);
 
@@ -398,6 +404,7 @@ export default function ProductsPage() {
     setAdjustType("entrada");
     setAdjustQty("");
     setAdjustReason("");
+    setAdjustError(null);
   };
 
   // Si la sugerencia en vivo falla, el modal abre igual sin cantidad sugerida:
@@ -471,6 +478,14 @@ export default function ProductsPage() {
         : adjustType === "conteo"
           ? qty
           : adjustCurrent - qty;
+    // current_stock es un int de Java en el backend: por encima de ese tope el
+    // PATCH ni se lee (MALFORMED_REQUEST) y no llega a validar la capacidad.
+    if (next > MAX_POSITION_STOCK) {
+      return {
+        next: null,
+        error: "La cantidad es demasiado grande. Ingresá una cantidad menor.",
+      };
+    }
     return { next };
   };
 
@@ -481,6 +496,7 @@ export default function ProductsPage() {
     const { next, error } = computeAdjust();
     if (error || next == null) return;
     setAdjustSubmitting(true);
+    setAdjustError(null);
     const typeLabel = ADJUST_TYPES.find((t) => t.value === adjustType).label;
     // Motivo escrito por el operador; si lo deja vacío, se guarda un resumen
     // automático para que el historial nunca quede sin contexto.
@@ -507,12 +523,19 @@ export default function ProductsPage() {
             { currentStock: next, reason }
           );
     } catch (err) {
-      alert(
+      // STOCK_EXCEEDS_CAPACITY llega con el mensaje en inglés ("Stock 10553
+      // exceeds capacity 563"): se rescata la capacidad para el texto. La valida
+      // el backend (capacidad máxima y volumen), así que el front no la conoce.
+      const capacity = errorMessage(err)?.match(/capacity (\d+)/)?.[1];
+      setAdjustError(
         errorText(
           err,
           {
             QUANTITY_EXCEEDS_POSITION_STOCK:
               "La cantidad supera el stock real de la posición: puede que otro usuario lo haya cambiado. Cerrá el ajuste y volvé a abrirlo para ver el stock actualizado.",
+            STOCK_EXCEEDS_CAPACITY: capacity
+              ? `La posición admite hasta ${capacity} unidades de este producto y quedaría con ${next}. Ingresá una cantidad menor.`
+              : "La cantidad supera la capacidad de la posición. Ingresá una cantidad menor.",
           },
           "No pudimos aplicar el ajuste de stock."
         )
@@ -972,7 +995,10 @@ export default function ProductsPage() {
                 <Select
                   label="Posición"
                   value={adjustPosition}
-                  onChange={(e) => setAdjustPosition(e.target.value)}
+                  onChange={(e) => {
+                    setAdjustPosition(e.target.value);
+                    setAdjustError(null);
+                  }}
                   options={adjustLocations.map((loc) => ({
                     value: loc.idPosition,
                     label: `${fullLocationLabel(loc)} (${loc.currentStock} un.)`,
@@ -981,7 +1007,10 @@ export default function ProductsPage() {
                 <Select
                   label="Tipo de ajuste"
                   value={adjustType}
-                  onChange={(e) => setAdjustType(e.target.value)}
+                  onChange={(e) => {
+                    setAdjustType(e.target.value);
+                    setAdjustError(null);
+                  }}
                   options={ADJUST_TYPES}
                 />
                 <Input
@@ -992,7 +1021,10 @@ export default function ProductsPage() {
                   min={0}
                   step={1}
                   value={adjustQty}
-                  onChange={(e) => setAdjustQty(e.target.value)}
+                  onChange={(e) => {
+                    setAdjustQty(e.target.value);
+                    setAdjustError(null);
+                  }}
                   error={adjustResult.error}
                 />
                 <Input
@@ -1008,6 +1040,13 @@ export default function ProductsPage() {
                   Stock actual: <strong>{adjustCurrent}</strong> → Stock
                   resultante: <strong>{adjustResult.next ?? "—"}</strong>
                 </p>
+                {adjustError && (
+                  <StatusBanner
+                    statusBannerState="status-banner-error"
+                    icon={<Icon name="alert" size={16} />}
+                    text={adjustError}
+                  />
+                )}
               </>
             )}
           </div>

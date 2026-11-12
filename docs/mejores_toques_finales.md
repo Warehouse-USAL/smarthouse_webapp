@@ -287,6 +287,22 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 18. Ajustar stock: error de capacidad dentro del modal
+
+- **Antes:** si una entrada superaba la capacidad de la posición, aparecía un
+  `window.alert` con el texto crudo del backend ("Stock 10553 exceeds capacity
+  563").
+- **Ahora:** los errores al aplicar el ajuste se muestran en un `StatusBanner`
+  de error debajo del stock resultante, y se limpian al cambiar posición, tipo
+  o cantidad. Para `STOCK_EXCEEDS_CAPACITY` el texto dice cuántas unidades
+  admite la posición y con cuánto quedaría.
+- Una cantidad que supera el tope de `current_stock` en el backend (int de
+  Java, 2.147.483.647) se frena antes de enviar, con error en el campo: si no,
+  el backend responde `MALFORMED_REQUEST` ("El cuerpo de la solicitud no es
+  JSON válido") sin llegar a validar la capacidad.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`
