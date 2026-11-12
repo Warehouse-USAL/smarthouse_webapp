@@ -58,13 +58,4 @@ export const vehicleService = {
     const { data } = await apiClient.post("/vehicles", { name });
     return normalize(data?.vehicle ?? data);
   },
-
-  async update(id, patch) {
-    const { data } = await apiClient.patch(`/vehicles/${id}`, patch);
-    return normalize(data?.vehicle ?? data);
-  },
-
-  async remove(id) {
-    await apiClient.delete(`/vehicles/${id}`);
-  },
 };

@@ -531,6 +531,9 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 - **Sin cambios, a propósito:** `GET /restock/orders` oculta las canceladas si
   no se pide `includeCancelled=true`; por eso Gestión de stock no ofrece el
   filtro "Cancelado".
+- **Borrado (código muerto que ninguna pantalla usaba):** `vehicleService.update`
+  y `vehicleService.remove`, que llamaban a `PATCH` y `DELETE /vehicles/{id}`
+  (no existen en el backend), y `stockPositionService` entero.
 
 ---
 
