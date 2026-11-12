@@ -546,6 +546,7 @@ export default function StockManagementPage() {
             <TablePanelTable className="stock-table stock-table--wrap-head">
               <thead>
                 <tr>
+                  <th>Imagen</th>
                   <th>Producto</th>
                   <th>SKU</th>
                   <th>Stock actual</th>
@@ -557,23 +558,18 @@ export default function StockManagementPage() {
               <tbody>
                 {alertItems.map((alert) => (
                   <tr key={alert.productId}>
+                    <td className="table-panel__thumb-cell">
+                      <span className="stock-table__thumb">
+                        <Icon name="box" size={18} />
+                        {alert.imageUrl && (
+                          <img src={alert.imageUrl} alt="" loading="lazy" />
+                        )}
+                      </span>
+                    </td>
                     <td>
-                      <div className="stock-table__product">
-                        <span className="stock-table__thumb">
-                          <Icon name="box" size={18} />
-                          {alert.imageUrl && (
-                            <img src={alert.imageUrl} alt="" loading="lazy" />
-                          )}
-                        </span>
-                        <span className="stock-table__product-text">
-                          <span
-                            className="stock-table__product-name"
-                            title={alert.name}
-                          >
-                            {alert.name}
-                          </span>
-                        </span>
-                      </div>
+                      <span className="stock-table__product-name" title={alert.name}>
+                        {alert.name}
+                      </span>
                     </td>
                     <td className="stock-table__sku">{alert.sku}</td>
                     <td className="stock-table__num stock-table__num--low">
@@ -597,7 +593,7 @@ export default function StockManagementPage() {
                         iconLeft={<Icon name="cart" size={15} />}
                         onClick={() => setOrderModal({ alert })}
                       >
-                        Orden de Restock
+                        Generar orden
                       </Button>
                     </td>
                   </tr>

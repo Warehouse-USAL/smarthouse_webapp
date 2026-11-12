@@ -493,6 +493,16 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 36. Gestión de stock: alertas con columna Imagen y botón "Generar orden"
+
+- La columna Producto se separa en Imagen y Producto (nombre hasta 2 líneas).
+- El botón "Orden de Restock" pasa a "Generar orden".
+- La foto va centrada en su columna (`table-panel__thumb-cell`).
+- Verificado con capturas a 1366 px (seed de demo) de Asignación y Gestión de
+  stock.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`

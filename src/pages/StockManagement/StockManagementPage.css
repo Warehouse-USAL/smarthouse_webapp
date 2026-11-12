@@ -175,15 +175,10 @@
   }
 }
 
-/* Nombre del producto en la tabla de alertas (en órdenes va solo la foto). */
-.stock-table__product-text {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-width: 96px;
-}
-
+/* Nombre del producto en la tabla de alertas (en órdenes va solo la foto):
+   hasta 2 líneas, el resto en el title. */
 .stock-table__product-name {
+  min-width: 96px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
