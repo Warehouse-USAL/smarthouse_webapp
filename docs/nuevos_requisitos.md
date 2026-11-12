@@ -147,3 +147,44 @@ Opcional: sumar `zone_color` a `PositionSummaryResponse`, que ya trae
 
 Se pide un código propio y no el `VALIDATION_ERROR` genérico, que llega con el
 mensaje en inglés.
+
+---
+
+## 3. Nombre del cliente en cada orden
+
+### Por qué
+
+La tabla de Gestión de ventas muestra el cliente de cada orden. La orden solo
+trae `requested_by_user_id`, y el front arma el nombre pidiendo todos los
+usuarios con `GET /users`, que es solo para `SUPERADMIN` y `ADMIN_SYSTEM`.
+Para el resto de los roles que ven ventas (incluido `ADMIN_SALES`, el rol de
+ventas) la columna Cliente sale "—" en todas las filas.
+
+Además, traer todos los usuarios para resolver nombres no escala: es un listado
+completo por cada carga de la pantalla.
+
+### Contrato pedido
+
+- **Roles:** sin cambios. El campo nuevo lo recibe cualquiera que ya pueda ver
+  la orden.
+- **`OrderResponse`** suma `requested_by_name`: el `name` actual del usuario
+  que hizo la orden, o `null` si ese usuario ya no existe.
+
+Aplica a las respuestas que devuelven órdenes: `GET /orders` (listado
+paginado), `GET /orders/{id}`, `POST /orders` y `POST /orders/{id}/cancel`.
+
+```json
+{
+  "id": "o1",
+  "status": "pending",
+  "requested_by_user_id": "u-sales-1",
+  "requested_by_name": "Valentina Rodríguez",
+  "items": [ ... ],
+  "...": "resto de los campos sin cambios"
+}
+```
+
+En el listado conviene resolver los nombres de la página de una sola vez (un
+`findAllById` con los ids de esa página), no un pedido por orden.
+
+- **Errores:** ninguno nuevo.
