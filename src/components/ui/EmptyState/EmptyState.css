@@ -20,13 +20,13 @@
 }
 
 .empty-state h3 {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
 }
 
 .empty-state p {
   color: var(--color-text-secondary);
-  font-size: 14px;
+  font-size: var(--text-md);
   max-width: 340px;
 }
 

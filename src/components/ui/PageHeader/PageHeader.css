@@ -8,7 +8,7 @@
 
 .page-header__text h1 {
   font-size: 28px;
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   letter-spacing: -0.01em;
   color: var(--color-text-primary);
 }
@@ -16,19 +16,13 @@
 .page-header__text p {
   margin-top: 6px;
   color: var(--color-text-secondary);
-  font-size: 14px;
+  font-size: var(--text-md);
 }
 
 .page-header__action {
   flex-shrink: 0;
 }
 
-
-.products-page__header-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
 
 .products-page__link-action {
   display: inline-flex;
@@ -40,7 +34,7 @@
   background: var(--color-surface);
   color: var(--color-text-primary);
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: var(--weight-medium);
   text-decoration: none;
   transition: background 0.15s, border-color 0.15s;
   white-space: nowrap;

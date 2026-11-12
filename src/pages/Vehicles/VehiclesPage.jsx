@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
-import Card from "../../components/ui/Card/Card";
+import TablePanel, { TablePanelTable } from "../../components/ui/TablePanel/TablePanel";
 import Input from "../../components/ui/Input/Input";
 import Select from "../../components/ui/Select/Select";
 import Button from "../../components/ui/Button/Button";
@@ -43,6 +43,7 @@ export default function VehiclesPage() {
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -123,25 +124,28 @@ export default function VehiclesPage() {
         }
       />
 
-      <Card padding="md" className="vehicles-page__filters">
-        <Input
-          label="Buscar vehículo"
-          placeholder="Buscar vehículo"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          iconLeft={<Icon name="search" size={16} />}
-        />
-        <Select
-          label="Estado"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          options={STATUS_OPTIONS}
-        />
-      </Card>
-
-      <Card padding="none">
+      <TablePanel
+        title="Vehículos registrados"
+        search={{
+          placeholder: "Buscar vehículo",
+          value: search,
+          onChange: (e) => setSearch(e.target.value),
+        }}
+        filtersOpen={filtersOpen}
+        onToggleFilters={() => setFiltersOpen((v) => !v)}
+        filters={
+          filtersOpen && (
+            <Select
+              label="Estado"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              options={STATUS_OPTIONS}
+            />
+          )
+        }
+      >
         {loading ? (
-          <div className="vehicles-page__loading">
+          <div className="table-panel__loading">
             <Spinner label="Cargando vehículos…" />
           </div>
         ) : error ? (
@@ -165,39 +169,45 @@ export default function VehiclesPage() {
             }
           />
         ) : (
-          <div className="vehicles-table" role="table">
-            <div className="vehicles-table__head" role="row">
-              <span role="columnheader">Nombre</span>
-              <span role="columnheader">Estado</span>
-              <span role="columnheader">Batería</span>
-              <span role="columnheader">Ubicación actual</span>
-              <span role="columnheader" className="vehicles-table__actions-head">Acciones</span>
-            </div>
-            {filtered.map((vehicle) => {
-              const meta = STATUS_META[vehicle.status] || STATUS_META.OFFLINE;
-              return (
-                <div className="vehicles-table__row" role="row" key={vehicle.id || vehicle.name}>
-                  <span role="cell" className="vehicles-table__name">{vehicle.name}</span>
-                  <span role="cell">
-                    <Badge variant={meta.variant} dot>{meta.label}</Badge>
-                  </span>
-                  <span role="cell" className="vehicles-table__battery">
-                    <span className="vehicles-table__battery-value">{vehicle.battery ?? 0}%</span>
-                    <ProgressBar value={vehicle.battery ?? 0} />
-                  </span>
-                  <span role="cell" className="vehicles-table__location">{formatLocation(vehicle)}</span>
-                  <span role="cell" className="vehicles-table__actions">
-                    <button className="vehicles-table__action" type="button">
-                      Ver detalle
-                      <Icon name="chevronRight" size={14} />
-                    </button>
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+          <TablePanelTable>
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Estado</th>
+                <th>Batería</th>
+                <th>Ubicación actual</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((vehicle) => {
+                const meta = STATUS_META[vehicle.status] || STATUS_META.OFFLINE;
+                return (
+                  <tr key={vehicle.id || vehicle.name}>
+                    <td className="vehicles-table__name">{vehicle.name}</td>
+                    <td>
+                      <Badge variant={meta.variant} dot>{meta.label}</Badge>
+                    </td>
+                    <td>
+                      <div className="vehicles-table__battery">
+                        <span className="vehicles-table__battery-value">{vehicle.battery ?? 0}%</span>
+                        <ProgressBar value={vehicle.battery ?? 0} />
+                      </div>
+                    </td>
+                    <td>{formatLocation(vehicle)}</td>
+                    <td>
+                      <button className="vehicles-table__action" type="button">
+                        Ver detalle
+                        <Icon name="chevronRight" size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </TablePanelTable>
         )}
-      </Card>
+      </TablePanel>
 
       <Modal
         open={createOpen}

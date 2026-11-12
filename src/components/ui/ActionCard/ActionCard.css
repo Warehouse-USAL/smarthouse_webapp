@@ -1,0 +1,104 @@
+.action-card-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: minmax(10rem, auto);
+  gap: var(--space-4);
+}
+
+.action-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  border: 1px solid transparent;
+  text-decoration: none;
+  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+}
+
+.action-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card);
+}
+
+/* ── Variantes ─────────────────────────────────────────────── */
+
+.action-card--yellow {
+  background-color: var(--color-yellow-soft);
+}
+
+.action-card--yellow:hover {
+  border-color: var(--color-yellow-primary);
+}
+
+.action-card--yellow .action-card__icon {
+  background-color: var(--color-yellow-primary);
+  color: var(--color-white);
+}
+
+.action-card--blue {
+  background-color: var(--color-info-blue-soft);
+}
+
+.action-card--blue:hover {
+  border-color: var(--color-info-blue);
+}
+
+.action-card--blue .action-card__icon {
+  background-color: var(--color-info-blue);
+  color: var(--color-white);
+}
+
+/* ── Contenido ─────────────────────────────────────────────── */
+
+.action-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-cards);
+  flex-shrink: 0;
+}
+
+.action-card__body {
+  flex: 1;
+  min-width: 0;
+  margin-left: 10px;
+}
+
+.action-card__title {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0;
+  text-align: left;
+}
+
+.action-card__desc {
+  margin: 8px 0 0;
+  font-size: var(--text-md);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  text-align: left;
+  max-width: 407px;
+}
+
+.action-card__chevron {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  transition: transform 120ms ease;
+}
+
+.action-card:hover .action-card__chevron {
+  transform: translateX(3px);
+  color: var(--color-text-secondary);
+}
+
+/* ── Responsive ────────────────────────────────────────────── */
+
+@media (max-width: 720px) {
+  .action-card-grid {
+    grid-template-columns: 1fr;
+  }
+}

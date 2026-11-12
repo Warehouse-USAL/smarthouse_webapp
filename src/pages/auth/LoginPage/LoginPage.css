@@ -8,6 +8,6 @@
 
 .login-error {
   color: red;
-  font-size: 14px;
+  font-size: var(--text-md);
   text-align: center;
 }

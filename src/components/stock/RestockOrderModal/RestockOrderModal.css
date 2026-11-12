@@ -22,7 +22,7 @@
   border: 1px dashed var(--color-yellow-primary);
   border-radius: var(--radius-soft);
   background: var(--color-yellow-soft);
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   color: var(--color-yellow-dark);
   cursor: pointer;
@@ -44,7 +44,7 @@
   border: 1px solid var(--color-warning-border);
   border-radius: var(--radius-sm);
   background: var(--color-warning-bg);
-  font-size: 13px;
+  font-size: var(--text-sm);
   line-height: 1.5;
   color: var(--color-yellow-dark);
 }
@@ -55,7 +55,7 @@
 
 .restock-modal__error {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-danger);
   background-color: var(--color-danger-soft);
   border: 1px solid var(--color-danger-border);
