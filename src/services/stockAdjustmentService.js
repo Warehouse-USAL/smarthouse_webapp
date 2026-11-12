@@ -12,15 +12,19 @@
 |   GET  /products/:id/stock-adjustments?page&size
 |        → { stock_adjustments, pagination }
 |
-| El front aplica los ajustes con PATCH /warehouse/positions/:id (que ya
-| persiste el `reason` y devuelve `cancelled_orders`). Este service solo LEE el
-| historial: es la auditoría que muestra quién ajustó, cuándo y por qué.
+| Las reducciones (merma, rotura, vencimiento) van por POST: el backend descuenta
+| sobre el stock real y rechaza superarlo (QUANTITY_EXCEEDS_POSITION_STOCK), así
+| un dato viejo en pantalla no pisa el cambio de otro usuario. Entrada y conteo
+| siguen fijando el stock final con PATCH /warehouse/positions/:id
+| (warehouseConfigService.updatePosition). El historial es la auditoría que
+| muestra quién ajustó, cuándo y por qué.
 |
 | El backend serializa en snake_case (JacksonConfig SNAKE_CASE). `adjusted_by`
 | es el id del usuario que hizo el ajuste ("system" si no hubo request).
 |
 */
 
+import { apiClient } from "../lib/apiClient";
 import { fetchPage } from "../lib/pagination";
 
 
@@ -38,6 +42,16 @@ const normalizeAdjustment = (raw) => ({
 });
 
 export const stockAdjustmentService = {
+  // Descuenta `quantity` unidades de la posición. type: MANUAL_DECREASE | DAMAGE.
+  // Devuelve el cuerpo tal cual: { adjustment, cancelled_orders }.
+  async createDecrease(positionId, { quantity, type, reason }) {
+    const { data } = await apiClient.post(
+      `/warehouse/positions/${positionId}/stock-adjustments`,
+      { quantity, type, reason }
+    );
+    return data;
+  },
+
   // Historial del producto cruzando todas sus posiciones, más nuevo primero.
   // page es 1-based (fetchPage lo traduce a 0-based para el backend).
   async listProductAdjustments(productId, { page = 1, size = 10 } = {}) {

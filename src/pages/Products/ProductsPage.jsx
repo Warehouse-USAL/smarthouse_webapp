@@ -48,6 +48,14 @@ const ADJUST_TYPES = [
   { value: "conteo", label: "Conteo (stock final)" },
 ];
 
+// Las reducciones se mandan como "restá N" (POST stock-adjustments) con el tipo
+// del backend; entrada y conteo fijan el stock final con PATCH.
+const DECREASE_TYPE = {
+  merma: "MANUAL_DECREASE",
+  rotura: "DAMAGE",
+  vencimiento: "MANUAL_DECREASE",
+};
+
 // Etiquetas del enum StockAdjustmentType que devuelve el backend en el historial.
 const ADJUSTMENT_TYPE_LABEL = {
   MANUAL_INCREASE: "Entrada manual",
@@ -436,8 +444,9 @@ export default function ProductsPage() {
   // Stock resultante del ajuste + validación previa al PATCH. Sin cantidad
   // cargada no hay error (el botón queda deshabilitado hasta que haya un next).
   // Una reducción puede dejar el stock por debajo de la reserva o del mínimo:
-  // registra una pérdida real. El backend solo rechaza superar la capacidad
-  // de la posición (400), que se muestra en el alert del handleAdjust.
+  // registra una pérdida real. El backend rechaza superar la capacidad de la
+  // posición o descontar más que su stock real (400), y se muestra en el alert
+  // del handleAdjust.
   const computeAdjust = () => {
     if (adjustQty === "") return { next: null };
     const qty = Number(adjustQty);
@@ -483,14 +492,30 @@ export default function ProductsPage() {
     try {
       // El backend recalcula físico/reserva/disponible del producto desde las
       // posiciones; el solo hecho de setear acá el stock es el ajuste.
-      response = await warehouseConfigService.updatePosition(
-        adjustLocation.idZone,
-        adjustLocation.idLine,
-        adjustLocation.idPosition,
-        { currentStock: next, reason }
-      );
+      const decreaseType = DECREASE_TYPE[adjustType];
+      response = decreaseType
+        ? await stockAdjustmentService.createDecrease(adjustLocation.idPosition, {
+            quantity: adjustCurrent - next,
+            type: decreaseType,
+            reason,
+          })
+        : await warehouseConfigService.updatePosition(
+            adjustLocation.idZone,
+            adjustLocation.idLine,
+            adjustLocation.idPosition,
+            { currentStock: next, reason }
+          );
     } catch (err) {
-      alert(errorText(err, {}, "No pudimos aplicar el ajuste de stock."));
+      alert(
+        errorText(
+          err,
+          {
+            QUANTITY_EXCEEDS_POSITION_STOCK:
+              "La cantidad supera el stock real de la posición: puede que otro usuario lo haya cambiado. Cerrá el ajuste y volvé a abrirlo para ver el stock actualizado.",
+          },
+          "No pudimos aplicar el ajuste de stock."
+        )
+      );
       setAdjustSubmitting(false);
       return;
     }

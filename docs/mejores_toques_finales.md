@@ -262,6 +262,22 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 16. Ajuste manual: las reducciones descuentan sobre el stock real
+
+- **Antes:** merma, rotura y vencimiento mandaban el stock final
+  (`PATCH /warehouse/positions/{id}` con `current_stock`). Con la pantalla
+  desactualizada, una merma podía pisar el cambio de otro usuario e incluso
+  subir el stock.
+- **Ahora:** se mandan como "restá N" a
+  `POST /warehouse/positions/{id}/stock-adjustments` (`rotura` → `DAMAGE`,
+  `merma` y `vencimiento` → `MANUAL_DECREASE`). El backend valida contra el
+  stock real y, si no alcanza, responde `QUANTITY_EXCEEDS_POSITION_STOCK`, con
+  un mensaje que pide reabrir el ajuste. Entrada y conteo siguen con `PATCH`.
+- Revisado: ningún camino de la UI deja stock negativo (el ajuste, el remito y
+  el asignador de posiciones validan las cantidades antes de enviarlas).
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`
