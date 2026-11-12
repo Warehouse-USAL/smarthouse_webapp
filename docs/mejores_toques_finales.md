@@ -247,6 +247,21 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 15. Productos: la orden de restock usa la misma sugerida que Gestión de stock
+
+- **Antes:** el botón de restock de la tabla de Productos solo leía el
+  `restock` guardado por la corrida diaria. Si todavía no había corrido, el
+  modal decía "Sin dato" aunque Gestión de stock mostrara una sugerida (sacada
+  de la simulación en vivo).
+- **Ahora:** `restockService.alertFor(product)` sigue la misma cadena que
+  `listAlerts`: guardado → `POST /metrics/restock-suggestions` filtrado a ese
+  producto → sin cantidad. Si la simulación falla, el modal abre igual y la
+  cantidad se escribe a mano.
+- Revisado y sin cambios: un producto sin ventas no entra en las alertas del
+  backend (`gap = 0`, el backend no mira el stock mínimo). Se deja así.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`

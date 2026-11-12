@@ -27,7 +27,8 @@ import {
 import { getUser } from "../../services/authService";
 import { errorText } from "../../lib/apiError";
 import { can } from "../../lib/permissions";
-import { fromStoredRestock, needsRestock, toRestockAlert } from "../../lib/restockSuggestion";
+import { needsRestock, toRestockAlert } from "../../lib/restockSuggestion";
+import { restockService } from "../../services/restockService";
 import { displayCode } from "../../lib/pagination";
 import "./ProductsPage.css";
 
@@ -137,8 +138,8 @@ export default function ProductsPage() {
   // Historial/auditoría de ajustes (GET /products/:id/stock-adjustments).
   const [historyProduct, setHistoryProduct] = useState(null);
 
-  // Orden de restock desde la fila: el producto ya viene elegido. Si la corrida
-  // diaria calculó una sugerida, se precarga; si no, la cantidad arranca vacía.
+  // Orden de restock desde la fila: el producto ya viene elegido y la sugerida
+  // sale de la misma cadena que Gestión de stock (restockService.alertFor).
   const [restockAlert, setRestockAlert] = useState(null);
   const [feedback, setFeedback] = useState(null);
   const [historyPage, setHistoryPage] = useState(1);
@@ -388,6 +389,19 @@ export default function ProductsPage() {
     setAdjustType("entrada");
     setAdjustQty("");
     setAdjustReason("");
+  };
+
+  // Si la sugerencia en vivo falla, el modal abre igual sin cantidad sugerida:
+  // el operador la escribe a mano, como cuando el backend no la calcula.
+  const openRestock = async (product) => {
+    setFeedback(null);
+    let alertRow;
+    try {
+      alertRow = await restockService.alertFor(product);
+    } catch {
+      alertRow = toRestockAlert(product);
+    }
+    setRestockAlert(alertRow);
   };
 
   const openHistory = (product) => {
@@ -769,10 +783,7 @@ export default function ProductsPage() {
                           <button
                             type="button"
                             className="products-table__action"
-                            onClick={() => {
-                              setFeedback(null);
-                              setRestockAlert(fromStoredRestock(product) ?? toRestockAlert(product));
-                            }}
+                            onClick={() => openRestock(product)}
                             aria-label="Generar orden de restock"
                             title="Generar orden de restock"
                           >

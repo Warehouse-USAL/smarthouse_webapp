@@ -67,7 +67,11 @@ import {
   fetchPage,
   toInstantRange,
 } from "../lib/pagination";
-import { fromStoredRestock, fromSuggestionRow } from "../lib/restockSuggestion";
+import {
+  fromStoredRestock,
+  fromSuggestionRow,
+  toRestockAlert,
+} from "../lib/restockSuggestion";
 import { warehouseConfigService } from "./warehouseConfigService";
 
 
@@ -488,6 +492,17 @@ export const restockService = {
     return rows
       .filter((row) => row.shouldRestock)
       .map((row) => fromSuggestionRow(row, byId.get(row.productId)));
+  },
+
+  // Alerta de un solo producto (botón de restock en Productos), con la misma
+  // cadena que listAlerts para que la sugerida coincida con Gestión de stock:
+  // `restock` guardado si la corrida diaria ya lo calculó; si no, simulación en
+  // vivo filtrada a ese producto; si no hay ninguna, sin cantidad sugerida.
+  async alertFor(product) {
+    if (product.restock) return fromStoredRestock(product) ?? toRestockAlert(product);
+    const rows = await this.listSuggestions({ filters: { productIds: [product.id] } });
+    const row = rows?.find((r) => r.productId === product.id && r.shouldRestock);
+    return row ? fromSuggestionRow(row, product) : toRestockAlert(product);
   },
 
   // Posiciones candidatas para ubicar mercadería. La implementación vive en
