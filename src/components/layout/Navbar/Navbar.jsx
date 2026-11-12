@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import Logo from "../../ui/Logo/Logo";
 import Avatar from "../../ui/Avatar/Avatar";
+import Icon from "../../ui/Icon/Icon";
+import ProfileModal from "../../users/ProfileModal/ProfileModal";
 import { logout, getUser } from "../../../services/authService";
 import { can } from "../../../lib/permissions";
 import "./Navbar.css";
@@ -21,6 +23,7 @@ const NAV_ITEMS = [
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const menuRef = useRef(null);
   const navigate = useNavigate();
 
@@ -118,6 +121,18 @@ export default function Navbar() {
               <button
                 type="button"
                 className="navbar__dropdown-item"
+                onClick={() => {
+                  setOpen(false);
+                  setProfileOpen(true);
+                }}
+                role="menuitem"
+              >
+                <Icon name="user" size={16} />
+                Mi perfil
+              </button>
+              <button
+                type="button"
+                className="navbar__dropdown-item"
                 onClick={handleLogout}
                 role="menuitem"
               >
@@ -141,6 +156,8 @@ export default function Navbar() {
           )}
         </div>
       </div>
+      {/* Al cerrar, Navbar re-renderiza y relee el nombre guardado. */}
+      <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
     </header>
   );
 }

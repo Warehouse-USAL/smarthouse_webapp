@@ -175,15 +175,10 @@
   }
 }
 
-/* Nombre del producto en la tabla de alertas (en órdenes va solo la foto). */
-.stock-table__product-text {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-width: 96px;
-}
-
+/* Nombre del producto en la tabla de alertas (en órdenes va solo la foto):
+   hasta 2 líneas, el resto en el title. */
 .stock-table__product-name {
+  min-width: 96px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
@@ -200,11 +195,6 @@
 /* Stock por debajo del mínimo: es la razón de la alerta. */
 .stock-table__num--low {
   color: var(--color-danger);
-  font-weight: var(--weight-semibold);
-}
-
-.stock-table__num--suggested {
-  color: var(--color-yellow-dark);
   font-weight: var(--weight-semibold);
 }
 

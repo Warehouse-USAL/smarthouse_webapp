@@ -4,8 +4,8 @@
 |--------------------------------------------------------------------------
 |
 | Contrato REAL del backend (wh-backend, ProductController):
-|   GET    /products            params: category, search, is_active, page, size
-|   GET    /products/:id        params: is_active
+|   GET    /products            params: category, search, isActive, page, size
+|   GET    /products/:id        params: isActive
 |   POST   /products            CreateProductRequest
 |   PATCH  /products/:id        UpdateProductRequest (parcial)
 |   DELETE /products/:id        baja lógica (active=false)
@@ -21,7 +21,7 @@
 |
 | NO existe en el backend (se ignora / se resuelve en el front):
 |   - PATCH /products/:id/location  → la asignación se hace por posición
-|     (warehouseConfigService.assignProductToPosition / PATCH positions)
+|     (la ubicación de un remito: PATCH /restock/receptions/:id)
 |   - stock no se envía: el backend lo computa desde current_stock de las
 |     posiciones. Solo `minimum_stock` viaja en el alta/edición.
 |
@@ -34,10 +34,8 @@
 
 import { apiClient } from "../lib/apiClient";
 import { categoryService } from "./categoryService";
-import { productMockService } from "./mocks/productMockService";
 
 // Backend same-origin vía proxy de Vite: el único interruptor es el flag.
-const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 
 // El backend clampea `size` a 50 (ProductController).
 const PRODUCT_PAGE_SIZE = 50;
@@ -47,6 +45,41 @@ const MAX_PRODUCT_PAGES = 20;
 // señal de que la pantalla ya no puede resolver el catálogo entero en memoria y
 // necesita paginar de verdad. Quien lo consuma avisa, no explota.
 export const PRODUCT_CATALOG_LIMIT = PRODUCT_PAGE_SIZE * MAX_PRODUCT_PAGES;
+
+// Límites de POST /query (CriteriaTranslator): hasta 10 filtros por request y
+// de 1 a 100 valores por filtro `in` / `nin`.
+const QUERY_MAX_FILTERS = 10;
+const QUERY_IDS_PER_FILTER = 100;
+
+// El backend no puede buscar en nombre y SKU a la vez (POST /query/products
+// combina filtros con "y"). Un texto con forma de SKU ("TEC-", "TEC-001") se
+// busca por SKU; cualquier otro, por nombre.
+const SKU_PATTERN = /^[a-z]{2,5}-\d*$/i;
+export const searchFieldFor = (text) => (SKU_PATTERN.test(text) ? "sku" : "name");
+
+// Filtros de POST /query/products. includeIds / excludeIds acotan por id
+// (filtro por zona o "sin ubicación"); excludeIds se parte en varios `nin`.
+const buildQueryFilters = ({ searchField = "name", search, category, active, includeIds, excludeIds }) => {
+  const filters = [];
+  if (search) filters.push({ field: searchField, op: "contains", value: search });
+  if (category) filters.push({ field: "category", op: "eq", value: category });
+  if (active !== undefined) filters.push({ field: "active", op: "eq", value: active });
+  if (includeIds) {
+    if (includeIds.length > QUERY_IDS_PER_FILTER) {
+      throw new Error(
+        `La zona tiene más de ${QUERY_IDS_PER_FILTER} productos distintos; no se puede filtrar por ella.`
+      );
+    }
+    filters.push({ field: "id", op: "in", value: includeIds });
+  }
+  for (let i = 0; i < (excludeIds?.length ?? 0); i += QUERY_IDS_PER_FILTER) {
+    filters.push({ field: "id", op: "nin", value: excludeIds.slice(i, i + QUERY_IDS_PER_FILTER) });
+  }
+  if (filters.length > QUERY_MAX_FILTERS) {
+    throw new Error("Hay demasiados productos con ubicación para filtrar los que no la tienen.");
+  }
+  return filters;
+};
 
 /*
 |--------------------------------------------------------------------------
@@ -255,7 +288,6 @@ export const productService = {
   | más sin traer, y la pantalla lo avisa en vez de fallar.
   */
   async listAll(filters = {}) {
-    if (USE_MOCK) return this.list(filters);
 
     const out = [];
     for (let page = 0; page < MAX_PRODUCT_PAGES; page += 1) {
@@ -269,6 +301,58 @@ export const productService = {
     return out;
   },
 
+  /*
+  | Una página del catálogo (activos e inactivos), del más nuevo al más viejo.
+  | GET /products no alcanza: siempre filtra por activo y no filtra por
+  | ubicación. POST /query/products pagina en el servidor con esos filtros y,
+  | sin `sort`, ordena por createdAt descendente; solo devuelve campos básicos,
+  | así que el detalle (stock, restock) se pide por id para las filas visibles.
+  |
+  | page es 1-based. Filtros: ver buildQueryFilters. includeIds vacío (zona sin
+  | productos) → página vacía sin request. `sort` ({ field, dir }) ordena todo
+  | el catálogo en el backend; solo acepta campos guardados (name, sku,
+  | category, createdAt…), no precio ni stock.
+  */
+  async listPage({ page = 1, size = 8, sort, ...filters } = {}) {
+    if (filters.includeIds?.length === 0) {
+      return { items: [], totalPages: 0, totalElements: 0 };
+    }
+    const { data } = await apiClient.post("/query/products", {
+      filters: buildQueryFilters(filters),
+      ...(sort ? { sort: [{ field: sort.field, dir: sort.dir }] } : {}),
+      page: page - 1,
+      size,
+      fields: ["id"],
+    });
+    // isActive=false: sin ese parámetro el backend responde 404 a un inactivo.
+    const items = await Promise.all(
+      (data?.items || []).map(async ({ id }) => {
+        const { data: detail } = await apiClient.get(`/products/${id}`, {
+          params: { isActive: false },
+        });
+        return normalize(detail?.product ?? detail);
+      })
+    );
+    const pagination = data?.pagination ?? {};
+    return {
+      items,
+      totalPages: pagination.total_pages ?? 0,
+      totalElements: pagination.total_elements ?? 0,
+    };
+  },
+
+  // Cuántos productos cumplen los filtros de listPage, sin traerlos.
+  async count(filters = {}) {
+    if (filters.includeIds?.length === 0) return 0;
+    const { data } = await apiClient.post("/query/products", {
+      filters: buildQueryFilters(filters),
+      page: 0,
+      size: 1,
+      fields: ["id"],
+    });
+    return data?.pagination?.total_elements ?? 0;
+  },
+
   async list({
     category,
     search,
@@ -276,14 +360,6 @@ export const productService = {
     page = 0,
     size = 50,
   } = {}) {
-    if (USE_MOCK) {
-      const mocked = await productMockService.list({
-        category,
-        search,
-        isActive,
-      });
-      return mocked.map(normalize);
-    }
 
     const params = {
       page,
@@ -296,8 +372,9 @@ export const productService = {
     if (search)
       params.search = search;
 
+    // GET /products espera `isActive` (camelCase, como todos los query params).
     if (isActive !== undefined)
-      params.is_active = isActive;
+      params.isActive = isActive;
 
     const { data } =
       await apiClient.get(
@@ -313,11 +390,6 @@ export const productService = {
   },
 
   async get(id) {
-    if (USE_MOCK) {
-      return normalize(
-        await productMockService.get(id)
-      );
-    }
 
     const { data } =
       await apiClient.get(
@@ -332,18 +404,10 @@ export const productService = {
   // Delegamos en categoryService, que llama a GET /products/categories y le
   // pone las etiquetas en castellano.
   async getCategories() {
-    if (USE_MOCK) {
-      return productMockService.getCategories();
-    }
     return categoryService.list();
   },
 
   async create(input) {
-    if (USE_MOCK) {
-      return normalize(
-        await productMockService.create(input)
-      );
-    }
 
     const { data } =
       await apiClient.post(
@@ -357,11 +421,6 @@ export const productService = {
   },
 
   async update(id, patch) {
-    if (USE_MOCK) {
-      return normalize(
-        await productMockService.update(id, patch)
-      );
-    }
 
     const { data } =
       await apiClient.patch(
@@ -381,23 +440,11 @@ export const productService = {
   // (PATCH /warehouse/positions/:id). Esto es solo lectura: devuelve dónde está
   // almacenado el producto (GET /products/:id/location → { locations: [...] }).
   async getLocations(id) {
-    if (USE_MOCK) {
-      const single = await productMockService
-        .get(id)
-        .then((p) => p?.location)
-        .catch(() => null);
-      return single ? [normalizeLocation(single)] : [];
-    }
     const { data } = await apiClient.get(`/products/${id}/location`);
     return (data?.locations || []).map(normalizeLocation);
   },
 
   async remove(id) {
-    if (USE_MOCK) {
-      return productMockService.remove(
-        id
-      );
-    }
 
     await apiClient.delete(
       `/products/${id}`

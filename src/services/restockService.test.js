@@ -79,3 +79,36 @@ describe("estado de las órdenes de restock", () => {
     expect(open.map((o) => o.id)).toEqual(["o2"]);
   });
 });
+
+describe("alertFor (botón de restock en Productos)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const product = (extra) => ({
+    id: "p1",
+    name: "Café",
+    sku: "CAF-1",
+    availableStock: 2,
+    minimumStock: 10,
+    ...extra,
+  });
+
+  it("usa el restock guardado por la corrida diaria sin pedir nada", async () => {
+    const alert = await restockService.alertFor(
+      product({ restock: { should_restock: true, suggested_quantity: 40, reorder_point: 12 } })
+    );
+    expect(alert.suggestedQuantity).toBe(40);
+    expect(apiClient.post).not.toHaveBeenCalled();
+  });
+
+  it("sin restock guardado pide la simulación en vivo solo para ese producto", async () => {
+    apiClient.get.mockResolvedValue({
+      data: { computed_metrics: [{ name: "restock_suggestions", path: "/metrics/restock-suggestions" }] },
+    });
+    apiClient.post.mockResolvedValue({
+      data: { data: [{ product_id: "p1", should_restock: true, suggested_quantity: 25 }] },
+    });
+    const alert = await restockService.alertFor(product());
+    expect(alert.suggestedQuantity).toBe(25);
+    expect(apiClient.post.mock.calls[0][1].filters).toEqual({ product_ids: ["p1"] });
+  });
+});

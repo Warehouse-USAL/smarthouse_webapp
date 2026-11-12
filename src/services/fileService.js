@@ -21,7 +21,6 @@
 
 import { apiClient } from "../lib/apiClient";
 
-const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 
 // Tope y tipos: el backend acepta imágenes; esto evita el viaje de ida y vuelta
 // para un archivo que va a rebotar.
@@ -38,16 +37,6 @@ export const fileService = {
       throw new Error("La imagen supera los 5 MB.");
     }
 
-    if (USE_MOCK) {
-      // Sin backend, la imagen vive como data URL en el navegador.
-      const url = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(new Error("No se pudo leer el archivo."));
-        reader.readAsDataURL(file);
-      });
-      return { url, key: file.name };
-    }
 
     const form = new FormData();
     form.append("file", file);

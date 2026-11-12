@@ -71,12 +71,12 @@ Unos criterios de éxito sólidos permiten trabajar de forma independiente. Los 
 elementos reutilizables.
 - Utiliza siempre las variables globales de diseño (Design Tokens) definidas en el proyecto para colores, espaciados y tipografía.
 - Mantener consistencia visual en todo el sistema.
-- Esta terminantemente prohibido usar emojis del sistema. Toda ilustración debe estar en Assets/new-icons, en caso de no estar, incrustar una ilustración estilo path.
+- Esta terminantemente prohibido usar emojis del sistema. Toda ilustración debe estar en src/assets/icons, en caso de no estar, incrustar una ilustración estilo path.
 
 ## 7. Nombre de commits
 
 - Al finalizar una tarea, el asistente debe proponer **siempre** uno o más nombres de commit (formato `PREFIJO: descripción breve en español`).
-- Prefijos del repositorio, sincronizados con `README.md` ("Flujo de trabajo y convenciones"):
+- Prefijos del repositorio, sincronizados con `README.md` ("Prefijos de commit"):
 
 | Prefijo     | Uso                                             |
 | ----------- | ----------------------------------------------- |

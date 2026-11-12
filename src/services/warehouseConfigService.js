@@ -3,9 +3,8 @@
 | WAREHOUSE CONFIG SERVICE
 |--------------------------------------------------------------------------
 |
-| Fachada sobre la configuración del warehouse. Cuando VITE_USE_MOCK está
-| activo (o no hay VITE_API_BASE_URL), delega en warehouseConfigMockService.
-| En modo backend usa apiClient siguiendo el contrato del RFC:
+| Fachada sobre la configuración del warehouse. Usa apiClient siguiendo el
+| contrato del RFC:
 |   GET    /warehouse/zones
 |   POST   /warehouse/zones                          { zone_code, max_allowed_lines }
 |   PATCH  /warehouse/zones/:id_zone
@@ -44,10 +43,8 @@
 
 import { apiClient } from "../lib/apiClient";
 import { SIZE_TO_UNIT, UNIT_TO_SIZE } from "../lib/storageCompatibility";
-import { warehouseConfigMockService } from "./mocks/warehouseConfigMockService";
 
 // Backend same-origin vía proxy de Vite: el único interruptor es el flag.
-const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 
 // El enum StockSize del backend es CAJA/MEDIO_PALLET/PALLET; el front usa los
 // tamaños PEQUEÑA/MEDIANA/GRANDE. La correspondencia 1:1 vive en
@@ -283,15 +280,30 @@ const materializePositions = async (idLine, target) => {
 
 export const warehouseConfigService = {
   async get() {
-    if (USE_MOCK) return warehouseConfigMockService.get();
     return fetchTree();
+  },
+
+  // Zonas de cada producto ubicado, en una sola request: GET /warehouse/positions
+  // trae todas las posiciones (solo SUPERADMIN / ADMIN_WAREHOUSE). Como
+  // GET /products/:id/location, cuenta solo posiciones activas.
+  // Devuelve Map productId → Set de zoneCode.
+  async getProductZones() {
+    const { data } = await apiClient.get("/warehouse/positions");
+    const zonesByProduct = new Map();
+    for (const position of data?.positions || []) {
+      if (!position.product_id || !position.is_active) continue;
+      if (!zonesByProduct.has(position.product_id)) {
+        zonesByProduct.set(position.product_id, new Set());
+      }
+      zonesByProduct.get(position.product_id).add(position.zone_code);
+    }
+    return zonesByProduct;
   },
 
   // Códigos de zonas soft-deleted (is_active=false): el árbol que ve la UI no
   // las muestra, pero el índice único de zone_code en el backend sigue ocupado.
   // La UI usa esto para no reasignar un código borrado y chocar con un 409.
   async getReservedZoneCodes() {
-    if (USE_MOCK) return warehouseConfigMockService.getReservedZoneCodes();
     const raw = await fetchRawZones();
     return raw
       .filter((zone) => !zone.isActive)
@@ -301,7 +313,6 @@ export const warehouseConfigService = {
   /* ---------- Zonas ---------- */
 
   async addZone(input = {}) {
-    if (USE_MOCK) return warehouseConfigMockService.addZone(input);
     // Código sobre TODAS las zonas (incl. inactivas): zone_code es único en el
     // backend y no hay hard-delete, así que reusar un código borrado daría 409.
     const rawZones = await fetchRawZones();
@@ -317,13 +328,11 @@ export const warehouseConfigService = {
   },
 
   async updateZone(idZone, patch) {
-    if (USE_MOCK) return warehouseConfigMockService.updateZone(idZone, patch);
     await apiClient.patch(`/warehouse/zones/${idZone}`, toZonePayload(patch));
     return fetchTree();
   },
 
   async removeZone(idZone) {
-    if (USE_MOCK) return warehouseConfigMockService.removeZone(idZone);
     await apiClient.delete(`/warehouse/zones/${idZone}`);
     return fetchTree();
   },
@@ -331,7 +340,6 @@ export const warehouseConfigService = {
   /* ---------- Líneas ---------- */
 
   async addLine(idZone, input = {}) {
-    if (USE_MOCK) return warehouseConfigMockService.addLine(idZone, input);
     const maxAllowedPositions = input.maxAllowedPositions ?? DEFAULT_MAX_ALLOWED_POSITIONS;
     // Defensa: la zona debe estar activa para aceptar líneas (400 ZONE_INACTIVE).
     // addZone ya la activa; lo reforzamos por si viene de un alta anterior.
@@ -356,7 +364,6 @@ export const warehouseConfigService = {
   },
 
   async updateLine(idZone, idLine, patch) {
-    if (USE_MOCK) return warehouseConfigMockService.updateLine(idZone, idLine, patch);
     await apiClient.patch(`/warehouse/lines/${idLine}`, toLinePayload(patch));
     // En la UI "posiciones permitidas" ES la cantidad real de posiciones, así que
     // materializamos para que el conteo coincida (crea/reactiva o recorta).
@@ -367,7 +374,6 @@ export const warehouseConfigService = {
   },
 
   async removeLine(idZone, idLine) {
-    if (USE_MOCK) return warehouseConfigMockService.removeLine(idZone, idLine);
     await apiClient.delete(`/warehouse/lines/${idLine}`);
     return fetchTree();
   },
@@ -375,7 +381,6 @@ export const warehouseConfigService = {
   /* ---------- Posiciones ---------- */
 
   async updatePosition(idZone, idLine, idPosition, patch) {
-    if (USE_MOCK) return warehouseConfigMockService.updatePosition(idZone, idLine, idPosition, patch);
     // Devuelve el cuerpo del PATCH. El backend nuevo suma `cancelled_orders`
     // (siempre presente, `[]` si no hubo); el viejo no manda la clave.
     const { data } = await apiClient.patch(
@@ -388,7 +393,6 @@ export const warehouseConfigService = {
   // Detalle de una posición individual, incluyendo el producto asignado.
   // Útil para vistas que solo seleccionan una posición — evita refetch del árbol.
   async getPosition(idPosition) {
-    if (USE_MOCK) return warehouseConfigMockService.getPosition(idPosition);
     const { data } = await apiClient.get(`/warehouse/positions/${idPosition}`);
     return normalizePosition(data);
   },
@@ -406,16 +410,6 @@ export const warehouseConfigService = {
   // preguntarla evita que el front y el backend discrepen sobre si algo entra.
   // `size` viaja con el vocabulario del enum StockSize (CAJA/MEDIO_PALLET/PALLET).
   async validateFit({ productId, quantity, size }) {
-    if (USE_MOCK) {
-      // El mock no modela volúmenes: se responde el tope por capacidad.
-      return {
-        fits: true,
-        productVolume: 0,
-        containerVolume: 0,
-        requiredVolume: 0,
-        maxQuantityAllowed: DEFAULT_POSITION_CAPACITY,
-      };
-    }
     const { data } = await apiClient.post("/warehouse/positions/validate-fit", {
       product_id: productId,
       quantity: Number(quantity) || 1,
@@ -439,34 +433,6 @@ export const warehouseConfigService = {
   // `deliveryUnit` viaja tal cual: el front ya usa el vocabulario del enum
   // StockSize del backend (CAJA / MEDIO_PALLET / PALLET).
   async getAvailablePositions({ productId, deliveryUnit, quantity }) {
-    if (USE_MOCK) {
-      // El árbol del mock no modela is_active ni maximum_capacity por posición
-      // (solo idPosition/positionName/sizeStockToSave/assignedProduct + el
-      // currentStock derivado), así que acá se aplican los mismos criterios con
-      // los defaults del front.
-      const tree = await warehouseConfigMockService.get();
-      const size = SIZE_BE_TO_FE[deliveryUnit] ?? deliveryUnit;
-      return tree.zones
-        .flatMap((zone) => zone.lines.flatMap((line) => line.positions))
-        .filter((position) => {
-          if (position.isActive === false) return false;
-          if (position.sizeStockToSave !== size) return false;
-          const occupantId =
-            position.assignedProduct?.id ?? position.productId ?? null;
-          return !occupantId || occupantId === productId;
-        })
-        .map((position) => ({
-          positionId: position.idPosition,
-          positionName: position.positionName,
-          availableUnits: Math.max(
-            0,
-            (position.maximumCapacity || DEFAULT_POSITION_CAPACITY) -
-              (position.currentStock || 0)
-          ),
-        }))
-        .filter((position) => position.availableUnits > 0)
-        .sort((a, b) => b.availableUnits - a.availableUnits);
-    }
 
     const { data } = await apiClient.get("/warehouse/positions/available", {
       params: { productId, deliveryUnit, quantity },
@@ -478,31 +444,9 @@ export const warehouseConfigService = {
     }));
   },
 
-  // Asigna un producto a una posición. La fuente de verdad en el backend es la
-  // propia Position (product_id + current_stock). Se activa la posición al
-  // ocuparla. El backend rechaza con 409 si ya tiene OTRO producto: en ese caso
-  // hay que limpiar primero (la UI filtra posiciones ocupadas, así que no
-  // debería pasar en el flujo normal).
-  async assignProductToPosition(idPosition, productSummary, currentStock) {
-    if (USE_MOCK) {
-      return warehouseConfigMockService.setAssignedProduct(
-        idPosition,
-        productSummary,
-        currentStock
-      );
-    }
-    await apiClient.patch(`/warehouse/positions/${idPosition}`, {
-      product_id: productSummary?.id,
-      current_stock: currentStock ?? 0,
-      is_active: true,
-    });
-    return null;
-  },
-
   // Libera la posición: el backend pone product_id=null y current_stock=0. El
   // available del producto baja solo (se computa de las posiciones).
   async clearProductFromPosition(idPosition) {
-    if (USE_MOCK) return warehouseConfigMockService.setAssignedProduct(idPosition, null);
     await apiClient.patch(`/warehouse/positions/${idPosition}`, { unassign_product: true });
     return null;
   },

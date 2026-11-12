@@ -6,8 +6,7 @@
 
 /* ── Tabla de inventario ─────────────────────────────────── */
 
-/* Base en TablePanel; con 12 columnas se compacta el padding y los títulos
-   pueden ocupar dos líneas. */
+/* Base en TablePanel: padding compacto y títulos que pueden ocupar dos líneas. */
 .products-table thead th {
   padding: 0 var(--space-2);
   white-space: normal;
@@ -21,8 +20,8 @@
   position: relative;
   display: inline-grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 44px;
   overflow: hidden;
   border-radius: var(--radius-sm);
   background: var(--color-surface-muted);
@@ -38,19 +37,17 @@
   font-size: 0;
 }
 
-.products-table__sku,
-.products-table__name {
+.products-table__sku {
   font-weight: var(--weight-medium);
   color: var(--color-text-primary);
   white-space: nowrap;
 }
 
+/* El nombre se ve completo: puede ocupar más de una línea. */
 .products-table__name {
-  display: inline-block;
-  max-width: 160px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  vertical-align: middle;
+  min-width: 160px;
+  font-weight: var(--weight-medium);
+  color: var(--color-text-primary);
 }
 
 .products-table__num {
@@ -115,7 +112,6 @@
   gap: var(--space-3);
 }
 
-.products-page__adjust-product,
 .products-page__adjust-text,
 .products-page__adjust-preview {
   margin: 0;
@@ -124,7 +120,6 @@
   color: var(--color-text-secondary);
 }
 
-.products-page__adjust-product strong,
 .products-page__adjust-preview strong {
   color: var(--color-text-primary);
 }
@@ -164,6 +159,10 @@
 }
 
 /* ── Historial de ajustes (kardex) ──────────────────────── */
+
+.products-page__history-product {
+  margin-bottom: var(--space-4);
+}
 
 .products-page__history-wrap {
   overflow-x: auto;
@@ -251,11 +250,11 @@
     padding-right: var(--space-1);
   }
 
-  .products-table__name { max-width: 120px; }
+  .products-table__name { min-width: 120px; }
 }
 
 /* Sin scroll horizontal en mobile: cada producto se apila como bloque con
-   sus etiquetas (data-label) en lugar de forzar la tabla de 12 columnas. */
+   sus etiquetas (data-label) en lugar de forzar la tabla. */
 @media (max-width: 768px) {
   .products-table thead { display: none; }
 
@@ -296,6 +295,6 @@
   }
 
   .products-table__name {
-    max-width: 60%;
+    min-width: 0;
   }
 }

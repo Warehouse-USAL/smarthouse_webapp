@@ -68,9 +68,3 @@
     text-decoration: none;
     margin: 0 auto;
   }
-
-.login-form
-  a.registrar_proveedor{
-    color: var(--color-yellow-dark-alt);
-    margin: 0 auto;
-  }

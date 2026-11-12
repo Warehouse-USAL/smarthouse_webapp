@@ -7,7 +7,6 @@ import Badge from "../../ui/Badge/Badge";
 import Icon from "../../ui/Icon/Icon";
 import Spinner from "../../ui/Spinner/Spinner";
 import StatusBanner from "../../ui/StatusBanner/StatusBanner";
-import PositionAssigner from "../PositionAssigner/PositionAssigner";
 import ProductSummaryCard from "../ProductSummaryCard/ProductSummaryCard";
 import { restockService } from "../../../services/restockService";
 import { errorText } from "../../../lib/apiError";
@@ -16,19 +15,14 @@ import { STORAGE_UNITS, STORAGE_UNIT_LABEL } from "../../../lib/storageCompatibi
 import "./RemitoModal.css";
 
 /*
-| El remito es la ÚNICA operación que incrementa stock (RN-04). El backend lo
-| registra de forma atómica junto con el reparto entre posiciones:
+| El remito es la ÚNICA operación que incrementa stock (RN-04):
 |
 |   POST /restock/receptions { restock_order_id?, product_id, quantity_received,
-|                              delivery_unit, supplier, assignments[] }
+|                              delivery_unit, supplier, assignments: [] }
 |
-| Dos reglas que condicionan el formulario:
-|   · assignments es @NotEmpty y sum(quantity) debe ser == quantity_received
-|     (RN-07 / ASSIGNMENT_QUANTITY_MISMATCH). Por eso no se puede guardar un
-|     remito "sin ubicar": hay que repartirlo acá mismo.
-|   · Las posiciones candidatas las da el backend
-|     (GET /warehouse/positions/available), que ya filtra por tamaño == unidad
-|     de entrega, posición libre o del mismo producto, y capacidad/volumen.
+| Acá solo se registra lo recibido: se manda sin posiciones, así que el remito
+| nace PENDING_LOCATION y la mercadería se ubica después desde Asignación de
+| ubicación (PATCH /restock/receptions/:id). Recién ahí suma stock.
 */
 
 const DELIVERY_UNIT_OPTIONS = STORAGE_UNITS.map((unit) => ({
@@ -63,9 +57,6 @@ export default function RemitoModal({
   const [quantity, setQuantity] = useState("");
   const [unit, setUnit] = useState("");
 
-  // { [positionId]: cantidad } — el reparto que viaja como assignments[].
-  const [assignments, setAssignments] = useState({});
-
   const [locations, setLocations] = useState([]);
   const [loadingLocations, setLoadingLocations] = useState(false);
 
@@ -94,7 +85,6 @@ export default function RemitoModal({
     setProductId("");
     setQuantity("");
     setUnit("");
-    setAssignments({});
     setLocations([]);
     setError(null);
   }, []);
@@ -131,7 +121,6 @@ export default function RemitoModal({
   // Elegir una orden fija producto y proveedor, y propone recibir lo que falta.
   const handleOrderChange = (value) => {
     setOrderId(value);
-    setAssignments({});
     const order = openOrders.find((o) => o.id === value);
     // "Sin orden asociada": hay que soltar también el producto y la cantidad.
     // Dejándolos puestos, el remito directo se enviaba con los datos de la
@@ -151,7 +140,6 @@ export default function RemitoModal({
 
   const handleProductChange = (value) => {
     setProductId(value);
-    setAssignments({});
   };
 
   // Ubicaciones donde ya está ese producto hoy (GET /products/:id/location).
@@ -181,28 +169,8 @@ export default function RemitoModal({
 
   const quantityNumber = Number(quantity) || 0;
 
-  const assignedTotal = useMemo(
-    () => Object.values(assignments).reduce((sum, n) => sum + (Number(n) || 0), 0),
-    [assignments]
-  );
-
-  const remaining = quantityNumber - assignedTotal;
-
-  // Con la rama feature/117 el backend acepta un remito parcialmente ubicado
-  // (lo deja PENDING_LOCATION) y solo rechaza que lo asignado SUPERE lo
-  // recibido. Sin esa rama, assignments es @NotEmpty y tiene que cuadrar justo.
-  const puedeGuardarSinUbicar = restockService.supportsPendingLocation();
-
-  const repartoValido = puedeGuardarSinUbicar
-    ? assignedTotal <= quantityNumber
-    : assignedTotal === quantityNumber;
-
   const canSubmit =
-    !submitting &&
-    Boolean(productId) &&
-    Boolean(unit) &&
-    quantityNumber > 0 &&
-    repartoValido;
+    !submitting && Boolean(productId) && Boolean(unit) && quantityNumber > 0;
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -214,30 +182,17 @@ export default function RemitoModal({
         quantityReceived: quantityNumber,
         deliveryUnit: unit,
         supplier: selectedOrder?.supplier || SUPPLIER_PLACEHOLDER,
-        assignments: Object.entries(assignments).map(([positionId, qty]) => ({
-          positionId,
-          quantity: qty,
-        })),
+        assignments: [],
       });
       onCreated?.(reception);
       onClose?.();
     } catch (e) {
       setError(
         errorText(e, {
-          ASSIGNMENT_QUANTITY_MISMATCH:
-            "El reparto entre posiciones no coincide con la cantidad recibida.",
-          POSITION_ALREADY_OCCUPIED:
-            "Alguna de las posiciones elegidas ya tiene otro producto.",
-          STOCK_EXCEEDS_CAPACITY:
-            "La cantidad asignada supera la capacidad de alguna posición.",
           RESTOCK_ORDER_PRODUCT_MISMATCH:
             "La orden seleccionada corresponde a otro producto.",
-          RECEPTION_ALREADY_COMPLETED:
-            "Ese remito ya tiene toda su mercadería ubicada.",
           PRODUCT_NOT_FOUND: "El producto no existe o está inactivo.",
           RESTOCK_ORDER_NOT_FOUND: "La orden de restock no existe.",
-          POSITION_NOT_FOUND: "Alguna de las posiciones elegidas no existe.",
-          POSITION_INACTIVE: "Alguna de las posiciones elegidas no está activa.",
         }, "No se pudo registrar el remito. Intentá de nuevo.")
       );
     } finally {
@@ -272,7 +227,7 @@ export default function RemitoModal({
       open={open}
       onClose={onClose}
       title="Nuevo remito de recepción"
-      subtitle="Completá la información para registrar la recepción de mercadería. Al confirmar, el stock de las posiciones elegidas se incrementa."
+      subtitle="Registrá la mercadería recibida. Queda pendiente de ubicación y suma stock cuando la ubicás desde Asignación de stock."
       size="lg"
       footer={
         <>
@@ -280,11 +235,7 @@ export default function RemitoModal({
             Cancelar
           </Button>
           <Button onClick={handleSubmit} disabled={!canSubmit}>
-            {submitting
-              ? "Guardando…"
-              : puedeGuardarSinUbicar && remaining > 0
-                ? "Guardar sin ubicar"
-                : "Guardar remito"}
+            {submitting ? "Guardando…" : "Guardar remito"}
           </Button>
         </>
       }
@@ -302,6 +253,11 @@ export default function RemitoModal({
             onChange={(e) => handleOrderChange(e.target.value)}
             disabled={openOrdersResult === null}
           />
+          <span className="remito-modal__field-hint">
+            "Sin orden asociada" es para mercadería que llega sin una orden de
+            restock previa: por ejemplo, el stock inicial de un producto que ya
+            estaba en el depósito o una entrega no planificada.
+          </span>
           {openOrdersResult?.error && (
             <StatusBanner
               statusBannerState="status-banner"
@@ -402,13 +358,10 @@ export default function RemitoModal({
               options={DELIVERY_UNIT_OPTIONS}
               placeholder="Seleccioná una unidad"
               value={unit}
-              onChange={(e) => {
-                setUnit(e.target.value);
-                setAssignments({});
-              }}
+              onChange={(e) => setUnit(e.target.value)}
             />
             <span className="remito-modal__field-hint">
-              Define qué posiciones pueden recibir la mercadería.
+              Define qué posiciones pueden recibir la mercadería al ubicarla.
             </span>
           </section>
         </div>
@@ -458,34 +411,6 @@ export default function RemitoModal({
                 </tbody>
               </table>
             </div>
-          )}
-        </section>
-
-        {/* ── 6. Reparto ───────────────────────────────────── */}
-        <section className="remito-modal__section">
-          <h4 className="remito-modal__section-title">
-            <span className="remito-modal__section-num">6</span>
-            Ubicaciones disponibles para asignar el material recibido
-            {puedeGuardarSinUbicar && (
-              <span className="remito-modal__section-optional">opcional</span>
-            )}
-          </h4>
-
-          <PositionAssigner
-            productId={productId}
-            deliveryUnit={unit}
-            quantity={quantityNumber}
-            assignments={assignments}
-            onChange={setAssignments}
-          />
-
-          {puedeGuardarSinUbicar && remaining > 0 && quantityNumber > 0 && (
-            <p className="remito-modal__pending-note">
-              <Icon name="info" size={15} />
-              Podés guardar el remito con {remaining} unidad
-              {remaining === 1 ? "" : "es"} sin ubicar: queda pendiente de
-              ubicación y se le asignan posiciones más tarde.
-            </p>
           )}
         </section>
 

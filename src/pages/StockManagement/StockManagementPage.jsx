@@ -8,6 +8,7 @@ import Badge from "../../components/ui/Badge/Badge";
 import Button from "../../components/ui/Button/Button";
 import Modal from "../../components/ui/Modal/Modal";
 import EmptyState from "../../components/ui/EmptyState/EmptyState";
+import LoadError from "../../components/ui/LoadError/LoadError";
 import Pagination from "../../components/ui/Pagination/Pagination";
 import Spinner from "../../components/ui/Spinner/Spinner";
 import StatusBanner from "../../components/ui/StatusBanner/StatusBanner";
@@ -23,6 +24,7 @@ import {
 import { restockService } from "../../services/restockService";
 import { buildRestockAlerts } from "../../lib/restockSuggestion";
 import { errorText } from "../../lib/apiError";
+import { categoryLabel } from "../../services/categoryService";
 import { STORAGE_UNIT_LABEL } from "../../lib/storageCompatibility";
 import "./StockManagementPage.css";
 
@@ -58,7 +60,7 @@ const ACTION_CARDS = [
   {
     key: "receiving",
     icon: "truck",
-    title: "Agregar remitos de recepción",
+    title: "Recibir mercadería con remito",
     description: "Registrá los remitos de entrega recibidos de tus proveedores.",
     note: "Al confirmar la recepción, el stock se actualizará automáticamente.",
     variant: "blue",
@@ -262,7 +264,7 @@ export default function StockManagementPage() {
       { value: "", label: "Todas las categorías" },
       ...[...new Set(alerts.map((a) => a.category).filter(Boolean))]
         .sort((a, b) => a.localeCompare(b, "es"))
-        .map((category) => ({ value: category, label: category })),
+        .map((category) => ({ value: category, label: categoryLabel(category) })),
     ],
     [alerts]
   );
@@ -335,10 +337,7 @@ export default function StockManagementPage() {
   const handleReceptionCreated = async (reception) => {
     setFeedback({
       type: "ok",
-      text:
-        reception?.quantityPendingLocation > 0
-          ? `Remito registrado con ${reception.quantityPendingLocation} unidades sin ubicar. Asignales posición cuando quieras.`
-          : "Remito registrado. El stock de las posiciones se actualizó.",
+      text: `Remito registrado con ${reception?.quantityPendingLocation ?? 0} unidades pendientes de ubicación. Ubicalas desde Asignación de stock.`,
     });
     await reload();
   };
@@ -428,22 +427,6 @@ export default function StockManagementPage() {
         />
       )}
 
-      {loadError && (
-        <StatusBanner
-          statusBannerState="status-banner-error"
-          icon={<Icon name="alert" size={16} />}
-          text={loadError}
-        />
-      )}
-
-      {ordersError && (
-        <StatusBanner
-          statusBannerState="status-banner-error"
-          icon={<Icon name="alert" size={16} />}
-          text={ordersError}
-        />
-      )}
-
       {catalogTruncated && (
         <StatusBanner
           statusBannerState="status-banner"
@@ -500,7 +483,7 @@ export default function StockManagementPage() {
           }
           description={
             hasSuggestions
-              ? "Cantidades sugeridas por el backend según demanda, stock de seguridad y mercadería en tránsito."
+              ? "La cantidad sugerida por el backend (según demanda, stock de seguridad y mercadería en tránsito) se precarga al crear la orden."
               : "Productos que necesitan ser reabastecidos según niveles mínimos de stock."
           }
           search={{
@@ -547,6 +530,8 @@ export default function StockManagementPage() {
             <div className="table-panel__loading">
               <Spinner size={28} label="Cargando productos…" />
             </div>
+          ) : loadError ? (
+            <LoadError onRetry={load} />
           ) : alertItems.length === 0 ? (
             <EmptyState
               icon="check"
@@ -561,35 +546,30 @@ export default function StockManagementPage() {
             <TablePanelTable className="stock-table stock-table--wrap-head">
               <thead>
                 <tr>
+                  <th>Imagen</th>
                   <th>Producto</th>
                   <th>SKU</th>
                   <th>Stock actual</th>
                   <th>{alertItems[0]?.thresholdLabel ?? "Stock mínimo"}</th>
                   <th>Ya pedido</th>
-                  <th>Sugerencia de reestock</th>
                   <th className="stock-table__actions-col">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {alertItems.map((alert) => (
                   <tr key={alert.productId}>
+                    <td className="table-panel__thumb-cell">
+                      <span className="stock-table__thumb">
+                        <Icon name="box" size={18} />
+                        {alert.imageUrl && (
+                          <img src={alert.imageUrl} alt="" loading="lazy" />
+                        )}
+                      </span>
+                    </td>
                     <td>
-                      <div className="stock-table__product">
-                        <span className="stock-table__thumb">
-                          <Icon name="box" size={18} />
-                          {alert.imageUrl && (
-                            <img src={alert.imageUrl} alt="" loading="lazy" />
-                          )}
-                        </span>
-                        <span className="stock-table__product-text">
-                          <span
-                            className="stock-table__product-name"
-                            title={alert.name}
-                          >
-                            {alert.name}
-                          </span>
-                        </span>
-                      </div>
+                      <span className="stock-table__product-name" title={alert.name}>
+                        {alert.name}
+                      </span>
                     </td>
                     <td className="stock-table__sku">{alert.sku}</td>
                     <td className="stock-table__num stock-table__num--low">
@@ -606,16 +586,6 @@ export default function StockManagementPage() {
                         </span>
                       )}
                     </td>
-                    <td className="stock-table__num stock-table__num--suggested">
-                      {alert.suggestedQuantity ?? (
-                        <span
-                          className="stock-table__num--unknown"
-                          title="La calcula el backend (POST /metrics/restock-suggestions). Todavía no está disponible: la cantidad se define al crear la orden."
-                        >
-                          —
-                        </span>
-                      )}
-                    </td>
                     <td>
                       <Button
                         variant="warning-outline"
@@ -623,7 +593,7 @@ export default function StockManagementPage() {
                         iconLeft={<Icon name="cart" size={15} />}
                         onClick={() => setOrderModal({ alert })}
                       >
-                        Orden de Restock
+                        Generar orden
                       </Button>
                     </td>
                   </tr>
@@ -697,6 +667,8 @@ export default function StockManagementPage() {
             <div className="table-panel__loading">
               <Spinner size={28} label="Cargando órdenes…" />
             </div>
+          ) : ordersError ? (
+            <LoadError onRetry={() => setOrdersReloadKey((key) => key + 1)} />
           ) : orderItems.length === 0 ? (
             <EmptyState
               icon="box"
