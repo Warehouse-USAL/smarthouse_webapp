@@ -139,9 +139,6 @@ export const restockOrderCode = (id) => displayCode("RST", id);
 
 const normalizeReception = (raw) => {
   if (!raw) return null;
-  if (raw.status !== undefined || raw.reception_status !== undefined) {
-    pendingLocationSupported = true;
-  }
   const assignments = (raw.assignments || []).map((a) => ({
     positionId: a.position_id ?? a.positionId,
     quantity: a.quantity ?? 0,
@@ -192,9 +189,8 @@ const toCreateReceptionPayload = (input) => ({
   quantity_received: Number(input.quantityReceived) || 0,
   delivery_unit: input.deliveryUnit,
   supplier: input.supplier,
-  // Con la rama feature/117 `assignments` es opcional: un remito sin ubicar
-  // nace PENDING_LOCATION. Contra el backend viejo es @NotEmpty, así que la UI
-  // solo ofrece guardar sin ubicar cuando detecta la capacidad.
+  // Vacío desde el modal de remito: nace PENDING_LOCATION y se ubica después
+  // desde Asignación de ubicación (assignReceptionPositions).
   assignments: toAssignmentsPayload(input.assignments),
 });
 
@@ -270,32 +266,6 @@ const SUGGESTIONS_PATH = "/metrics/restock-suggestions";
 
 // undefined = no se preguntó todavía; null = el backend no la tiene.
 let suggestionsMetric;
-
-/*
-| ¿El backend desplegado ya maneja remitos sin ubicar?
-|
-| Se pregunta al catálogo de entidades (GET /query/catalog), que se autodescribe
-| campo por campo y existe en las dos versiones: feature/117 agregó `status` a
-| la entidad `receptions`, antes no estaba. Es la fuente confiable, porque
-| responde igual con la base vacía.
-|
-| El fallback mira si alguna recepción trajo `status`. Sirve cuando el rol del
-| usuario no ve la entidad en el catálogo (WAREHOUSE_ADMINS), pero NO alcanza
-| solo: con cero recepciones nunca se prendería y el primer remito sin ubicar
-| sería imposible de crear.
-|
-| Arranca apagado para no ofrecer "guardar sin ubicar" contra un backend que lo
-| rechazaría con 400 (assignments es @NotEmpty en la versión vieja).
-*/
-const RECEPTIONS_ENTITY = "receptions";
-const PENDING_LOCATION_FIELD = "status";
-
-// undefined = no se preguntó; true/false = respuesta del catálogo;
-// null = el catálogo no lo dice (rol sin permiso, o error de red).
-let pendingLocationCapability;
-
-// Señal secundaria: alguna recepción llegó con `status`.
-let pendingLocationSupported = false;
 
 export const RESTOCK_PARAMS = {
   alpha: 0.3,
@@ -506,40 +476,10 @@ export const restockService = {
 
   /* ---------- Ubicación diferida de un remito ---------- */
 
-  // Si el backend ya devolvió alguna recepción con `status`, maneja remitos sin
-  // ubicar. Hasta entonces la UI exige repartir todo al registrar el remito.
-  supportsPendingLocation() {
-    return pendingLocationCapability === true || pendingLocationSupported;
-  },
-
-  // Pregunta al catálogo si `receptions` ya declara el campo `status`. Se
-  // cachea: una sola vez por sesión.
-  async detectPendingLocationSupport() {
-    if (pendingLocationCapability !== undefined) return pendingLocationCapability;
-    try {
-      const { data } = await apiClient.get("/query/catalog");
-      const entity = (data?.entities || []).find(
-        (e) => e.name === RECEPTIONS_ENTITY
-      );
-      // Sin la entidad no se concluye nada: puede ser un backend viejo o un rol
-      // que no la ve. En los dos casos queda el fallback.
-      pendingLocationCapability = entity
-        ? (entity.fields || []).some((f) => f.name === PENDING_LOCATION_FIELD)
-        : null;
-    } catch {
-      pendingLocationCapability = null;
-    }
-    return pendingLocationCapability;
-  },
-
   // Remitos que todavía tienen mercadería sin posición. El backend filtra por
   // `status` desde feature/117; el viejo ignora el parámetro, pero ahí todas
   // las recepciones se normalizan como COMPLETED y el filtro local las descarta.
   async listPendingLocation() {
-    // Antes de listar, se resuelve la capacidad: es lo que decide si el modal
-    // de remito puede ofrecer "guardar sin ubicar", y la pantalla re-renderiza
-    // recién cuando esta carga termina.
-    await this.detectPendingLocationSupport();
     const receptions = await this.listReceptions({
       status: RECEPTION_STATUS.PENDING_LOCATION,
     });

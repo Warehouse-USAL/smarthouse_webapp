@@ -442,6 +442,22 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 32. Remito de recepción: sin asignar ubicación
+
+- El modal "Nuevo remito de recepción" ya no reparte la mercadería entre
+  posiciones: solo registra lo recibido. El remito se guarda sin posiciones y
+  queda pendiente de ubicación; se ubica después desde Asignación de ubicación,
+  y recién ahí suma stock.
+- Debajo del selector de orden, una nota explica "Sin orden asociada":
+  mercadería que llega sin una orden de restock previa (stock inicial de un
+  producto que ya estaba en el depósito, o una entrega no planificada).
+- Se quitó la detección "¿el backend acepta remitos sin ubicar?"
+  (`supportsPendingLocation` y la consulta a `GET /query/catalog`), que solo
+  servía para ofrecer "Guardar sin ubicar"; también los mensajes de error de
+  posiciones, que ya no pueden darse en el alta del remito.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`
