@@ -203,11 +203,6 @@
   font-weight: var(--weight-semibold);
 }
 
-.stock-table__num--suggested {
-  color: var(--color-yellow-dark);
-  font-weight: var(--weight-semibold);
-}
-
 /* Dato que todavía no calcula el backend: se marca como ausente, no como cero. */
 .stock-table__num--unknown {
   color: var(--color-text-muted);

@@ -486,7 +486,7 @@ export default function StockManagementPage() {
           }
           description={
             hasSuggestions
-              ? "Cantidades sugeridas por el backend según demanda, stock de seguridad y mercadería en tránsito."
+              ? "La cantidad sugerida por el backend (según demanda, stock de seguridad y mercadería en tránsito) se precarga al crear la orden."
               : "Productos que necesitan ser reabastecidos según niveles mínimos de stock."
           }
           search={{
@@ -554,7 +554,6 @@ export default function StockManagementPage() {
                   <th>Stock actual</th>
                   <th>{alertItems[0]?.thresholdLabel ?? "Stock mínimo"}</th>
                   <th>Ya pedido</th>
-                  <th>Sugerencia de reestock</th>
                   <th className="stock-table__actions-col">Acciones</th>
                 </tr>
               </thead>
@@ -589,16 +588,6 @@ export default function StockManagementPage() {
                         <span
                           className="stock-table__num--unknown"
                           title="La calcula el backend (POST /metrics/restock-suggestions). Todavía no está disponible."
-                        >
-                          —
-                        </span>
-                      )}
-                    </td>
-                    <td className="stock-table__num stock-table__num--suggested">
-                      {alert.suggestedQuantity ?? (
-                        <span
-                          className="stock-table__num--unknown"
-                          title="La calcula el backend (POST /metrics/restock-suggestions). Todavía no está disponible: la cantidad se define al crear la orden."
                         >
                           —
                         </span>

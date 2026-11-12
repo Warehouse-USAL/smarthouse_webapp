@@ -397,6 +397,17 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 28. Gestión de stock: sin columna "Sugerencia de reestock"
+
+- La tabla de alertas no entraba: el botón "Orden de Restock" quedaba cortado.
+  Se quitó la columna de sugerencia, que ya muestra el modal de la orden (la
+  precarga y explica el cálculo). Quedan Producto, SKU, Stock actual, Punto de
+  reposición, Ya pedido y Acciones.
+- La descripción del panel ahora aclara que la sugerida se precarga al crear la
+  orden. Se quitó el CSS que solo usaba esa columna.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`
