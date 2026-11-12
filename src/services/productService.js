@@ -4,8 +4,8 @@
 |--------------------------------------------------------------------------
 |
 | Contrato REAL del backend (wh-backend, ProductController):
-|   GET    /products            params: category, search, is_active, page, size
-|   GET    /products/:id        params: is_active
+|   GET    /products            params: category, search, isActive, page, size
+|   GET    /products/:id        params: isActive
 |   POST   /products            CreateProductRequest
 |   PATCH  /products/:id        UpdateProductRequest (parcial)
 |   DELETE /products/:id        baja lógica (active=false)
@@ -372,8 +372,9 @@ export const productService = {
     if (search)
       params.search = search;
 
+    // GET /products espera `isActive` (camelCase, como todos los query params).
     if (isActive !== undefined)
-      params.is_active = isActive;
+      params.isActive = isActive;
 
     const { data } =
       await apiClient.get(

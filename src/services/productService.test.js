@@ -108,3 +108,13 @@ describe("listPage con orden", () => {
     });
   });
 });
+
+describe("list", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("manda isActive como lo espera GET /products", async () => {
+    apiClient.get.mockResolvedValue({ data: { products: [] } });
+    await productService.list({ isActive: true });
+    expect(apiClient.get.mock.calls[0][1].params).toEqual({ page: 0, size: 50, isActive: true });
+  });
+});

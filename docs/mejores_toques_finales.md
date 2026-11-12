@@ -520,12 +520,23 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 38. Revisión de endpoints contra Swagger
+
+- Se compararon todas las llamadas del front (rutas, query params y campos del
+  body) con `GET /v3/api-docs` del backend, y se probaron contra la seed los
+  endpoints de lectura: todos responden 200 con la clave que lee cada service.
+- **Corregido:** `productService.list` mandaba `is_active` y `GET /products`
+  espera `isActive`. No cambiaba el resultado (el backend devuelve activos por
+  defecto), pero el filtro se ignoraba.
+- **Sin cambios, a propósito:** `GET /restock/orders` oculta las canceladas si
+  no se pide `includeCancelled=true`; por eso Gestión de stock no ofrece el
+  filtro "Cancelado".
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`
   (hasta 1000 productos en memoria) para cruzar el catálogo con órdenes y
   alertas. Funciona y avisa si se llega al tope, pero no escala con un catálogo
   muy grande. Resolverlo bien requiere agregaciones en el backend.
-- `productService.list` manda `is_active`, pero `GET /products` espera
-  `isActive`: el parámetro se ignora y siempre llegan activos. Hoy no afecta a
-  nadie (los que lo usan piden activos).
