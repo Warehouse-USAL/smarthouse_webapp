@@ -383,6 +383,20 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 27. Gestión de ventas: órdenes con varios productos desplegables
+
+- Una orden puede tener varios productos (en la seed, 38 de las últimas 50
+  tienen 2 o 3) y la fila mostraba solo el primero, con el SKU de ese producto
+  pero la cantidad de toda la orden.
+- **Ahora:** las órdenes con varios productos tienen una flecha que despliega
+  debajo un renglón por producto (imagen, nombre, SKU y cantidad). En la fila
+  de la orden, el SKU dice "Varios" y la cantidad es el total. Las de un solo
+  producto quedan como antes.
+- "1 unidad" en singular (antes decía "1 unidades").
+- Verificado con captura a 1600 px (seed de demo).
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`

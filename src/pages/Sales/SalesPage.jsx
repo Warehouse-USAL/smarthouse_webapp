@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
 import TablePanel, { TablePanelTable } from "../../components/ui/TablePanel/TablePanel";
 import Input from "../../components/ui/Input/Input";
@@ -18,6 +18,8 @@ import { productService } from "../../services/productService";
 import { userService } from "../../services/userService";
 import { daysAgo } from "../../lib/pagination";
 import "./SalesPage.css";
+
+const units = (n) => `${n} unidad${n === 1 ? "" : "es"}`;
 
 /*
 | Gestión de Ventas (Order = despacho al cliente, NO confundir con restock).
@@ -79,6 +81,8 @@ export default function SalesPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [range, setRange] = useState(() => ({ from: daysAgo(DEFAULT_RANGE_DAYS), to: "" }));
   const [filtersOpen, setFiltersOpen] = useState(false);
+  // Órdenes con varios productos desplegadas: un renglón por producto debajo.
+  const [expanded, setExpanded] = useState(() => new Set());
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
 
@@ -210,6 +214,14 @@ export default function SalesPage() {
   }, [decorated, search]);
 
   const start = (page - 1) * pageSize;
+
+  const toggleExpanded = (id) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   const openCancel = (order) => {
     setCancelTarget(order);
@@ -381,53 +393,92 @@ export default function SalesPage() {
               </tr>
             </thead>
             <tbody>
-              {items.map((order) => (
-                <tr key={order.id}>
-                  <td className="sales-table__order">{order.code}</td>
-                  <td className="sales-table__date">{formatDate(order.createdAt)}</td>
-                  <td>{order.client}</td>
-                  <td>
-                    {order.firstItem ? (
-                      <div className="sales-table__product">
-                        <span className="sales-table__thumb">
-                          <Icon name="box" size={18} />
-                          {order.firstItem.imageUrl && (
-                            <img src={order.firstItem.imageUrl} alt="" loading="lazy" />
-                          )}
-                        </span>
-                        <span className="sales-table__product-name" title={order.firstItem.name}>
-                          {order.firstItem.name}
-                          {order.extraItems > 0 && (
-                            <span className="sales-table__product-more">
-                              {" "}+{order.extraItems} más
+              {items.map((order) => {
+                const multiple = order.items.length > 1;
+                const open = multiple && expanded.has(order.id);
+                return (
+                  <Fragment key={order.id}>
+                    <tr>
+                      <td className="sales-table__order">{order.code}</td>
+                      <td className="sales-table__date">{formatDate(order.createdAt)}</td>
+                      <td>{order.client}</td>
+                      <td>
+                        {order.firstItem ? (
+                          <div className="sales-table__product">
+                            {multiple && (
+                              <button
+                                type="button"
+                                className="sales-table__toggle"
+                                onClick={() => toggleExpanded(order.id)}
+                                aria-expanded={open}
+                                aria-label={open ? "Ocultar productos" : "Ver productos"}
+                              >
+                                <Icon name={open ? "chevronDown" : "chevronRight"} size={16} />
+                              </button>
+                            )}
+                            <span className="sales-table__thumb">
+                              <Icon name="box" size={18} />
+                              {order.firstItem.imageUrl && (
+                                <img src={order.firstItem.imageUrl} alt="" loading="lazy" />
+                              )}
                             </span>
-                          )}
-                        </span>
-                      </div>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td className="sales-table__sku">{order.firstItem?.sku ?? "—"}</td>
-                  <td className="sales-table__num">{order.totalQty} unidades</td>
-                  <td>
-                    <Badge variant={order.uiVariant} dot>
-                      {order.uiLabel}
-                    </Badge>
-                  </td>
-                  <td className="sales-table__date">{formatDate(order.completedAt)}</td>
-                  <td>
-                    <button
-                      type="button"
-                      className="sales-table__detail"
-                      onClick={() => setDetail(order)}
-                    >
-                      Ver detalle
-                      <span aria-hidden="true">&gt;</span>
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                            <span className="sales-table__product-name" title={order.firstItem.name}>
+                              {order.firstItem.name}
+                              {order.extraItems > 0 && (
+                                <span className="sales-table__product-more">
+                                  {" "}+{order.extraItems} más
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="sales-table__sku">
+                        {multiple ? "Varios" : order.firstItem?.sku ?? "—"}
+                      </td>
+                      <td className="sales-table__num">{units(order.totalQty)}</td>
+                      <td>
+                        <Badge variant={order.uiVariant} dot>
+                          {order.uiLabel}
+                        </Badge>
+                      </td>
+                      <td className="sales-table__date">{formatDate(order.completedAt)}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className="sales-table__detail"
+                          onClick={() => setDetail(order)}
+                        >
+                          Ver detalle
+                          <span aria-hidden="true">&gt;</span>
+                        </button>
+                      </td>
+                    </tr>
+                    {open &&
+                      order.items.map((item, i) => (
+                        <tr key={`${item.productId}-${i}`} className="sales-table__subrow">
+                          <td colSpan={3} />
+                          <td>
+                            <div className="sales-table__product">
+                              <span className="sales-table__thumb">
+                                <Icon name="box" size={18} />
+                                {item.imageUrl && <img src={item.imageUrl} alt="" loading="lazy" />}
+                              </span>
+                              <span className="sales-table__product-name" title={item.name}>
+                                {item.name}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="sales-table__sku">{item.sku ?? "—"}</td>
+                          <td className="sales-table__num">{units(item.quantity)}</td>
+                          <td colSpan={3} />
+                        </tr>
+                      ))}
+                  </Fragment>
+                );
+              })}
             </tbody>
           </TablePanelTable>
         )}
