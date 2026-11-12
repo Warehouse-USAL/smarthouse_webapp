@@ -69,3 +69,81 @@ Authorization: Bearer <token>
 | `401` | — | Sin token o token vencido |
 | `404` | `USER_NOT_FOUND` | El usuario del token ya no existe |
 
+---
+
+## 2. Color de cada zona del warehouse
+
+### Por qué
+
+En Configuración del warehouse cada zona se pinta de un color, pero ese color
+no se guarda: el front lo deriva de un hash del `id_zone` sobre una paleta fija
+de 4 colores. El usuario no lo puede elegir y, con más de 4 zonas (o por azar
+del hash), dos zonas salen del mismo color.
+
+Se pide guardar en la zona un color en hexadecimal, que el front lee y aplica
+por CSS. Una zona sin color (`null`) sigue usando la paleta actual, así que las
+zonas existentes no necesitan migración.
+
+### Contrato pedido
+
+- **Modelo:** `Zone` suma `color`, texto `#RRGGBB` (6 dígitos hexadecimales,
+  guardado en mayúsculas) o `null`. No tiene que ser único.
+- **Roles:** los de siempre de `ZoneController` (`SUPERADMIN`,
+  `ADMIN_WAREHOUSE`).
+
+**`POST /warehouse/zones`**: `color` opcional. Si no viene, queda `null`.
+
+```json
+{ "zone_code": "A", "max_allowed_lines": 4, "color": "#F59E0B" }
+```
+
+**`PATCH /warehouse/zones/{id}`**: `color` opcional, con la misma convención
+que `supplier` en `PATCH /users/{id}`:
+
+| Valor enviado | Resultado |
+| --- | --- |
+| Ausente o `null` | No cambia |
+| `""` (vacío) | Borra el color (queda `null`) |
+| `"#3b82f6"` | Se guarda como `#3B82F6` |
+
+**`GET /warehouse/zones`**: es como el front lee las zonas (y sus colores) al
+abrir la pantalla. Cada zona del listado suma `color`:
+
+```json
+{
+  "zones": [
+    {
+      "id_zone": "z1",
+      "zone_code": "A",
+      "is_active": true,
+      "max_allowed_lines": 4,
+      "created_at": "2026-10-29T12:00:00Z",
+      "color": "#F59E0B"
+    },
+    {
+      "id_zone": "z2",
+      "zone_code": "B",
+      "is_active": true,
+      "max_allowed_lines": 2,
+      "created_at": "2026-10-29T12:00:00Z",
+      "color": null
+    }
+  ]
+}
+```
+
+`POST` y `PATCH` devuelven la zona con el mismo `color`, así el front pinta el
+cambio sin volver a pedir el listado. Como es el mismo `ZoneResponse`, alcanza
+con agregar el campo ahí.
+
+Opcional: sumar `zone_color` a `PositionSummaryResponse`, que ya trae
+`zone_code`, para pintar la zona de una posición sin pedir las zonas aparte.
+
+- **Errores** (con el formato de siempre, `{ "error": { "code", "message" } }`):
+
+| Status | Código | Cuándo |
+| --- | --- | --- |
+| `400` | `INVALID_ZONE_COLOR` | No cumple `^#[0-9A-Fa-f]{6}$` (ej. `"rojo"`, `"#FFF"`, `"F59E0B"`). Mensaje: "El color de la zona debe tener el formato #RRGGBB." |
+
+Se pide un código propio y no el `VALIDATION_ERROR` genérico, que llega con el
+mensaje en inglés.
