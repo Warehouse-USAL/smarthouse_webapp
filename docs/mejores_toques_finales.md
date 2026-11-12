@@ -537,6 +537,24 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 39. Gestión de ventas: orden en el servidor y productos al expandir
+
+- La tabla pasa de `GET /orders` (que no ordena: el front adivinaba el orden
+  leyendo la lista desde el final) a `POST /query/orders`, que pagina y ordena
+  en el servidor. Por defecto, más nuevas primero.
+- Encabezados ordenables (`SortableHeader`): Fecha compra, Estado y Fecha
+  despacho. Orden, Cliente y productos no se pueden ordenar en el backend.
+- Esa consulta no trae los productos de cada orden. Por eso la fila ya no
+  muestra Producto, SKU ni Cantidad: todas las órdenes tienen la flecha, y los
+  productos se piden con `GET /orders/{id}` recién al expandir o al abrir "Ver
+  detalle". Cada detalle se pide una sola vez. Reemplaza el desplegable de la
+  entrada 27.
+- El buscador de la página busca por orden o cliente (ya no por producto).
+- Verificado contra la seed: ordenar por fecha ascendente arranca en la orden
+  más vieja del rango de fechas, y al expandir carga los productos.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`

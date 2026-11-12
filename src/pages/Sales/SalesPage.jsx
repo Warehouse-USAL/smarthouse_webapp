@@ -13,6 +13,7 @@ import Pagination from "../../components/ui/Pagination/Pagination";
 import Spinner from "../../components/ui/Spinner/Spinner";
 import StatusBanner from "../../components/ui/StatusBanner/StatusBanner";
 import Icon from "../../components/ui/Icon/Icon";
+import SortableHeader from "../../components/ui/SortableHeader/SortableHeader";
 import { orderService, mapOrderStatus } from "../../services/orderService";
 import { productService } from "../../services/productService";
 import { userService } from "../../services/userService";
@@ -31,9 +32,11 @@ const units = (n) => `${n} unidad${n === 1 ? "" : "es"}`;
 | Cliente: Order solo trae requested_by_user_id. Se cruza con userService
 | cuando el rol lo permite (requiere admin_system); si no, "—".
 |
-| Con dos años de historial (~57k órdenes) la tabla pagina en el backend:
-| estado y fechas viajan como filtros; el buscador no tiene endpoint y filtra
-| solo la página visible.
+| Con dos años de historial la tabla pagina y ordena en el backend
+| (POST /query/orders): estado y fechas viajan como filtros. Esa consulta no
+| trae los productos de cada orden, así que se piden con GET /orders/:id recién
+| al expandir la fila o abrir "Ver detalle", y se guardan para no repetirlos.
+| El buscador no tiene endpoint y filtra solo la página visible.
 */
 
 const PAGE_SIZE_OPTIONS = [
@@ -81,8 +84,12 @@ export default function SalesPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [range, setRange] = useState(() => ({ from: daysAgo(DEFAULT_RANGE_DAYS), to: "" }));
   const [filtersOpen, setFiltersOpen] = useState(false);
-  // Órdenes con varios productos desplegadas: un renglón por producto debajo.
+  // Órdenes desplegadas: un renglón por producto debajo.
   const [expanded, setExpanded] = useState(() => new Set());
+  // Detalle de cada orden ya pedida: id → { loading } | { order } | { error }.
+  const [details, setDetails] = useState(() => new Map());
+  // Orden de la tabla: { field, dir } o null (más nuevas primero).
+  const [sort, setSort] = useState(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
 
@@ -113,10 +120,11 @@ export default function SalesPage() {
         status: statusFilter || undefined,
         from: range.from,
         to: range.to,
+        sort: sort ?? undefined,
       },
       reloadKey,
     }),
-    [page, pageSize, statusFilter, range, reloadKey]
+    [page, pageSize, statusFilter, range, sort, reloadKey]
   );
 
   // { query, items, totalElements, totalPages, error } de la última respuesta.
@@ -175,27 +183,15 @@ export default function SalesPage() {
     () =>
       orders.map((order) => {
         const ui = mapOrderStatus(order);
-        const resolvedItems = order.items.map((item) => {
-          const product = productById.get(item.productId);
-          return {
-            ...item,
-            name: product?.name ?? "Producto dado de baja",
-            imageUrl: product?.imageUrl ?? "",
-          };
-        });
         return {
           ...order,
           uiKey: ui.key,
           uiLabel: ui.label,
           uiVariant: ui.variant,
           client: userNames.get(order.requestedByUserId) ?? "—",
-          items: resolvedItems,
-          firstItem: resolvedItems[0] ?? null,
-          extraItems: Math.max(0, resolvedItems.length - 1),
-          totalQty: resolvedItems.reduce((sum, i) => sum + (i.quantity || 0), 0),
         };
       }),
-    [orders, productById, userNames]
+    [orders, userNames]
   );
 
   const items = useMemo(() => {
@@ -204,24 +200,59 @@ export default function SalesPage() {
     return decorated.filter(
       (order) =>
         (order.code || "").toLowerCase().includes(q) ||
-        order.client.toLowerCase().includes(q) ||
-        order.items.some(
-          (i) =>
-            (i.name || "").toLowerCase().includes(q) ||
-            (i.sku || "").toLowerCase().includes(q)
-        )
+        order.client.toLowerCase().includes(q)
     );
   }, [decorated, search]);
 
   const start = (page - 1) * pageSize;
 
-  const toggleExpanded = (id) =>
+  // Productos de una orden con nombre e imagen del catálogo.
+  const resolveItems = (order) =>
+    (order?.items ?? []).map((item) => {
+      const product = productById.get(item.productId);
+      return {
+        ...item,
+        name: product?.name ?? "Producto dado de baja",
+        imageUrl: product?.imageUrl ?? "",
+      };
+    });
+
+  // Pide el detalle (con productos) una sola vez por orden.
+  const loadDetail = (id) => {
+    if (details.has(id) && !details.get(id).error) return;
+    setDetails((prev) => new Map(prev).set(id, { loading: true }));
+    orderService
+      .get(id)
+      .then((order) => setDetails((prev) => new Map(prev).set(id, { order })))
+      .catch(() => setDetails((prev) => new Map(prev).set(id, { error: true })));
+  };
+
+  const toggleExpanded = (id) => {
+    if (!expanded.has(id)) loadDetail(id);
     setExpanded((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
+  };
+
+  const openDetail = (order) => {
+    setDetail(order);
+    loadDetail(order.id);
+  };
+
+  // Cada clic en un encabezado: ascendente, descendente y vuelta al defecto.
+  const toggleSort = (field) => {
+    setSort((prev) =>
+      prev?.field !== field
+        ? { field, dir: "asc" }
+        : prev.dir === "asc"
+          ? { field, dir: "desc" }
+          : null
+    );
+    setPage(1);
+  };
 
   const openCancel = (order) => {
     setCancelTarget(order);
@@ -257,9 +288,12 @@ export default function SalesPage() {
     }
   };
 
-  const detailItems = detail
-    ? decorated.find((o) => o.id === detail.id)?.items ?? []
-    : [];
+  // El detalle combina la orden completa (rover, área, productos) con la fila,
+  // que tiene el estado más reciente.
+  const detailState = detail ? details.get(detail.id) : null;
+  const detailFull = detailState?.order ? { ...detailState.order, ...detail } : detail;
+  const detailItems = resolveItems(detailState?.order);
+  const detailQty = detailItems.reduce((sum, i) => sum + (i.quantity || 0), 0);
 
   return (
     <div className="sales">
@@ -315,7 +349,7 @@ export default function SalesPage() {
       <TablePanel
         title="Órdenes de compra"
         search={{
-          placeholder: "Buscar en esta página por orden, cliente o producto...",
+          placeholder: "Buscar en esta página por orden o cliente...",
           value: search,
           onChange: (e) => setSearch(e.target.value),
         }}
@@ -382,63 +416,46 @@ export default function SalesPage() {
             <thead>
               <tr>
                 <th>Orden compra</th>
-                <th>Fecha compra</th>
+                <SortableHeader
+                  label="Fecha compra"
+                  field="created_at"
+                  sort={sort}
+                  onSort={toggleSort}
+                />
                 <th>Cliente</th>
-                <th>Producto</th>
-                <th>SKU</th>
-                <th>Cantidad</th>
-                <th>Estado</th>
-                <th>Fecha despacho</th>
+                <SortableHeader label="Estado" field="status" sort={sort} onSort={toggleSort} />
+                <SortableHeader
+                  label="Fecha despacho"
+                  field="completed_at"
+                  sort={sort}
+                  onSort={toggleSort}
+                />
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {items.map((order) => {
-                const multiple = order.items.length > 1;
-                const open = multiple && expanded.has(order.id);
+                const open = expanded.has(order.id);
+                const state = details.get(order.id);
                 return (
                   <Fragment key={order.id}>
                     <tr>
-                      <td className="sales-table__order">{order.code}</td>
+                      <td className="sales-table__order">
+                        <span className="sales-table__order-cell">
+                          <button
+                            type="button"
+                            className="sales-table__toggle"
+                            onClick={() => toggleExpanded(order.id)}
+                            aria-expanded={open}
+                            aria-label={open ? "Ocultar productos" : "Ver productos"}
+                          >
+                            <Icon name={open ? "chevronDown" : "chevronRight"} size={16} />
+                          </button>
+                          {order.code}
+                        </span>
+                      </td>
                       <td className="sales-table__date">{formatDate(order.createdAt)}</td>
                       <td>{order.client}</td>
-                      <td>
-                        {order.firstItem ? (
-                          <div className="sales-table__product">
-                            {multiple && (
-                              <button
-                                type="button"
-                                className="sales-table__toggle"
-                                onClick={() => toggleExpanded(order.id)}
-                                aria-expanded={open}
-                                aria-label={open ? "Ocultar productos" : "Ver productos"}
-                              >
-                                <Icon name={open ? "chevronDown" : "chevronRight"} size={16} />
-                              </button>
-                            )}
-                            <span className="sales-table__thumb">
-                              <Icon name="box" size={18} />
-                              {order.firstItem.imageUrl && (
-                                <img src={order.firstItem.imageUrl} alt="" loading="lazy" />
-                              )}
-                            </span>
-                            <span className="sales-table__product-name" title={order.firstItem.name}>
-                              {order.firstItem.name}
-                              {order.extraItems > 0 && (
-                                <span className="sales-table__product-more">
-                                  {" "}+{order.extraItems} más
-                                </span>
-                              )}
-                            </span>
-                          </div>
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-                      <td className="sales-table__sku">
-                        {multiple ? "Varios" : order.firstItem?.sku ?? "—"}
-                      </td>
-                      <td className="sales-table__num">{units(order.totalQty)}</td>
                       <td>
                         <Badge variant={order.uiVariant} dot>
                           {order.uiLabel}
@@ -449,7 +466,7 @@ export default function SalesPage() {
                         <button
                           type="button"
                           className="sales-table__detail"
-                          onClick={() => setDetail(order)}
+                          onClick={() => openDetail(order)}
                         >
                           Ver detalle
                           <span aria-hidden="true">&gt;</span>
@@ -457,24 +474,38 @@ export default function SalesPage() {
                       </td>
                     </tr>
                     {open &&
-                      order.items.map((item, i) => (
-                        <tr key={`${item.productId}-${i}`} className="sales-table__subrow">
-                          <td colSpan={3} />
-                          <td>
-                            <div className="sales-table__product">
-                              <span className="sales-table__thumb">
-                                <Icon name="box" size={18} />
-                                {item.imageUrl && <img src={item.imageUrl} alt="" loading="lazy" />}
-                              </span>
-                              <span className="sales-table__product-name" title={item.name}>
-                                {item.name}
-                              </span>
-                            </div>
+                      (!state || state.loading ? (
+                        <tr className="sales-table__subrow">
+                          <td colSpan={6}>
+                            <Spinner size={18} label="Cargando productos…" />
                           </td>
-                          <td className="sales-table__sku">{item.sku ?? "—"}</td>
-                          <td className="sales-table__num">{units(item.quantity)}</td>
-                          <td colSpan={3} />
                         </tr>
+                      ) : state.error ? (
+                        <tr className="sales-table__subrow">
+                          <td colSpan={6}>No se pudieron cargar los productos de la orden.</td>
+                        </tr>
+                      ) : (
+                        resolveItems(state.order).map((item, i) => (
+                          <tr key={`${item.productId}-${i}`} className="sales-table__subrow">
+                            <td />
+                            <td colSpan={2}>
+                              <div className="sales-table__product">
+                                <span className="sales-table__thumb">
+                                  <Icon name="box" size={18} />
+                                  {item.imageUrl && (
+                                    <img src={item.imageUrl} alt="" loading="lazy" />
+                                  )}
+                                </span>
+                                <span className="sales-table__product-name" title={item.name}>
+                                  {item.name}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="sales-table__sku">{item.sku || "—"}</td>
+                            <td className="sales-table__num">{units(item.quantity)}</td>
+                            <td />
+                          </tr>
+                        ))
                       ))}
                   </Fragment>
                 );
@@ -526,11 +557,11 @@ export default function SalesPage() {
               </div>
               <div>
                 <dt>Rover asignado</dt>
-                <dd>{detail.assignedVehicleId ?? "—"}</dd>
+                <dd>{detailFull.assignedVehicleId ?? "—"}</dd>
               </div>
               <div>
                 <dt>Área destino</dt>
-                <dd>{detail.destinationArea || "—"}</dd>
+                <dd>{detailFull.destinationArea || "—"}</dd>
               </div>
               <div>
                 <dt>Creada</dt>
@@ -538,7 +569,7 @@ export default function SalesPage() {
               </div>
               <div>
                 <dt>Iniciada</dt>
-                <dd>{formatDateTime(detail.startedAt)}</dd>
+                <dd>{formatDateTime(detailFull.startedAt)}</dd>
               </div>
               <div>
                 <dt>Despachada / cerrada</dt>
@@ -552,22 +583,32 @@ export default function SalesPage() {
               )}
             </dl>
 
-            <h4 className="sales__detail-title">Productos ({detail.totalQty})</h4>
-            <ul className="sales__items">
-              {detailItems.map((item, i) => (
-                <li key={`${item.productId}-${i}`}>
-                  <span className="sales-table__thumb">
-                    <Icon name="box" size={18} />
-                    {item.imageUrl && <img src={item.imageUrl} alt="" loading="lazy" />}
-                  </span>
-                  <span className="sales__item-text">
-                    <span className="sales__item-name">{item.name}</span>
-                    <span className="sales__item-sku">{item.sku}</span>
-                  </span>
-                  <span className="sales-table__num">{item.quantity} un.</span>
-                </li>
-              ))}
-            </ul>
+            <h4 className="sales__detail-title">
+              Productos{detailState?.order ? ` (${detailQty})` : ""}
+            </h4>
+            {!detailState || detailState.loading ? (
+              <Spinner size={18} label="Cargando productos…" />
+            ) : detailState.error ? (
+              <p className="sales__cancel-error">
+                No se pudieron cargar los productos de la orden.
+              </p>
+            ) : (
+              <ul className="sales__items">
+                {detailItems.map((item, i) => (
+                  <li key={`${item.productId}-${i}`}>
+                    <span className="sales-table__thumb">
+                      <Icon name="box" size={18} />
+                      {item.imageUrl && <img src={item.imageUrl} alt="" loading="lazy" />}
+                    </span>
+                    <span className="sales__item-text">
+                      <span className="sales__item-name">{item.name}</span>
+                      <span className="sales__item-sku">{item.sku}</span>
+                    </span>
+                    <span className="sales-table__num">{item.quantity} un.</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </>
         )}
       </Modal>

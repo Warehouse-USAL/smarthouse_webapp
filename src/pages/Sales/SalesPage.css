@@ -154,8 +154,11 @@
   font-size: var(--text-sm);
 }
 
-.sales-table__product-more {
-  color: var(--color-text-secondary-alt);
+/* Número de orden con la flecha que despliega sus productos. */
+.sales-table__order-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
 }
 
 .sales-table__num {
