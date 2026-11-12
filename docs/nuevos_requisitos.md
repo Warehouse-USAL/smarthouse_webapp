@@ -275,3 +275,56 @@ pide además el filtro `type` en el listado, para que los reportes de compras a
 proveedores puedan excluir las reubicaciones.
 
 - **Errores:** ninguno nuevo.
+
+---
+
+## 5. Ordenar productos por precio y stock disponible
+
+### Por qué
+
+La tabla de Productos pagina en el servidor (`POST /query/products`) y ordena
+con `sort`. Hoy se puede ordenar por `name`, `sku`, `category` y `created_at`,
+que son los campos que expone la entidad `products` en `GET /query/catalog`.
+Faltan los dos órdenes más útiles para operar: **por precio** y **por stock
+disponible** (por ejemplo, ver primero lo que tiene menos stock).
+
+Ordenar en el front no sirve: solo vería la página visible, no el catálogo.
+
+### Contrato pedido
+
+- **Roles:** sin cambios.
+- La entidad `products` de `/query` suma dos campos ordenables (y filtrables):
+
+| Campo | Tipo | De dónde sale |
+| --- | --- | --- |
+| `price_amount_cents` | número | `price.amountCents`, que ya está guardado en el producto |
+| `stock_available` | número | El mismo valor que `stock.available` de `GET /products/{id}`: físico (posiciones activas) menos reservado (pedidos pendientes o en proceso), nunca menor que 0 |
+
+```json
+POST /query/products
+{
+  "filters": [{ "field": "active", "op": "eq", "value": true }],
+  "sort": [{ "field": "stock_available", "dir": "asc" }],
+  "page": 0,
+  "size": 8,
+  "fields": ["id"]
+}
+```
+
+`price_amount_cents` es directo: es un campo guardado.
+
+`stock_available` no está guardado: hoy se calcula al vuelo desde las
+posiciones y los pedidos (`ProductService`). Para ordenar por él hay dos
+caminos, a elección del backend: guardarlo desnormalizado en el producto y
+actualizarlo en cada cambio de stock (ajustes, ubicación de remitos, pedidos),
+o calcularlo en la consulta con una agregación. El front solo necesita que el
+campo exista y ordene sobre todo el catálogo.
+
+**Orden de textos:** hoy el orden distingue mayúsculas de minúsculas ("Cable
+USB-C" sale antes que "Cable de red", porque la "U" mayúscula va antes que la
+"d"). Se pide ordenar los textos (`name`, `sku`, `category`) sin distinguir
+mayúsculas ni acentos, por ejemplo con una collation de MongoDB en español
+(`{ locale: "es", strength: 1 }`).
+
+- **Errores:** ninguno nuevo. Un campo que no existe sigue respondiendo
+  `UNKNOWN_FIELD`.
