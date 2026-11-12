@@ -179,6 +179,33 @@ export function getUser() {
 
 /*
 |--------------------------------------------------------------------------
+| UPDATE STORED USER
+|--------------------------------------------------------------------------
+|
+| Mezcla cambios en el usuario guardado al loguearse (ej. el nombre editado en
+| Mi perfil), para que el resto de la app lo muestre sin volver a loguearse.
+|
+*/
+
+export function updateStoredUser(patch) {
+
+  const user = getUser();
+
+  if (!user) return;
+
+  localStorage.setItem(
+    "user",
+    JSON.stringify({ ...user, ...patch })
+  );
+
+}
+
+
+
+
+
+/*
+|--------------------------------------------------------------------------
 | AUTHENTICATED REQUESTS
 |--------------------------------------------------------------------------
 |

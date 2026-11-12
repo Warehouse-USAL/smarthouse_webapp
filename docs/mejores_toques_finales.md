@@ -328,6 +328,22 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 22. Mi perfil (menú del avatar)
+
+- Nuevo ítem "Mi perfil" en el menú del avatar, para cualquier rol. Abre
+  `ProfileModal` con: nombre, email y rol (más el proveedor si es `PROVIDER`),
+  edición de nombre y dirección, y cambio de contraseña.
+- Se lee con `userService.getMe`: como no existe `GET /users/me` y
+  `GET /users/{id}` es solo admin, usa `PATCH /users/me` con cuerpo vacío, que
+  no cambia nada y devuelve el usuario completo. El `GET` quedó pedido en
+  `docs/nuevos_requisitos.md`; cuando exista, cambia solo esa función.
+- La dirección se manda solo si cambió (el backend la reemplaza entera). Al
+  guardar el nombre se actualiza el usuario guardado (`updateStoredUser`) y la
+  barra lo muestra al cerrar el modal.
+- Errores de contraseña traducidos: `WRONG_CURRENT_PASSWORD` y `SAME_PASSWORD`.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`

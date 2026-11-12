@@ -57,3 +57,43 @@ describe("listAll", () => {
     expect(users).toHaveLength(53);
   });
 });
+
+describe("perfil propio (/users/me)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("getMe lee con PATCH vacío y normaliza dirección y proveedor", async () => {
+    apiClient.patch.mockResolvedValue({
+      data: {
+        id: "u1",
+        role: "PROVIDER",
+        supplier: "ACME",
+        address: { street: "Calle 1", department: "B", floor: "3", postal_code: "1425" },
+      },
+    });
+    const me = await userService.getMe();
+    expect(apiClient.patch).toHaveBeenCalledWith("/users/me", {});
+    expect(me.supplier).toBe("ACME");
+    expect(me.address.postalCode).toBe("1425");
+  });
+
+  it("updateMe manda solo lo que viene, con la dirección en snake_case", async () => {
+    apiClient.patch.mockResolvedValue({ data: { id: "u1" } });
+    await userService.updateMe({ name: "Ana" });
+    expect(apiClient.patch).toHaveBeenLastCalledWith("/users/me", { name: "Ana" });
+    await userService.updateMe({
+      address: { street: "Calle 1", department: "", floor: "", postalCode: "1425" },
+    });
+    expect(apiClient.patch).toHaveBeenLastCalledWith("/users/me", {
+      address: { street: "Calle 1", department: "", floor: "", postal_code: "1425" },
+    });
+  });
+
+  it("changeMyPassword manda current_password y new_password", async () => {
+    apiClient.post.mockResolvedValue({});
+    await userService.changeMyPassword("vieja", "nueva");
+    expect(apiClient.post).toHaveBeenCalledWith("/users/me/change-password", {
+      current_password: "vieja",
+      new_password: "nueva",
+    });
+  });
+});
