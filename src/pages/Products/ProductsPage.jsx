@@ -118,6 +118,8 @@ export default function ProductsPage() {
   // "" = todas, NO_LOCATION = sin ubicación, o el zoneCode de una zona.
   const [locationFilter, setLocationFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  // Filtros escondidos detrás del botón "Filtros", como en Gestión de ventas.
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
   const [totalPages, setTotalPages] = useState(1);
@@ -629,24 +631,28 @@ export default function ProductsPage() {
           value: search,
           onChange: (e) => { setSearch(e.target.value); setPage(1); },
         }}
+        filtersOpen={filtersOpen}
+        onToggleFilters={() => setFiltersOpen((v) => !v)}
         filtersClassName="table-panel__filters--auto"
         filters={
-          <>
-            {canFilterLocation && (
+          filtersOpen && (
+            <>
+              {canFilterLocation && (
+                <Select
+                  label="Ubicación"
+                  value={locationFilter}
+                  onChange={(e) => { setLocationFilter(e.target.value); setPage(1); }}
+                  options={locationOptions}
+                />
+              )}
               <Select
-                label="Ubicación"
-                value={locationFilter}
-                onChange={(e) => { setLocationFilter(e.target.value); setPage(1); }}
-                options={locationOptions}
+                label="Categoría"
+                value={categoryFilter}
+                onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
+                options={categoryOptions}
               />
-            )}
-            <Select
-              label="Categoría"
-              value={categoryFilter}
-              onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
-              options={categoryOptions}
-            />
-          </>
+            </>
+          )
         }
         footer={
           !loading && !error && products.length > 0 && (

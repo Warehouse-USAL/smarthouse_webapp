@@ -354,6 +354,14 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 24. Productos: filtros detrás del botón "Filtros"
+
+- Ubicación y Categoría ya no se ven siempre: aparecen al tocar "Filtros", como
+  en Gestión de ventas (mismo `filtersOpen` / `onToggleFilters` de
+  `TablePanel`). Cerrar el panel no borra los filtros elegidos.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`
