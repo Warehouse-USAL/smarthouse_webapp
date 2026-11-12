@@ -14,7 +14,6 @@ import LocateReceptionModal from "../../components/stock/LocateReceptionModal/Lo
 import { productService, searchFieldFor } from "../../services/productService";
 import { restockService, restockOrderCode } from "../../services/restockService";
 import { warehouseConfigService } from "../../services/warehouseConfigService";
-import { categoryLabel } from "../../services/categoryService";
 import "./StockAssignmentPage.css";
 
 const matchesSearch = (item, q) =>
@@ -40,6 +39,10 @@ const pageOf = (rows, page, size) => {
 
 export default function StockAssignmentPage() {
   const [productSearch, setProductSearch] = useState("");
+  // Filtro de categoría de "sin ubicación", detrás del botón "Filtros".
+  const [categories, setCategories] = useState([]);
+  const [productCategory, setProductCategory] = useState("");
+  const [productFiltersOpen, setProductFiltersOpen] = useState(false);
   const [restockSearch, setRestockSearch] = useState("");
   const [productPage, setProductPage] = useState(1);
   const [productPageSize, setProductPageSize] = useState(5);
@@ -84,6 +87,7 @@ export default function StockAssignmentPage() {
         excludeIds: [...zonesByProduct.keys()],
         searchField: searchFieldFor(searchText),
         search: searchText || undefined,
+        category: productCategory || undefined,
       });
       if (requestId !== lastProductsRequest.current) return;
       // Tras ubicar puede quedar una página menos: se vuelve a la última.
@@ -101,7 +105,15 @@ export default function StockAssignmentPage() {
     } finally {
       if (requestId === lastProductsRequest.current) setLoadingProducts(false);
     }
-  }, [productPage, productPageSize, productSearch]);
+  }, [productPage, productPageSize, productSearch, productCategory]);
+
+  useEffect(() => {
+    let cancelled = false;
+    productService.getCategories().then((list) => {
+      if (!cancelled) setCategories(list);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   // Remitos sin ubicar (listPendingLocation: contra un backend sin esa
   // capacidad vuelve vacío y la sección queda en estado vacío). Solo se piden
@@ -213,6 +225,21 @@ export default function StockAssignmentPage() {
           value: productSearch,
           onChange: (e) => { setProductSearch(e.target.value); setProductPage(1); },
         }}
+        filtersOpen={productFiltersOpen}
+        onToggleFilters={() => setProductFiltersOpen((v) => !v)}
+        filters={
+          productFiltersOpen && (
+            <Select
+              label="Categoría"
+              value={productCategory}
+              onChange={(e) => {
+                setProductCategory(e.target.value);
+                setProductPage(1);
+              }}
+              options={[{ value: "", label: "Todas las categorías" }, ...categories]}
+            />
+          )
+        }
         footer={
           !loadingProducts && !productsError && products.length > 0 && (
             <>
@@ -254,7 +281,6 @@ export default function StockAssignmentPage() {
                 <tr>
                   <th>Producto</th>
                   <th>SKU</th>
-                  <th>Categoría</th>
                   <th>Stock disponible</th>
                   <th>Estado</th>
                   <th>Acciones</th>
@@ -265,7 +291,6 @@ export default function StockAssignmentPage() {
                   <tr key={product.id}>
                     <td>{renderProductCell(product)}</td>
                     <td className="table-panel__nowrap">{product.sku}</td>
-                    <td>{categoryLabel(product.category)}</td>
                     <td>{product.availableStock} unidades</td>
                     <td>
                       <Badge variant="warning" dot>Pendiente de ubicación</Badge>

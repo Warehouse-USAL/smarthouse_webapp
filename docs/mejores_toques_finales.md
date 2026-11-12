@@ -408,6 +408,15 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 29. Asignación de ubicación: categoría como filtro
+
+- "Productos sin ubicación asignada" ya no tiene columna Categoría: pasa a un
+  filtro detrás del botón "Filtros", como en las alertas de restock. Filtra en
+  el backend (`POST /query/products`), así el contador y la paginación siguen
+  siendo exactos.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`
