@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
 import TablePanel, { TablePanelTable } from "../../components/ui/TablePanel/TablePanel";
 import Badge from "../../components/ui/Badge/Badge";
@@ -11,8 +11,9 @@ import Pagination from "../../components/ui/Pagination/Pagination";
 import Select from "../../components/ui/Select/Select";
 import ProductLocationModal from "../../components/stock/ProductLocationModal/ProductLocationModal";
 import LocateReceptionModal from "../../components/stock/LocateReceptionModal/LocateReceptionModal";
-import { productService } from "../../services/productService";
+import { productService, searchFieldFor } from "../../services/productService";
 import { restockService, restockOrderCode } from "../../services/restockService";
+import { warehouseConfigService } from "../../services/warehouseConfigService";
 import "./StockAssignmentPage.css";
 
 const matchesSearch = (item, q) =>
@@ -27,7 +28,7 @@ const PAGE_SIZE_OPTIONS = [
   { value: "20", label: "20 por página" },
 ];
 
-// Página visible de una lista ya filtrada. Si la lista se achica (se ubicó un
+// Página visible de una lista ya filtrada (tabla de restock, que es acotada). Si la lista se achica (se ubicó un
 // producto), la página se ajusta a la última que existe.
 const pageOf = (rows, page, size) => {
   const totalPages = Math.max(1, Math.ceil(rows.length / size));
@@ -47,40 +48,75 @@ export default function StockAssignmentPage() {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [locateReception, setLocateReception] = useState(null);
 
+  // Tabla 1: productos sin ubicación, paginados en el servidor.
   const [products, setProducts] = useState([]);
-  const [allProducts, setAllProducts] = useState([]);
-  const [pendingRestock, setPendingRestock] = useState([]);
+  const [productsTotal, setProductsTotal] = useState(0);
+  const [productsTotalPages, setProductsTotalPages] = useState(1);
   const [loadingProducts, setLoadingProducts] = useState(true);
-  const [productsError, setProductsError] = useState(null);
+  const [productsError, setProductsError] = useState(false);
 
-  // Productos del catálogo sin ninguna ubicación asignada (locations vacío).
-  // El listado del backend no trae ubicación, así que se consulta aparte.
-  // Los remitos sin ubicar salen de listPendingLocation: contra un backend sin
-  // esa capacidad vuelve vacío y la sección queda en estado vacío (correcto,
-  // porque ahí tampoco se puede crear un remito sin ubicar).
-  const load = useCallback(async () => {
+  // Tabla 2: remitos de restock sin ubicar (lista acotada, paginada acá).
+  const [pendingRestock, setPendingRestock] = useState([]);
+  const [restockProducts, setRestockProducts] = useState([]);
+  const [loadingRestock, setLoadingRestock] = useState(true);
+  const [restockError, setRestockError] = useState(false);
+
+  // Solo se muestra la respuesta del último pedido (cambios rápidos de página
+  // o de búsqueda).
+  const lastProductsRequest = useRef(0);
+
+  // Productos activos sin ninguna posición: GET /warehouse/positions (1
+  // request) dice cuáles tienen ubicación y POST /query/products trae solo la
+  // página visible de los demás. No hace falta consultar la ubicación de cada
+  // producto: si está en esta lista, no tiene.
+  const loadProducts = useCallback(async () => {
+    const requestId = ++lastProductsRequest.current;
     setLoadingProducts(true);
-    setProductsError(null);
+    setProductsError(false);
     try {
-      // listAll pagina de verdad: list({size:200}) lo clampea el backend a 50
-      // y los productos fuera de esa página no se cruzaban con las recepciones.
-      const [list, pending] = await Promise.all([
-        productService.listAll(),
-        restockService.listPendingLocation(),
-      ]);
-      const byId = new Map(list.map((p) => [p.id, p]));
-      setAllProducts(list);
-      const withLocations = await Promise.all(
-        list.map(async (product) => ({
-          product,
-          locations: await productService.getLocations(product.id),
-        }))
+      const zonesByProduct = await warehouseConfigService.getProductZones();
+      const searchText = productSearch.trim();
+      const result = await productService.listPage({
+        page: productPage,
+        size: productPageSize,
+        active: true,
+        excludeIds: [...zonesByProduct.keys()],
+        searchField: searchFieldFor(searchText),
+        search: searchText || undefined,
+      });
+      if (requestId !== lastProductsRequest.current) return;
+      // Tras ubicar puede quedar una página menos: se vuelve a la última.
+      if (result.totalPages > 0 && productPage > result.totalPages) {
+        setProductPage(result.totalPages);
+        return;
+      }
+      setProducts(result.items);
+      setProductsTotal(result.totalElements);
+      setProductsTotalPages(Math.max(1, result.totalPages));
+    } catch {
+      if (requestId !== lastProductsRequest.current) return;
+      setProducts([]);
+      setProductsError(true);
+    } finally {
+      if (requestId === lastProductsRequest.current) setLoadingProducts(false);
+    }
+  }, [productPage, productPageSize, productSearch]);
+
+  // Remitos sin ubicar (listPendingLocation: contra un backend sin esa
+  // capacidad vuelve vacío y la sección queda en estado vacío). Solo se piden
+  // los productos de esos remitos, no el catálogo entero.
+  const loadRestock = useCallback(async () => {
+    setLoadingRestock(true);
+    setRestockError(false);
+    try {
+      const pending = await restockService.listPendingLocation();
+      const productIds = [...new Set(pending.map((r) => r.productId))];
+      // Un producto dado de baja responde 404: la fila lo indica.
+      const fetched = await Promise.all(
+        productIds.map((id) => productService.get(id).catch(() => null))
       );
-      setProducts(
-        withLocations
-          .filter((entry) => entry.locations.length === 0)
-          .map((entry) => entry.product)
-      );
+      const byId = new Map(fetched.filter(Boolean).map((p) => [p.id, p]));
+      setRestockProducts([...byId.values()]);
       setPendingRestock(
         pending.map((reception) => {
           const product = byId.get(reception.productId);
@@ -103,36 +139,33 @@ export default function StockAssignmentPage() {
           };
         })
       );
-    } catch (err) {
-      setProducts([]);
+    } catch {
       setPendingRestock([]);
-      setProductsError(
-        err?.response?.data?.error?.message ||
-          "No pudimos cargar los productos."
-      );
+      setRestockError(true);
     } finally {
-      setLoadingProducts(false);
+      setLoadingRestock(false);
     }
   }, []);
 
   useEffect(() => {
-    // load setea loading/error de forma síncrona para manejar la UI de carga;
-    // es intencional, no el cascade derivado de render que esta regla previene.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    load();
-  }, [load]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- carga de la página contra el backend
+    loadProducts();
+  }, [loadProducts]);
 
-  const filteredProducts = useMemo(() => {
-    const q = productSearch.trim().toLowerCase();
-    return products.filter((item) => matchesSearch(item, q));
-  }, [products, productSearch]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- carga inicial contra el backend
+    loadRestock();
+  }, [loadRestock]);
+
+  // Tras ubicar algo cambian las dos tablas.
+  const reload = () => Promise.all([loadProducts(), loadRestock()]);
 
   const filteredRestock = useMemo(() => {
     const q = restockSearch.trim().toLowerCase();
     return pendingRestock.filter((item) => matchesSearch(item, q));
   }, [pendingRestock, restockSearch]);
 
-  const productsPage = pageOf(filteredProducts, productPage, productPageSize);
+  const productStart = (productPage - 1) * productPageSize;
   const restockPageData = pageOf(filteredRestock, restockPage, restockPageSize);
 
   const openProductModal = (product) => {
@@ -145,22 +178,11 @@ export default function StockAssignmentPage() {
     setProductModalOpen(false);
   };
 
-  // Carga y error son compartidos: las dos tablas salen del mismo `load`.
-  const renderStatus = () => {
-    if (productsError) {
-      return (
-        <LoadError onRetry={load} />
-      );
-    }
-    if (loadingProducts && products.length === 0 && pendingRestock.length === 0) {
-      return (
-        <div className="table-panel__loading">
-          <Spinner label="Cargando productos…" />
-        </div>
-      );
-    }
-    return null;
-  };
+  const loadingState = (
+    <div className="table-panel__loading">
+      <Spinner label="Cargando productos…" />
+    </div>
+  );
 
   const renderProductCell = (item) => (
     <div className="table-panel__product">
@@ -184,23 +206,22 @@ export default function StockAssignmentPage() {
       <div className="table-panel-grid">
       <TablePanel
         title="Productos sin ubicación asignada"
-        count={`(${loadingProducts ? "…" : filteredProducts.length})`}
+        count={`(${loadingProducts ? "…" : productsTotal})`}
         search={{
           placeholder: "Buscar por nombre o SKU",
           value: productSearch,
           onChange: (e) => { setProductSearch(e.target.value); setProductPage(1); },
         }}
         footer={
-          !renderStatus() && filteredProducts.length > 0 && (
+          !loadingProducts && !productsError && products.length > 0 && (
             <>
               <span className="table-panel__showing">
-                Mostrando {productsPage.start + 1} a{" "}
-                {productsPage.start + productsPage.items.length} de{" "}
-                {filteredProducts.length} productos
+                Mostrando {productStart + 1} a {productStart + products.length} de{" "}
+                {productsTotal} productos
               </span>
               <Pagination
-                current={productsPage.current}
-                total={productsPage.totalPages}
+                current={productPage}
+                total={productsTotalPages}
                 onChange={setProductPage}
               />
               <Select
@@ -215,8 +236,12 @@ export default function StockAssignmentPage() {
           )
         }
       >
-        {renderStatus() ??
-          (filteredProducts.length === 0 ? (
+        {productsError ? (
+          <LoadError onRetry={loadProducts} />
+        ) : loadingProducts ? (
+          loadingState
+        ) : (
+          products.length === 0 ? (
             <EmptyState
               icon="box"
               title="Sin productos"
@@ -235,7 +260,7 @@ export default function StockAssignmentPage() {
                 </tr>
               </thead>
               <tbody>
-                {productsPage.items.map((product) => (
+                {products.map((product) => (
                   <tr key={product.id}>
                     <td>{renderProductCell(product)}</td>
                     <td className="table-panel__nowrap">{product.sku}</td>
@@ -263,14 +288,14 @@ export default function StockAssignmentPage() {
 
       <TablePanel
         title="Productos de restock pendientes de ubicación"
-        count={`(${loadingProducts ? "…" : filteredRestock.length})`}
+        count={`(${loadingRestock ? "…" : filteredRestock.length})`}
         search={{
           placeholder: "Buscar por nombre o SKU",
           value: restockSearch,
           onChange: (e) => { setRestockSearch(e.target.value); setRestockPage(1); },
         }}
         footer={
-          !renderStatus() && filteredRestock.length > 0 && (
+          !loadingRestock && !restockError && filteredRestock.length > 0 && (
             <>
               <span className="table-panel__showing">
                 Mostrando {restockPageData.start + 1} a{" "}
@@ -294,8 +319,12 @@ export default function StockAssignmentPage() {
           )
         }
       >
-        {renderStatus() ??
-          (filteredRestock.length === 0 ? (
+        {restockError ? (
+          <LoadError onRetry={loadRestock} />
+        ) : loadingRestock ? (
+          loadingState
+        ) : (
+          filteredRestock.length === 0 ? (
             <EmptyState
               icon="box"
               title="Sin productos"
@@ -346,16 +375,16 @@ export default function StockAssignmentPage() {
       <ProductLocationModal
         open={productModalOpen}
         onClose={closeProductModal}
-        onAssigned={load}
+        onAssigned={reload}
         product={selectedProduct}
       />
 
       <LocateReceptionModal
         open={locateReception !== null}
         receptions={locateReception ? [locateReception] : []}
-        products={allProducts}
+        products={restockProducts}
         onClose={() => setLocateReception(null)}
-        onLocated={load}
+        onLocated={reload}
       />
     </div>
   );

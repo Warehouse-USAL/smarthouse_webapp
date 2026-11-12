@@ -16,7 +16,7 @@ import Badge from "../../components/ui/Badge/Badge";
 import CreateProductForm from "../../components/products/CreateProductForm/CreateProductForm";
 import RestockOrderModal from "../../components/stock/RestockOrderModal/RestockOrderModal";
 import StatusBanner from "../../components/ui/StatusBanner/StatusBanner";
-import { productService } from "../../services/productService";
+import { productService, searchFieldFor } from "../../services/productService";
 import { warehouseConfigService } from "../../services/warehouseConfigService";
 import { stockAdjustmentService } from "../../services/stockAdjustmentService";
 import {
@@ -61,11 +61,6 @@ const HISTORY_PAGE_SIZE = 10;
 // Valor del filtro de ubicación para "Sin ubicación" (no choca con un zoneCode).
 const NO_LOCATION = "__sin_ubicacion__";
 
-// El backend no puede buscar en nombre y SKU a la vez (POST /query/products
-// combina filtros con "y"). Un texto con forma de SKU ("TEC-", "TEC-001") se
-// busca por SKU; cualquier otro, por nombre.
-const SKU_PATTERN = /^[a-z]{2,5}-\d*$/i;
-const searchFieldFor = (text) => (SKU_PATTERN.test(text) ? "sku" : "name");
 
 const ACTIVE_OPTIONS = [
   { value: "", label: "Todos" },

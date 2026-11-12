@@ -218,16 +218,30 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 13. Asignación de ubicación: carga paginada en el servidor
+
+- **Antes:** traía todo el catálogo (`listAll`, hasta 1000 productos) y pedía la
+  ubicación de cada producto, uno por uno, para saber cuáles no tenían.
+- **Ahora, "Productos sin ubicación asignada":** `GET /warehouse/positions` (1
+  request) dice qué productos tienen ubicación, y `POST /query/products` trae
+  solo la página visible de los activos que no la tienen (`id nin`). Costo por
+  página: 2 + filas visibles, sin importar el tamaño del catálogo. El contador
+  del título sale del total del backend.
+- **"Restock pendientes de ubicación":** se piden solo los productos de los
+  remitos pendientes, no el catálogo entero.
+- El buscador mantiene "nombre o SKU" con la misma regla que Productos (la
+  función `searchFieldFor` pasó a `productService` para usarla en las dos
+  pantallas).
+- Cada tabla tiene su propio estado de carga y error (con Reintentar).
+
+---
+
 ## Pendiente
 
-- **Gestión de stock / Asignación de stock / Ventas** usan `productService.listAll()`
+- **Gestión de stock / Ventas** usan `productService.listAll()`
   (hasta 1000 productos en memoria) para cruzar el catálogo con órdenes y
   alertas. Funciona y avisa si se llega al tope, pero no escala con un catálogo
   muy grande. Resolverlo bien requiere agregaciones en el backend.
-- **Asignación de ubicación** además pide la ubicación de cada producto del
-  catálogo (una request por producto) para saber cuáles no tienen. Se puede
-  pasar al mismo esquema de Productos (posiciones en una sola request +
-  paginación en el servidor).
 - `productService.list` manda `is_active`, pero `GET /products` espera
   `isActive`: el parámetro se ignora y siempre llegan activos. Hoy no afecta a
   nadie (los que lo usan piden activos).

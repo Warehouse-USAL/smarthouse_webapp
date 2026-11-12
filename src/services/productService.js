@@ -51,6 +51,12 @@ export const PRODUCT_CATALOG_LIMIT = PRODUCT_PAGE_SIZE * MAX_PRODUCT_PAGES;
 const QUERY_MAX_FILTERS = 10;
 const QUERY_IDS_PER_FILTER = 100;
 
+// El backend no puede buscar en nombre y SKU a la vez (POST /query/products
+// combina filtros con "y"). Un texto con forma de SKU ("TEC-", "TEC-001") se
+// busca por SKU; cualquier otro, por nombre.
+const SKU_PATTERN = /^[a-z]{2,5}-\d*$/i;
+export const searchFieldFor = (text) => (SKU_PATTERN.test(text) ? "sku" : "name");
+
 // Filtros de POST /query/products. includeIds / excludeIds acotan por id
 // (filtro por zona o "sin ubicación"); excludeIds se parte en varios `nin`.
 const buildQueryFilters = ({ searchField = "name", search, category, active, includeIds, excludeIds }) => {
