@@ -313,6 +313,13 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 20. Configuración del warehouse: "Seleccionar ubicación"
+
+- El título de la tarjeta lateral pasó de "Ubicación" a "Seleccionar
+  ubicación".
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`

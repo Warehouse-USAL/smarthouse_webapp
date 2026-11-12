@@ -209,7 +209,7 @@ export default function WarehouseConfigPage() {
 
         <aside className="warehouse-page__side">
           <Card>
-            <CardHeader icon={<Icon name="box" size={16} />} title="Ubicación" />
+            <CardHeader icon={<Icon name="box" size={16} />} title="Seleccionar ubicación" />
             <div className="warehouse-page__location-selects">
               <Select
                 label="Zona"
