@@ -236,6 +236,17 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 14. Categoría con su etiqueta ("Tecnología" en vez de "TECNOLOGIA")
+
+- Nueva función `categoryLabel(value)` en `categoryService.js`: usa las
+  etiquetas conocidas y, para una categoría nueva del backend sin etiqueta, la
+  capitaliza.
+- Se usa en la tabla de Asignación de ubicación y en la tarjeta de producto de
+  los modales (Asignar ubicación y Generar orden de restock), que mostraban el
+  valor crudo.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`

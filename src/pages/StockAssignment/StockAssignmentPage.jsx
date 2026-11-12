@@ -14,6 +14,7 @@ import LocateReceptionModal from "../../components/stock/LocateReceptionModal/Lo
 import { productService, searchFieldFor } from "../../services/productService";
 import { restockService, restockOrderCode } from "../../services/restockService";
 import { warehouseConfigService } from "../../services/warehouseConfigService";
+import { categoryLabel } from "../../services/categoryService";
 import "./StockAssignmentPage.css";
 
 const matchesSearch = (item, q) =>
@@ -264,7 +265,7 @@ export default function StockAssignmentPage() {
                   <tr key={product.id}>
                     <td>{renderProductCell(product)}</td>
                     <td className="table-panel__nowrap">{product.sku}</td>
-                    <td>{product.category}</td>
+                    <td>{categoryLabel(product.category)}</td>
                     <td>{product.availableStock} unidades</td>
                     <td>
                       <Badge variant="warning" dot>Pendiente de ubicación</Badge>

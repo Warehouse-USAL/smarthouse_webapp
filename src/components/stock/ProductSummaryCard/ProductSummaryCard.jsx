@@ -1,5 +1,6 @@
 import Icon from "../../ui/Icon/Icon";
 import Badge from "../../ui/Badge/Badge";
+import { categoryLabel } from "../../../services/categoryService";
 import "./ProductSummaryCard.css";
 
 /*
@@ -33,9 +34,9 @@ export default function ProductSummaryCard({
         </h4>
         <span className="product-summary-card__sku">SKU: {sku}</span>
         {category && (
-          <span className="product-summary-card__category" title={`Categoría: ${category}`}>
+          <span className="product-summary-card__category" title={`Categoría: ${categoryLabel(category)}`}>
             <Icon name="box" size={14} />
-            Categoría: {category}
+            Categoría: {categoryLabel(category)}
           </span>
         )}
         {badge && (

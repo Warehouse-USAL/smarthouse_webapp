@@ -45,6 +45,10 @@ export const CATEGORIES = Object.entries(CATEGORY_LABELS).map(([value, label]) =
 const humanize = (value) =>
   value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
 
+// Etiqueta para mostrar una categoría tal como llega del backend.
+export const categoryLabel = (value) =>
+  value ? CATEGORY_LABELS[value] ?? humanize(value) : "—";
+
 export const categoryService = {
   async list() {
     try {
