@@ -628,6 +628,16 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 47. Asignación de stock: modal de ubicar con la card de producto
+
+- "Ubicar mercadería recibida" usa la misma `ProductSummaryCard` que Nueva
+  orden de restock y el remito: imagen, nombre, SKU, categoría y un badge
+  ("Pendiente de ubicación" o "Reubicación"), con las métricas Recibido, Ya
+  ubicado, Falta ubicar y Unidad. Reemplaza la franja de texto gris.
+- El texto de arriba pasa al `subtitle` del `Modal`, como en los demás modales.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`
