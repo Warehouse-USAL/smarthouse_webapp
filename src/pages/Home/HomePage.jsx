@@ -29,6 +29,13 @@ const TILES = [
     description: "Consultá y administrá el stock asignado en el warehouse.",
   },
   {
+    to: "/ventas",
+    capability: "order.read",
+    icon: "cart",
+    title: "Gestión de ventas",
+    description: "Seguí las órdenes de los clientes y su despacho.",
+  },
+  {
     to: "/configuracion",
     capability: "warehouse.read",
     icon: "map",

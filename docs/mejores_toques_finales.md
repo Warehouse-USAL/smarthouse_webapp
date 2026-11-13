@@ -611,6 +611,23 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 46. Inicio: accesos directos según el rol
+
+- Se comparó cada tarjeta del inicio con su ruta (`AppRoutes`), el Navbar y los
+  `@PreAuthorize` del backend. Todas coincidían salvo Gestión de ventas, que
+  estaba en el Navbar pero no en el inicio: se agregó con `order.read`
+  (cualquier rol, como `GET /orders`).
+- Qué ve cada rol en el inicio:
+
+| Rol | Accesos |
+| --- | --- |
+| `SUPERADMIN` | Todos |
+| `ADMIN_WAREHOUSE` | Productos, Asignación de stock, Gestión de stock, Ventas, Configuración, Vehículos |
+| `ADMIN_SYSTEM` | Productos, Ventas, Vehículos, Usuarios |
+| `ADMIN_SALES`, `PROVIDER`, `DISPATCHER`, `OPERATOR` | Productos, Ventas |
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`
