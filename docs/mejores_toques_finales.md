@@ -588,6 +588,14 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 43. Usuarios: avatar en su propia columna
+
+- El avatar con las iniciales pasa a una columna propia (sin título), centrado
+  con `table-panel__thumb-cell` como las imágenes de las otras tablas. Nombre y
+  email quedan en "Usuario", centrados como el resto de las celdas.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`

@@ -275,6 +275,7 @@ export default function UsersPage() {
             <TablePanelTable className="users-table">
               <thead>
                 <tr>
+                  <th aria-label="Avatar" />
                   <th>Usuario</th>
                   <th>Rol</th>
                   <th>Proveedor</th>
@@ -286,15 +287,15 @@ export default function UsersPage() {
               <tbody>
                 {visibleUsers.map((user) => (
                   <tr key={user.id}>
+                    <td className="table-panel__thumb-cell">
+                      <span className="users-table__avatar" aria-hidden="true">
+                        {initials(user.name)}
+                      </span>
+                    </td>
                     <td>
-                      <div className="users-table__user">
-                        <span className="users-table__avatar" aria-hidden="true">
-                          {initials(user.name)}
-                        </span>
-                        <div className="users-table__user-text">
-                          <span className="users-table__name">{user.name}</span>
-                          <span className="users-table__email">{user.email}</span>
-                        </div>
+                      <div className="users-table__user-text">
+                        <span className="users-table__name">{user.name}</span>
+                        <span className="users-table__email">{user.email}</span>
                       </div>
                     </td>
                     <td>
