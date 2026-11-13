@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
+import ActionCard from "../../components/ui/ActionCard/ActionCard";
 import Button from "../../components/ui/Button/Button";
 import Select from "../../components/ui/Select/Select";
 import Icon from "../../components/ui/Icon/Icon";
@@ -191,12 +192,17 @@ export default function UsersPage() {
       <PageHeader
         title="Usuarios"
         subtitle="Gestioná las cuentas del sistema: alta, modificación de rol y estado, y restablecimiento de contraseña."
-        action={
-          <Button iconLeft={<Icon name="plus" size={16} />} onClick={openCreate}>
-            Nuevo usuario
-          </Button>
-        }
       />
+
+      <div className="action-card-grid">
+        <ActionCard
+          icon="plus"
+          title="Dar de alta usuario"
+          description="Creá una cuenta nueva y asignale su rol."
+          variant="yellow"
+          onClick={openCreate}
+        />
+      </div>
 
       <TablePanel
         title="Usuarios registrados"

@@ -603,6 +603,14 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 45. Usuarios: alta como en Productos
+
+- "Nuevo usuario" deja de ser un botón a la derecha del encabezado y pasa a ser
+  una `ActionCard` amarilla "Dar de alta usuario", a la izquierda, igual que
+  "Dar de alta producto". El botón de la tabla vacía no cambia.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`
