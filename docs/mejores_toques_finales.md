@@ -638,6 +638,14 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 48. Gestión de stock: sin ícono de info en los títulos de las tablas
+
+- Las dos tablas ya tienen descripción debajo del título; el ícono (`hint` de
+  `TablePanel`, un tooltip) repetía lo mismo. Se sacó el `hint` en las dos. La
+  prop sigue en `TablePanel`, sin uso por ahora.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`
