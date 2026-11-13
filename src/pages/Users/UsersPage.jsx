@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
+import ActionCard from "../../components/ui/ActionCard/ActionCard";
 import Button from "../../components/ui/Button/Button";
 import Select from "../../components/ui/Select/Select";
 import Icon from "../../components/ui/Icon/Icon";
@@ -191,12 +192,17 @@ export default function UsersPage() {
       <PageHeader
         title="Usuarios"
         subtitle="Gestioná las cuentas del sistema: alta, modificación de rol y estado, y restablecimiento de contraseña."
-        action={
-          <Button iconLeft={<Icon name="plus" size={16} />} onClick={openCreate}>
-            Nuevo usuario
-          </Button>
-        }
       />
+
+      <div className="action-card-grid">
+        <ActionCard
+          icon="plus"
+          title="Dar de alta usuario"
+          description="Creá una cuenta nueva y asignale su rol."
+          variant="yellow"
+          onClick={openCreate}
+        />
+      </div>
 
       <TablePanel
         title="Usuarios registrados"
@@ -275,9 +281,9 @@ export default function UsersPage() {
             <TablePanelTable className="users-table">
               <thead>
                 <tr>
+                  <th aria-label="Avatar" />
                   <th>Usuario</th>
                   <th>Rol</th>
-                  <th>Proveedor</th>
                   <th>Estado</th>
                   <th>Alta</th>
                   <th>Acciones</th>
@@ -286,21 +292,20 @@ export default function UsersPage() {
               <tbody>
                 {visibleUsers.map((user) => (
                   <tr key={user.id}>
+                    <td className="table-panel__thumb-cell">
+                      <span className="users-table__avatar" aria-hidden="true">
+                        {initials(user.name)}
+                      </span>
+                    </td>
                     <td>
-                      <div className="users-table__user">
-                        <span className="users-table__avatar" aria-hidden="true">
-                          {initials(user.name)}
-                        </span>
-                        <div className="users-table__user-text">
-                          <span className="users-table__name">{user.name}</span>
-                          <span className="users-table__email">{user.email}</span>
-                        </div>
+                      <div className="users-table__user-text">
+                        <span className="users-table__name">{user.name}</span>
+                        <span className="users-table__email">{user.email}</span>
                       </div>
                     </td>
                     <td>
                       <Badge variant={roleVariant(user.role)}>{roleLabel(user.role)}</Badge>
                     </td>
-                    <td>{user.supplier || "—"}</td>
                     <td>
                       <Badge variant={user.active ? "success" : "neutral"} dot>
                         {user.active ? "Activo" : "Inactivo"}

@@ -476,11 +476,6 @@ export default function StockManagementPage() {
         <TablePanel
           title="Productos con alerta de reestock"
           count={`(${filteredAlerts.length})`}
-          hint={
-            hasSuggestions
-              ? "El backend compara la posición de inventario (disponible + en tránsito) contra el punto de reposición calculado sobre la demanda."
-              : "Un producto entra en alerta cuando su stock disponible queda por debajo del mínimo configurado."
-          }
           description={
             hasSuggestions
               ? "La cantidad sugerida por el backend (según demanda, stock de seguridad y mercadería en tránsito) se precarga al crear la orden."
@@ -607,7 +602,6 @@ export default function StockManagementPage() {
         <TablePanel
           title="Órdenes de restock"
           count={`(${orderTotal.toLocaleString("es-AR")})`}
-          hint="El estado se deriva de las recepciones registradas: pendiente (sin recibir), recibido parcial (menos de lo pedido) o recibido (todo lo pedido)."
           description="Gestioná el estado de tus órdenes de restock y registrá las recepciones."
           search={{
             placeholder: "Buscar en esta página por producto, SKU u orden",

@@ -1,26 +1,7 @@
-.locate-modal__subtitle {
-  margin: 0 0 var(--space-5);
-  font-size: var(--text-md);
-  line-height: 1.55;
-  color: var(--color-text-secondary);
-}
-
 .locate-modal__form {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-}
-
-.locate-modal__info {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-muted);
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
 }
 
 .locate-modal__hint {

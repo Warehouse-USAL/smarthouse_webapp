@@ -555,6 +555,97 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 40. Perfil con `GET /users/me`
+
+- El backend ya tiene `GET /users/me` (sección 3 de `nuevos_requisitos.md`).
+  `userService.getMe` lo usa en lugar del `PATCH /users/me` con cuerpo vacío,
+  que guardaba el usuario en cada lectura. Mismo `UserResponse`: Mi perfil no
+  cambia.
+
+---
+
+## 41. Quitar producto de una posición: reubicación
+
+- Al quitar un producto de una posición con stock, el backend crea en la misma
+  transacción una recepción `type: RELOCATION` en `PENDING_LOCATION` con esas
+  unidades (sección 1 de `nuevos_requisitos.md`). El front ya la mostraba en
+  Asignación de stock con el estado "Reubicación" y sin orden.
+- Cambia el texto de confirmación de "Quitar producto": ya no dice que el stock
+  se descuenta, sino que las unidades quedan pendientes de reubicación y no
+  cuentan en el stock disponible hasta que se ubiquen.
+- Las sumas de "recibido" por orden siguen sin contar reubicaciones (se agrupan
+  por `restock_order_id`, que una reubicación no tiene).
+
+---
+
+## 42. Vehículos: sin alta desde la pantalla
+
+- Se sacó "Dar de alta vehículo" (botón del encabezado, botón de la tabla vacía
+  y su modal). La pantalla queda solo de consulta: listado, búsqueda, filtro
+  por estado y paginación.
+- `vehicleService.register` y el permiso `vehicle.create` quedan sin uso en la
+  UI; no se borraron para no tocar más archivos.
+
+---
+
+## 43. Usuarios: avatar en su propia columna
+
+- El avatar con las iniciales pasa a una columna propia (sin título), centrado
+  con `table-panel__thumb-cell` como las imágenes de las otras tablas. Nombre y
+  email quedan en "Usuario", centrados como el resto de las celdas.
+
+---
+
+## 44. Usuarios: sin columna Proveedor
+
+- Solo tenía valor para el rol `PROVIDER` (el resto de las filas mostraba "—")
+  y el proveedor ya se ve y se edita en el modal del usuario.
+
+---
+
+## 45. Usuarios: alta como en Productos
+
+- "Nuevo usuario" deja de ser un botón a la derecha del encabezado y pasa a ser
+  una `ActionCard` amarilla "Dar de alta usuario", a la izquierda, igual que
+  "Dar de alta producto". El botón de la tabla vacía no cambia.
+
+---
+
+## 46. Inicio: accesos directos según el rol
+
+- Se comparó cada tarjeta del inicio con su ruta (`AppRoutes`), el Navbar y los
+  `@PreAuthorize` del backend. Todas coincidían salvo Gestión de ventas, que
+  estaba en el Navbar pero no en el inicio: se agregó con `order.read`
+  (cualquier rol, como `GET /orders`).
+- Qué ve cada rol en el inicio:
+
+| Rol | Accesos |
+| --- | --- |
+| `SUPERADMIN` | Todos |
+| `ADMIN_WAREHOUSE` | Productos, Asignación de stock, Gestión de stock, Ventas, Configuración, Vehículos |
+| `ADMIN_SYSTEM` | Productos, Ventas, Vehículos, Usuarios |
+| `ADMIN_SALES`, `PROVIDER`, `DISPATCHER`, `OPERATOR` | Productos, Ventas |
+
+---
+
+## 47. Asignación de stock: modal de ubicar con la card de producto
+
+- "Ubicar mercadería recibida" usa la misma `ProductSummaryCard` que Nueva
+  orden de restock y el remito: imagen, nombre, SKU, categoría y un badge
+  ("Pendiente de ubicación" o "Reubicación"), con las métricas Recibido, Ya
+  ubicado, Falta ubicar y Unidad. Reemplaza la franja de texto gris.
+- El texto de arriba pasa al `subtitle` del `Modal`, como en los demás modales.
+
+---
+
+## 48. Gestión de stock: sin ícono de info en los títulos de las tablas
+
+- Las dos tablas ya tienen descripción debajo del título; el ícono (`hint` de
+  `TablePanel`, un tooltip) repetía lo mismo. Se sacó el `hint` en las dos. La
+  prop sigue en `TablePanel`, sin uso por ahora.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`
