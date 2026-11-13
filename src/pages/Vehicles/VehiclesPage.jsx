@@ -1,19 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
 import TablePanel, { TablePanelTable } from "../../components/ui/TablePanel/TablePanel";
-import Input from "../../components/ui/Input/Input";
 import Select from "../../components/ui/Select/Select";
-import Button from "../../components/ui/Button/Button";
 import Badge from "../../components/ui/Badge/Badge";
-import Modal from "../../components/ui/Modal/Modal";
-import Icon from "../../components/ui/Icon/Icon";
 import Spinner from "../../components/ui/Spinner/Spinner";
 import EmptyState from "../../components/ui/EmptyState/EmptyState";
 import LoadError from "../../components/ui/LoadError/LoadError";
 import ProgressBar from "../../components/ui/ProgressBar/ProgressBar";
 import Pagination from "../../components/ui/Pagination/Pagination";
 import { vehicleService } from "../../services/vehicleService";
-import { can } from "../../lib/permissions";
 import "./VehiclesPage.css";
 
 const STATUS_OPTIONS = [
@@ -51,13 +46,6 @@ export default function VehiclesPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-
-  // Registrar vehículo es solo de SUPERADMIN/ADMIN_SYSTEM; ADMIN_WAREHOUSE
-  // entra a la pantalla (lectura) pero no puede dar de alta.
-  const canCreate = can("vehicle.create");
 
   // Solo se muestra la respuesta del último pedido (cambios rápidos de página o filtro).
   const lastRequest = useRef(0);
@@ -91,34 +79,11 @@ export default function VehiclesPage() {
     fetchVehicles();
   }, [fetchVehicles]);
 
-  const handleCreate = async (e) => {
-    e.preventDefault();
-    if (!newName.trim()) return;
-    setSubmitting(true);
-    try {
-      await vehicleService.register({ name: newName.trim() });
-      setNewName("");
-      setCreateOpen(false);
-      await fetchVehicles();
-    } catch (err) {
-      alert(err.response?.data?.error?.message || "No pudimos registrar el vehículo.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   return (
     <div className="vehicles-page">
       <PageHeader
         title="Vehículos"
         subtitle="Visualizá el estado y la ubicación actual de los vehículos del warehouse."
-        action={
-          canCreate ? (
-            <Button iconLeft={<Icon name="plus" size={16} />} onClick={() => setCreateOpen(true)}>
-              Dar de alta vehículo
-            </Button>
-          ) : null
-        }
       />
 
       <TablePanel
@@ -162,14 +127,7 @@ export default function VehiclesPage() {
           <EmptyState
             icon="truck"
             title="No hay vehículos"
-            description="Cuando registres vehículos, los verás listados acá."
-            action={
-              canCreate ? (
-                <Button iconLeft={<Icon name="plus" size={16} />} onClick={() => setCreateOpen(true)}>
-                  Dar de alta vehículo
-                </Button>
-              ) : null
-            }
+            description="Cuando haya vehículos registrados, los verás listados acá."
           />
         ) : (
           <TablePanelTable>
@@ -204,31 +162,6 @@ export default function VehiclesPage() {
           </TablePanelTable>
         )}
       </TablePanel>
-
-      <Modal
-        open={createOpen}
-        onClose={() => !submitting && setCreateOpen(false)}
-        title="Dar de alta vehículo"
-        size="sm"
-      >
-        <form onSubmit={handleCreate} className="vehicles-page__create-form">
-          <Input
-            label="Nombre"
-            placeholder="Ej. VEH-6"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            required
-          />
-          <div className="vehicles-page__create-actions">
-            <Button variant="secondary" type="button" onClick={() => setCreateOpen(false)} disabled={submitting}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={submitting || !newName.trim()}>
-              {submitting ? "Guardando…" : "Crear"}
-            </Button>
-          </div>
-        </form>
-      </Modal>
     </div>
   );
 }

@@ -578,6 +578,16 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 42. Vehículos: sin alta desde la pantalla
+
+- Se sacó "Dar de alta vehículo" (botón del encabezado, botón de la tabla vacía
+  y su modal). La pantalla queda solo de consulta: listado, búsqueda, filtro
+  por estado y paginación.
+- `vehicleService.register` y el permiso `vehicle.create` quedan sin uso en la
+  UI; no se borraron para no tocar más archivos.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`
