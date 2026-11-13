@@ -555,6 +555,15 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 40. Perfil con `GET /users/me`
+
+- El backend ya tiene `GET /users/me` (sección 3 de `nuevos_requisitos.md`).
+  `userService.getMe` lo usa en lugar del `PATCH /users/me` con cuerpo vacío,
+  que guardaba el usuario en cada lectura. Mismo `UserResponse`: Mi perfil no
+  cambia.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`
