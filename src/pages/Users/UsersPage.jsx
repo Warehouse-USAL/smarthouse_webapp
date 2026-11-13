@@ -278,7 +278,6 @@ export default function UsersPage() {
                   <th aria-label="Avatar" />
                   <th>Usuario</th>
                   <th>Rol</th>
-                  <th>Proveedor</th>
                   <th>Estado</th>
                   <th>Alta</th>
                   <th>Acciones</th>
@@ -301,7 +300,6 @@ export default function UsersPage() {
                     <td>
                       <Badge variant={roleVariant(user.role)}>{roleLabel(user.role)}</Badge>
                     </td>
-                    <td>{user.supplier || "—"}</td>
                     <td>
                       <Badge variant={user.active ? "success" : "neutral"} dot>
                         {user.active ? "Activo" : "Inactivo"}

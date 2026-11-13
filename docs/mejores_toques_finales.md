@@ -596,6 +596,13 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 44. Usuarios: sin columna Proveedor
+
+- Solo tenía valor para el rol `PROVIDER` (el resto de las filas mostraba "—")
+  y el proveedor ya se ve y se edita en el modal del usuario.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`
