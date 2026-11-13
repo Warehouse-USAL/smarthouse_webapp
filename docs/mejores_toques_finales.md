@@ -564,6 +564,20 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 41. Quitar producto de una posición: reubicación
+
+- Al quitar un producto de una posición con stock, el backend crea en la misma
+  transacción una recepción `type: RELOCATION` en `PENDING_LOCATION` con esas
+  unidades (sección 1 de `nuevos_requisitos.md`). El front ya la mostraba en
+  Asignación de stock con el estado "Reubicación" y sin orden.
+- Cambia el texto de confirmación de "Quitar producto": ya no dice que el stock
+  se descuenta, sino que las unidades quedan pendientes de reubicación y no
+  cuentan en el stock disponible hasta que se ubiquen.
+- Las sumas de "recibido" por orden siguen sin contar reubicaciones (se agrupan
+  por `restock_order_id`, que una reubicación no tiene).
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`
