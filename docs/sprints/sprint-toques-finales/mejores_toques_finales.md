@@ -654,6 +654,18 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 50. README: cómo levantar el proyecto completo
+
+- Se reescribió el README con el orden real para levantar el front: primero
+  `wh-backend` en `:8080` (sin backend no hay login ni datos), después
+  `npm install` y `npm run dev`.
+- La app vive bajo `/app/` también en dev: la URL es `http://localhost:5173/app/`.
+- Requisitos según Vite 8: Node `^20.19.0` o `>=22.12.0`.
+- Se agregaron solución de problemas, la estructura del proyecto y el enlace a
+  `docs/credenciales.md`.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`
