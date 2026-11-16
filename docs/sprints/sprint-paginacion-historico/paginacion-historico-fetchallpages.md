@@ -1,5 +1,7 @@
 # Paginación de histórico: carga completa de /orders y /restock con topes de 1.000 registros
 
+> Estado: **hecho**. Documento histórico: las referencias a archivos o rutas (por ejemplo `docs/…`) pueden estar desactualizadas.
+
 ## Problema
 
 Con el nuevo seed de datos del backend se generó **2 años de historial sintético**:

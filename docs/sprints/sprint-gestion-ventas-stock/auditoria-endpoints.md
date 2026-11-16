@@ -1,5 +1,7 @@
 # Auditoría de endpoints — front ↔ swagger
 
+> Estado: **hecho**. Documento histórico: las referencias a archivos o rutas (por ejemplo `docs/…`) pueden estar desactualizadas.
+
 > Fecha: 2026-10-07 | Fuente: `docs/backend-openapi.json` + verificación en vivo contra el backend local (`:8080`, `admin@usal.com`).
 > Alcance: todas las llamadas de tablas, grillas, modales y services del front (`src/**`, sin mocks).
 

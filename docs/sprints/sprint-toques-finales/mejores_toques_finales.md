@@ -666,6 +666,16 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 51. Credenciales: por qué no entra `admin@smartwarehouse.local`
+
+- El SUPERADMIN solo se crea en el primer arranque de la base, desde
+  `ADMIN_EMAIL`/`ADMIN_PASSWORD`. Si esas variables estaban vacías, la base
+  quedó con un SUPERADMIN de email `""`, y `admin@smartwarehouse.local` nunca
+  se creó. Se documentó en `docs/credenciales.md`: hay que borrar la base y
+  levantar de nuevo con las variables.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`

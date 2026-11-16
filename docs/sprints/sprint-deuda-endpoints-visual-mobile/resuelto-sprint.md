@@ -1,5 +1,7 @@
 # Resuelto — Sprint deuda de endpoints de stock
 
+> Estado: **hecho**. Documento histórico: las referencias a archivos o rutas (por ejemplo `docs/…`) pueden estar desactualizadas.
+
 > Fecha: 2026-11-04
 > Rama: `feature/sprint-endpoints-visual-mobile`
 > Alcance: bloques **a)** y **b)** de `docs/sprint-deuda-endpoints-visual-mobile.md`.

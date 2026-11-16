@@ -1,5 +1,7 @@
 # Sprint — Gestión Stock / Ventas / UX Modales
 
+> Estado: **hecho**. Documento histórico: las referencias a archivos o rutas (por ejemplo `docs/…`) pueden estar desactualizadas.
+
 > Rama sugerida: `feature/sprint-ventas-stock-ux` (alternativa: `feature/sprint-gestion-ventas-stock`)
 > Fecha: 2026-10-05 | Proyecto: SmartWarehouse — App Web (React + Vite)
 > Origen: relevamiento funcional + diseños super-detallados provistos por negocio. No se modifica backend salvo que se indique.

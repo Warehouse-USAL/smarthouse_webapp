@@ -1,5 +1,7 @@
 # PR — Adaptación del front al backend aditivo
 
+> Estado: **hecho**. Documento histórico: las referencias a archivos o rutas (por ejemplo `docs/…`) pueden estar desactualizadas.
+
 > Rama: `feature/adaptar-backend-aditivo` | Base: `develop` | Fecha: 2026-11-03
 > Alcance: front (React + Vite). No modifica backend.
 > Este archivo reemplaza la documentación anterior de `docs/`.

@@ -1,5 +1,7 @@
 # Futuro — Unificación de modales + Auditoría variables CSS
 
+> Estado: **hecho**. Documento histórico: las referencias a archivos o rutas (por ejemplo `docs/…`) pueden estar desactualizadas.
+
 > Prioridad: BAJA | No entra en el sprint actual. Deuda técnica / mejora UX.
 > Relacionado: `docs/sprint-gestion-ventas-stock.md` punto 6.
 

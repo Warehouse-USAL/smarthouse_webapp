@@ -1,5 +1,7 @@
 # Sprint siguiente — Deuda de endpoints, visual y mobile
 
+> Estado: **hecho**. Documento histórico: las referencias a archivos o rutas (por ejemplo `docs/…`) pueden estar desactualizadas.
+
 > Estado: planificado. Arranca una vez aprobado y mergeado el PR de
 > `feature/adaptar-backend-aditivo` a `develop`.
 > Base: `develop` actualizado. Rama sugerida: `feature/sprint-endpoints-visual-mobile`.
