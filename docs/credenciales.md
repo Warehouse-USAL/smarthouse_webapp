@@ -38,6 +38,20 @@ ADMIN_EMAIL=admin@smartwarehouse.local ADMIN_PASSWORD=Demo1234! SEED_DEMO=true m
 `SEED_DEMO` solo corre sobre una base vacía. Para volver a sembrar hay que
 borrar la base (`make down` y borrar `data/`) y levantar de nuevo.
 
+### Si no entrás con `admin@smartwarehouse.local`
+
+El SUPERADMIN se crea solo en el primer arranque de una base, a partir de
+`ADMIN_EMAIL` y `ADMIN_PASSWORD`. Después no se vuelve a crear ni a cambiar:
+
+- Si la base ya tiene un SUPERADMIN (por ejemplo, de un arranque con esas
+  variables vacías o con otros valores), `admin@smartwarehouse.local` no existe
+  y la contraseña `Demo1234!` no sirve.
+- Si `ADMIN_EMAIL` y `ADMIN_PASSWORD` están vacías en el arranque, el backend
+  crea un SUPERADMIN con email `""` y no hay forma de entrar con él.
+
+La solución es borrar la base y levantar de nuevo con las variables del
+bloque de arriba.
+
 ---
 
 ## Variables sensibles del backend
