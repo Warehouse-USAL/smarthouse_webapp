@@ -138,13 +138,6 @@
   font-size: var(--text-xs);
 }
 
-/* Tabla de órdenes sin scroll horizontal: entra a presión en el panel con
-   celdas compactas. Debajo de 1500px de viewport el panel ya no la contiene y
-   vuelve el scroll como red de seguridad (si no, se recortaría Acciones). */
-.table-panel__table-wrap--fit {
-  overflow: hidden;
-}
-
 .stock-table--fit thead th {
   white-space: normal;
 }
@@ -169,9 +162,12 @@
   font-size: var(--text-sm);
 }
 
-@media (max-width: 1500px) {
-  .table-panel__table-wrap--fit {
-    overflow-x: auto;
+/* La tabla de órdenes necesita ~770px para mostrar Acciones completa. Por
+   debajo de 1700px los dos paneles se apilan en columna: la tabla toma el ancho
+   del contenedor y no se recorta. */
+@media (max-width: 1700px) {
+  .table-panel-grid.stock-management__grid {
+    grid-template-columns: 1fr;
   }
 }
 

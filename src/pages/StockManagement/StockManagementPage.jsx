@@ -672,7 +672,6 @@ export default function StockManagementPage() {
           ) : (
             <TablePanelTable
               className="stock-table stock-table--fit"
-              wrapClassName="table-panel__table-wrap--fit"
             >
               <thead>
                 <tr>

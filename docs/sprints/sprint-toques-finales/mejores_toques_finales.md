@@ -676,6 +676,19 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 52. Gestión de stock: tabla de órdenes recortada entre 1500 y 1700px
+
+- La tabla de órdenes de restock necesita ~770px para mostrar Acciones. Entre
+  1501px y ~1690px, los dos paneles lado a lado le daban menos y la columna se
+  recortaba sin barra de scroll.
+- Por debajo de 1700px los paneles se apilan en columna (como propuso el
+  usuario). Por encima siguen lado a lado. Se quitó el `overflow: hidden` de la
+  tabla y la regla de 1500px.
+- Archivos: `src/pages/StockManagement/StockManagementPage.css`,
+  `src/pages/StockManagement/StockManagementPage.jsx`.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`
