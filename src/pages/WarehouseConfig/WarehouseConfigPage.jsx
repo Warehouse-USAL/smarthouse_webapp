@@ -129,8 +129,8 @@ export default function WarehouseConfigPage() {
     setConfig(next);
   };
 
-  // Vacía una posición: el backend pone product_id=null y current_stock=0, y el
-  // stock disponible del producto baja solo (se computa de las posiciones).
+  // Vacía una posición: el backend pone product_id=null y current_stock=0 y, si
+  // tenía stock, crea una reubicación pendiente de ubicación con esas unidades.
   const handleClearProduct = async () => {
     if (!selected.idPosition || !assignedProduct) return;
     setClearing(true);
@@ -312,8 +312,8 @@ export default function WarehouseConfigPage() {
           <p className="warehouse-page__clear-text">
             Se van a liberar <strong>{positionView?.currentStock ?? 0}</strong> unidades de{" "}
             <strong>{assignedProduct.name}</strong> (SKU: {assignedProduct.sku}) en{" "}
-            <strong>{locationCode}</strong>. El stock disponible del producto se va a descontar
-            en la misma cantidad.
+            <strong>{locationCode}</strong>. Quedan pendientes de reubicación en Asignación de
+            stock y no cuentan en el stock disponible hasta que se ubiquen.
           </p>
         )}
       </Modal>

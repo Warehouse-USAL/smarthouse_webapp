@@ -13,11 +13,8 @@
 |   PATCH  /users/:id             UpdateUserRequest  { name?, role?, active?, supplier? }   ← modificación
 |   POST   /users/:id/reset-password   { new_password }                          (204)
 |   POST   /users/me/change-password   { current_password, new_password }        (self)
+|   GET    /users/me                   → UserResponse                            (self)
 |   PATCH  /users/me                   { name?, address? } → UserResponse        (self)
-|
-| No existe GET /users/me (pedido en docs/nuevos_requisitos.md) y GET /users/:id
-| es solo admin: el perfil propio se lee con PATCH /users/me y cuerpo vacío
-| (ver getMe).
 |
 | El backend serializa en snake_case (JacksonConfig SNAKE_CASE). Este service
 | es el único dueño de la traducción camelCase (UI) ↔ snake_case (cable):
@@ -128,12 +125,9 @@ export const userService = {
     return normalize(data);
   },
 
-  // Perfil del usuario logueado, para cualquier rol. Se lee con PATCH /users/me
-  // y cuerpo vacío: updateMe solo toca los campos no nulos, así que no cambia
-  // nada y devuelve el usuario completo (con address y supplier). Cuando exista
-  // GET /users/me, cambia solo esta función.
+  // Perfil del usuario logueado (con address y supplier), para cualquier rol.
   async getMe() {
-    const { data } = await apiClient.patch("/users/me", {});
+    const { data } = await apiClient.get("/users/me");
     return normalize(data);
   },
 

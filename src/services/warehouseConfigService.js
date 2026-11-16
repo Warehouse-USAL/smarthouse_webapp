@@ -444,8 +444,9 @@ export const warehouseConfigService = {
     }));
   },
 
-  // Libera la posición: el backend pone product_id=null y current_stock=0. El
-  // available del producto baja solo (se computa de las posiciones).
+  // Libera la posición: el backend pone product_id=null y current_stock=0 y, si
+  // tenía stock, crea en la misma transacción una recepción RELOCATION
+  // PENDING_LOCATION con esas unidades (se ubica desde Asignación de stock).
   async clearProductFromPosition(idPosition) {
     await apiClient.patch(`/warehouse/positions/${idPosition}`, { unassign_product: true });
     return null;
