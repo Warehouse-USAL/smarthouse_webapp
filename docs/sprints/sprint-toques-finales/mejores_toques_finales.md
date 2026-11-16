@@ -336,7 +336,7 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 - Se lee con `userService.getMe`: como no existe `GET /users/me` y
   `GET /users/{id}` es solo admin, usa `PATCH /users/me` con cuerpo vacío, que
   no cambia nada y devuelve el usuario completo. El `GET` quedó pedido en
-  `docs/nuevos_requisitos.md`; cuando exista, cambia solo esa función.
+  `nuevos_requisitos.md`; cuando exista, cambia solo esa función.
 - La dirección se manda solo si cambió (el backend la reemplaza entera). Al
   guardar el nombre se actualiza el usuario guardado (`updateStoredUser`) y la
   barra lo muestra al cerrar el modal.
@@ -479,7 +479,7 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
   orden ("—"). El service ya lee `type` del remito (`RECEPTION_TYPE`); hasta
   que el backend lo mande, todo llega como remito. La fecha de una reubicación
   es la del momento en que se quitó el producto (pedido en
-  `docs/nuevos_requisitos.md`, sección 1).
+  `nuevos_requisitos.md`, sección 1).
 - La foto va centrada en su columna: nueva clase reutilizable
   `table-panel__thumb-cell` en `TablePanel.css`.
 
@@ -512,7 +512,7 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 - Nuevo componente reutilizable `SortableHeader` (`src/components/ui/`), con
   `aria-sort`.
 - Precio y stock no se pueden ordenar todavía: no están expuestos en la
-  consulta. Quedó pedido en `docs/nuevos_requisitos.md`, sección 4, junto con
+  consulta. Quedó pedido en `nuevos_requisitos.md`, sección 4, junto con
   ordenar los textos sin distinguir mayúsculas.
 - En mobile la tabla se apila sin encabezados, así que ahí no se ordena.
 - Verificado contra el backend (seed de demo): Nombre A→Z ordena el catálogo

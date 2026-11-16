@@ -254,7 +254,7 @@ export default function LoginPage() {
 
             {/*
               Oculto: el backend no tiene endpoints para recuperar contraseña
-              (ver docs/mejores_toques_finales.md §2). La página
+              (ver docs/sprints/sprint-toques-finales/mejores_toques_finales.md §2). La página
               /forgot-password sigue existiendo. Para reactivarlo, volver a
               importar Link de react-router-dom.
             <Link
