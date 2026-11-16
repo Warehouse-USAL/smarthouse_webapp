@@ -646,6 +646,14 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 
 ---
 
+## 49. Credenciales de demo en `docs/credenciales.md`
+
+- Las cuentas demo, la contraseña compartida y las variables sensibles del
+  backend (`JWT_SECRET`, `INFRA_API_KEY`, etc.) quedan documentadas en
+  `docs/credenciales.md`. No se incluyen valores reales.
+
+---
+
 ## Pendiente
 
 - **Gestión de stock / Ventas** usan `productService.listAll()`
