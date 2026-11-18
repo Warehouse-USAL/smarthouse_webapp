@@ -19,8 +19,7 @@ import "./ProfileModal.css";
 | MI PERFIL — datos propios del usuario logueado (cualquier rol)
 |--------------------------------------------------------------------------
 |
-|   lectura   userService.getMe       (PATCH /users/me vacío, hasta que exista
-|                                      GET /users/me: docs/nuevos_requisitos.md)
+|   lectura   GET /users/me
 |   datos     PATCH /users/me         { name, address }
 |   clave     POST /users/me/change-password { current_password, new_password }
 |

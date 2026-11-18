@@ -5,14 +5,6 @@
 }
 
 /* Tabla: la base viene de TablePanel */
-.users-table__user {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-3);
-  text-align: left;
-}
-
 .users-table__avatar {
   flex: 0 0 auto;
   width: 36px;

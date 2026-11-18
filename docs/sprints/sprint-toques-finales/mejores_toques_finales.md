@@ -336,7 +336,7 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 - Se lee con `userService.getMe`: como no existe `GET /users/me` y
   `GET /users/{id}` es solo admin, usa `PATCH /users/me` con cuerpo vacío, que
   no cambia nada y devuelve el usuario completo. El `GET` quedó pedido en
-  `docs/nuevos_requisitos.md`; cuando exista, cambia solo esa función.
+  `nuevos_requisitos.md`; cuando exista, cambia solo esa función.
 - La dirección se manda solo si cambió (el backend la reemplaza entera). Al
   guardar el nombre se actualiza el usuario guardado (`updateStoredUser`) y la
   barra lo muestra al cerrar el modal.
@@ -479,7 +479,7 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
   orden ("—"). El service ya lee `type` del remito (`RECEPTION_TYPE`); hasta
   que el backend lo mande, todo llega como remito. La fecha de una reubicación
   es la del momento en que se quitó el producto (pedido en
-  `docs/nuevos_requisitos.md`, sección 1).
+  `nuevos_requisitos.md`, sección 1).
 - La foto va centrada en su columna: nueva clase reutilizable
   `table-panel__thumb-cell` en `TablePanel.css`.
 
@@ -512,7 +512,7 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 - Nuevo componente reutilizable `SortableHeader` (`src/components/ui/`), con
   `aria-sort`.
 - Precio y stock no se pueden ordenar todavía: no están expuestos en la
-  consulta. Quedó pedido en `docs/nuevos_requisitos.md`, sección 4, junto con
+  consulta. Quedó pedido en `nuevos_requisitos.md`, sección 4, junto con
   ordenar los textos sin distinguir mayúsculas.
 - En mobile la tabla se apila sin encabezados, así que ahí no se ordena.
 - Verificado contra el backend (seed de demo): Nombre A→Z ordena el catálogo
@@ -552,6 +552,140 @@ resto no aparecía nunca, y el filtro por zona solo buscaba dentro de ese bloque
 - El buscador de la página busca por orden o cliente (ya no por producto).
 - Verificado contra la seed: ordenar por fecha ascendente arranca en la orden
   más vieja del rango de fechas, y al expandir carga los productos.
+
+---
+
+## 40. Perfil con `GET /users/me`
+
+- El backend ya tiene `GET /users/me` (sección 3 de `nuevos_requisitos.md`).
+  `userService.getMe` lo usa en lugar del `PATCH /users/me` con cuerpo vacío,
+  que guardaba el usuario en cada lectura. Mismo `UserResponse`: Mi perfil no
+  cambia.
+
+---
+
+## 41. Quitar producto de una posición: reubicación
+
+- Al quitar un producto de una posición con stock, el backend crea en la misma
+  transacción una recepción `type: RELOCATION` en `PENDING_LOCATION` con esas
+  unidades (sección 1 de `nuevos_requisitos.md`). El front ya la mostraba en
+  Asignación de stock con el estado "Reubicación" y sin orden.
+- Cambia el texto de confirmación de "Quitar producto": ya no dice que el stock
+  se descuenta, sino que las unidades quedan pendientes de reubicación y no
+  cuentan en el stock disponible hasta que se ubiquen.
+- Las sumas de "recibido" por orden siguen sin contar reubicaciones (se agrupan
+  por `restock_order_id`, que una reubicación no tiene).
+
+---
+
+## 42. Vehículos: sin alta desde la pantalla
+
+- Se sacó "Dar de alta vehículo" (botón del encabezado, botón de la tabla vacía
+  y su modal). La pantalla queda solo de consulta: listado, búsqueda, filtro
+  por estado y paginación.
+- `vehicleService.register` y el permiso `vehicle.create` quedan sin uso en la
+  UI; no se borraron para no tocar más archivos.
+
+---
+
+## 43. Usuarios: avatar en su propia columna
+
+- El avatar con las iniciales pasa a una columna propia (sin título), centrado
+  con `table-panel__thumb-cell` como las imágenes de las otras tablas. Nombre y
+  email quedan en "Usuario", centrados como el resto de las celdas.
+
+---
+
+## 44. Usuarios: sin columna Proveedor
+
+- Solo tenía valor para el rol `PROVIDER` (el resto de las filas mostraba "—")
+  y el proveedor ya se ve y se edita en el modal del usuario.
+
+---
+
+## 45. Usuarios: alta como en Productos
+
+- "Nuevo usuario" deja de ser un botón a la derecha del encabezado y pasa a ser
+  una `ActionCard` amarilla "Dar de alta usuario", a la izquierda, igual que
+  "Dar de alta producto". El botón de la tabla vacía no cambia.
+
+---
+
+## 46. Inicio: accesos directos según el rol
+
+- Se comparó cada tarjeta del inicio con su ruta (`AppRoutes`), el Navbar y los
+  `@PreAuthorize` del backend. Todas coincidían salvo Gestión de ventas, que
+  estaba en el Navbar pero no en el inicio: se agregó con `order.read`
+  (cualquier rol, como `GET /orders`).
+- Qué ve cada rol en el inicio:
+
+| Rol | Accesos |
+| --- | --- |
+| `SUPERADMIN` | Todos |
+| `ADMIN_WAREHOUSE` | Productos, Asignación de stock, Gestión de stock, Ventas, Configuración, Vehículos |
+| `ADMIN_SYSTEM` | Productos, Ventas, Vehículos, Usuarios |
+| `ADMIN_SALES`, `PROVIDER`, `DISPATCHER`, `OPERATOR` | Productos, Ventas |
+
+---
+
+## 47. Asignación de stock: modal de ubicar con la card de producto
+
+- "Ubicar mercadería recibida" usa la misma `ProductSummaryCard` que Nueva
+  orden de restock y el remito: imagen, nombre, SKU, categoría y un badge
+  ("Pendiente de ubicación" o "Reubicación"), con las métricas Recibido, Ya
+  ubicado, Falta ubicar y Unidad. Reemplaza la franja de texto gris.
+- El texto de arriba pasa al `subtitle` del `Modal`, como en los demás modales.
+
+---
+
+## 48. Gestión de stock: sin ícono de info en los títulos de las tablas
+
+- Las dos tablas ya tienen descripción debajo del título; el ícono (`hint` de
+  `TablePanel`, un tooltip) repetía lo mismo. Se sacó el `hint` en las dos. La
+  prop sigue en `TablePanel`, sin uso por ahora.
+
+---
+
+## 49. Credenciales de demo en `docs/credenciales.md`
+
+- Las cuentas demo, la contraseña compartida y las variables sensibles del
+  backend (`JWT_SECRET`, `INFRA_API_KEY`, etc.) quedan documentadas en
+  `docs/credenciales.md`. No se incluyen valores reales.
+
+---
+
+## 50. README: cómo levantar el proyecto completo
+
+- Se reescribió el README con el orden real para levantar el front: primero
+  `wh-backend` en `:8080` (sin backend no hay login ni datos), después
+  `npm install` y `npm run dev`.
+- La app vive bajo `/app/` también en dev: la URL es `http://localhost:5173/app/`.
+- Requisitos según Vite 8: Node `^20.19.0` o `>=22.12.0`.
+- Se agregaron solución de problemas, la estructura del proyecto y el enlace a
+  `docs/credenciales.md`.
+
+---
+
+## 51. Credenciales: por qué no entra `admin@smartwarehouse.local`
+
+- El SUPERADMIN solo se crea en el primer arranque de la base, desde
+  `ADMIN_EMAIL`/`ADMIN_PASSWORD`. Si esas variables estaban vacías, la base
+  quedó con un SUPERADMIN de email `""`, y `admin@smartwarehouse.local` nunca
+  se creó. Se documentó en `docs/credenciales.md`: hay que borrar la base y
+  levantar de nuevo con las variables.
+
+---
+
+## 52. Gestión de stock: tabla de órdenes recortada entre 1500 y 1700px
+
+- La tabla de órdenes de restock necesita ~770px para mostrar Acciones. Entre
+  1501px y ~1690px, los dos paneles lado a lado le daban menos y la columna se
+  recortaba sin barra de scroll.
+- Por debajo de 1700px los paneles se apilan en columna (como propuso el
+  usuario). Por encima siguen lado a lado. Se quitó el `overflow: hidden` de la
+  tabla y la regla de 1500px.
+- Archivos: `src/pages/StockManagement/StockManagementPage.css`,
+  `src/pages/StockManagement/StockManagementPage.jsx`.
 
 ---
 

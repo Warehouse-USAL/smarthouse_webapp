@@ -2,11 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import Modal from "../../ui/Modal/Modal";
 import Select from "../../ui/Select/Select";
 import Button from "../../ui/Button/Button";
-import Badge from "../../ui/Badge/Badge";
 import Icon from "../../ui/Icon/Icon";
 import StatusBanner from "../../ui/StatusBanner/StatusBanner";
 import PositionAssigner from "../PositionAssigner/PositionAssigner";
-import { restockService } from "../../../services/restockService";
+import ProductSummaryCard from "../ProductSummaryCard/ProductSummaryCard";
+import { RECEPTION_TYPE, restockService } from "../../../services/restockService";
 import { errorText } from "../../../lib/apiError";
 import { STORAGE_UNIT_LABEL } from "../../../lib/storageCompatibility";
 import "./LocateReceptionModal.css";
@@ -24,6 +24,7 @@ import "./LocateReceptionModal.css";
 */
 
 const formatDate = (iso) => (iso ? new Date(iso).toLocaleDateString("es-AR") : "—");
+const units = (n) => `${n ?? 0} unidades`;
 
 export default function LocateReceptionModal({
   open,
@@ -110,6 +111,7 @@ export default function LocateReceptionModal({
       open={open}
       onClose={onClose}
       title="Ubicar mercadería recibida"
+      subtitle="Elegí en qué posiciones va la mercadería sin ubicar. Al confirmar, el stock de esas posiciones se incrementa."
       size="lg"
       footer={
         <>
@@ -122,12 +124,6 @@ export default function LocateReceptionModal({
         </>
       }
     >
-      <p className="locate-modal__subtitle">
-        Estos remitos ya se recibieron pero todavía tienen mercadería sin
-        posición asignada. Al confirmar, el stock de las posiciones elegidas se
-        incrementa.
-      </p>
-
       {receptions.length === 0 ? (
         <p className="locate-modal__empty">
           No hay remitos pendientes de ubicación.
@@ -146,17 +142,27 @@ export default function LocateReceptionModal({
 
           {reception && (
             <>
-              <div className="locate-modal__info">
-                <Badge variant="warning" dot>
-                  Pendiente de ubicación
-                </Badge>
-                <span>
-                  {product?.name ?? reception.productId} · Recibido:{" "}
-                  <strong>{reception.quantityReceived}</strong> · Ya ubicado:{" "}
-                  <strong>{reception.quantityLocated}</strong> · Falta ubicar:{" "}
-                  <strong>{pending}</strong>
-                </span>
-              </div>
+              <ProductSummaryCard
+                imageUrl={product?.imageUrl}
+                name={product?.name ?? "Producto dado de baja"}
+                sku={product?.sku ?? reception.productId}
+                category={product?.category}
+                badge={
+                  reception.type === RECEPTION_TYPE.RELOCATION
+                    ? { variant: "info", label: "Reubicación" }
+                    : { variant: "warning", label: "Pendiente de ubicación" }
+                }
+                metrics={[
+                  { icon: "box", label: "Recibido", value: units(reception.quantityReceived) },
+                  { icon: "check", label: "Ya ubicado", value: units(reception.quantityLocated) },
+                  { icon: "pin", label: "Falta ubicar", value: units(pending) },
+                  {
+                    icon: "grid",
+                    label: "Unidad",
+                    value: STORAGE_UNIT_LABEL[reception.deliveryUnit] ?? "—",
+                  },
+                ]}
+              />
 
               <PositionAssigner
                 productId={reception.productId}

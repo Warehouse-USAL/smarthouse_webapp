@@ -61,8 +61,8 @@ describe("listAll", () => {
 describe("perfil propio (/users/me)", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("getMe lee con PATCH vacío y normaliza dirección y proveedor", async () => {
-    apiClient.patch.mockResolvedValue({
+  it("getMe lee con GET /users/me y normaliza dirección y proveedor", async () => {
+    apiClient.get.mockResolvedValue({
       data: {
         id: "u1",
         role: "PROVIDER",
@@ -71,7 +71,8 @@ describe("perfil propio (/users/me)", () => {
       },
     });
     const me = await userService.getMe();
-    expect(apiClient.patch).toHaveBeenCalledWith("/users/me", {});
+    expect(apiClient.get).toHaveBeenCalledWith("/users/me");
+    expect(apiClient.patch).not.toHaveBeenCalled();
     expect(me.supplier).toBe("ACME");
     expect(me.address.postalCode).toBe("1425");
   });
