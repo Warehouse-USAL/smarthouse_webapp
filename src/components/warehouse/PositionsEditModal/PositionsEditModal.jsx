@@ -150,10 +150,6 @@ function LinePositionsTable({ idZone, idLine, positions, onSaved, onClose }) {
     setDrafts((list) => list.map((d) => (d.idPosition === idPosition ? { ...d, ...patch } : d)));
   };
 
-  const applySizeToAll = (size) => {
-    setDrafts((list) => list.map((d) => ({ ...d, sizeStockToSave: size })));
-  };
-
   const handleSave = async () => {
     if (changed.length === 0) {
       onClose?.();
@@ -197,20 +193,6 @@ function LinePositionsTable({ idZone, idLine, positions, onSaved, onClose }) {
 
   return (
     <>
-      <div className="positions-edit__bulk">
-        <span className="positions-edit__bulk-label">Aplicar a todas:</span>
-        {SIZE_OPTIONS.map((opt) => (
-          <button
-            key={opt.value}
-            type="button"
-            className="positions-edit__bulk-btn"
-            onClick={() => applySizeToAll(opt.value)}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
-
       <div className="positions-edit__table" role="table">
         <div className="positions-edit__head" role="row">
           <span role="columnheader">Posición</span>
