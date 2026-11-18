@@ -239,6 +239,7 @@ function LinePositionsTable({ idZone, idLine, positions, onSaved, onClose }) {
                     value={d.sizeStockToSave}
                     onChange={(e) => updateDraft(d.idPosition, { sizeStockToSave: e.target.value })}
                     options={SIZE_OPTIONS}
+                    disabled={d.occupied}
                   />
                 </span>
                 <span className="positions-edit__unit" role="cell">
