@@ -22,40 +22,6 @@
   text-align: center;
 }
 
-/* --- Aplicar a todas --- */
-.positions-edit__bulk {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin-top: var(--space-4);
-}
-
-.positions-edit__bulk-label {
-  font-size: var(--text-xs);
-  font-weight: var(--weight-semibold);
-  color: var(--color-text-secondary-alt);
-  margin-right: 4px;
-}
-
-.positions-edit__bulk-btn {
-  padding: 5px 12px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--color-border);
-  background: var(--color-white);
-  font-size: var(--text-xs);
-  font-weight: var(--weight-medium);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
-}
-
-.positions-edit__bulk-btn:hover {
-  border-color: var(--color-yellow-primary);
-  background: var(--color-yellow-soft);
-  color: var(--color-text-primary);
-}
-
 /* --- Tabla de posiciones --- */
 .positions-edit__table {
   margin-top: var(--space-3);
