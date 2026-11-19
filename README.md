@@ -9,7 +9,9 @@ vehículos y usuarios.
 | Tests | Vitest |
 | Backend | `wh-backend` (Spring Boot + MongoDB), en `:8080` |
 
-**Índice:** [Requisitos](#requisitos) · [Levantar el proyecto](#levantar-el-proyecto) ·
+**Índice:** [Requisitos](#requisitos) · [Dependencias](#dependencias-y-versiones) ·
+[Levantar el proyecto](#levantar-el-proyecto) ·
+[Variables de entorno](#variables-de-entorno-y-url-de-la-api) ·
 [Solución de problemas](#solución-de-problemas) · [Scripts](#scripts) ·
 [Estructura](#estructura) · [Flujo de trabajo Git](#flujo-de-trabajo-git) ·
 [Despliegue](#despliegue)
@@ -25,6 +27,23 @@ vehículos y usuarios.
 
 > La app no usa datos mockeados: necesita `wh-backend` corriendo en
 > `http://localhost:8080`. Sin backend, el login y las pantallas no cargan.
+
+### Dependencias y versiones
+
+Frontend (rangos definidos en `package.json`):
+
+| Paquete | Versión |
+| --- | --- |
+| React y react-dom | `^19.2.5` |
+| React Router (`react-router-dom`) | `^7.15.0` |
+| Vite | `^8.0.10` |
+| @vitejs/plugin-react | `^6.0.1` |
+| Axios | `^1.16.1` |
+| Vitest | `^5.0.5` |
+| ESLint | `^10.2.1` |
+
+Backend: `wh-backend` (Spring Boot + MongoDB), levantado con Docker. Su versión
+y requisitos están en el repositorio de `wh-backend`.
 
 ---
 
@@ -61,6 +80,9 @@ cd ../smarthouse_webapp
 npm install
 ```
 
+El repo ya trae `.env` con los valores de desarrollo; no hace falta modificarlo
+(ver [Variables de entorno](#variables-de-entorno-y-url-de-la-api)).
+
 ### 4. Iniciar el frontend
 
 ```bash
@@ -80,6 +102,43 @@ Para entrar, usar una cuenta demo de [`docs/credenciales.md`](docs/credenciales.
 - `make` no viene en Windows. `make up-dev` equivale a
   `docker compose --profile dev up --build` (ejecutado desde `wh-backend`), y
   toma las variables de `.env`.
+
+---
+
+## Variables de entorno y URL de la API
+
+**Frontend (`.env`)**
+
+| Variable | Valor en el repo | Uso |
+| --- | --- | --- |
+| `VITE_API_BASE_URL` | vacía | Vacía significa mismo origen: las llamadas van a `/auth`, `/products`, etc., y Vite las redirige al backend. No poner una URL salvo que se quiera saltear el proxy |
+
+Las demás variables del `.env` (`VITE_USE_MOCK`, `VITE_USE_MOCK_AUTH`) no
+tienen efecto en el código actual.
+
+**Proxy de desarrollo (`vite.config.js`)**
+
+- Destino: `VITE_API_TARGET`, por defecto `http://localhost:8080`.
+- Esta variable se lee del entorno del shell, no de `.env`. Para cambiarla:
+
+```bash
+VITE_API_TARGET=http://localhost:8081 npm run dev
+```
+
+- Rutas redirigidas al backend: `/auth`, `/products`, `/orders`, `/vehicles`,
+  `/users`, `/warehouse`, `/restock`, `/metrics`, `/query`, `/ws` y
+  `/api/v1/files`.
+
+**Backend (`wh-backend/.env`)**
+
+- `JWT_SECRET`: mínimo 32 caracteres.
+- `ADMIN_PASSWORD`: contraseña del usuario administrador.
+- `SEED_DEMO`: `true` para cargar datos de prueba (solo sobre una base vacía).
+
+**Producción**
+
+La app se sirve bajo `/app` detrás del proxy, y el backend queda en la raíz.
+No se usa `BACKEND_URL` (ver [Despliegue](#despliegue)).
 
 ---
 
